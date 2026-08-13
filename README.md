@@ -11,8 +11,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | Analyse du besoin et périmètre MVP | Préparé |
 | Architecture, données, sécurité et tests | Documentés |
 | Roadmap par tickets | Préparée |
-| T-001 — Initialisation Django | Terminé sur `feature/initialisation-django` |
-| Application Django | Socle modulaire initialisé ; fonctionnalités MVP non implémentées |
+| T-001 — Initialisation Django | Terminé et intégré à `develop` |
+| T-002 — PostgreSQL et environnement | Terminé sur `feature/postgresql-environment` |
+| Application Django | Socle modulaire et PostgreSQL configurés ; fonctionnalités MVP non implémentées |
 
 ## Objectif du MVP
 
@@ -70,7 +71,9 @@ python manage.py runserver
 | [`docs/decisions.md`](docs/decisions.md) | Journal des décisions techniques pour le mémoire |
 | [`docs/open-questions.md`](docs/open-questions.md) | Informations métier et organisationnelles à valider avec C-Tech |
 | [`docs/technical-validation-questions.md`](docs/technical-validation-questions.md) | Décisions techniques à valider avant intégration et déploiement |
+| [`docs/environment.md`](docs/environment.md) | Configuration PostgreSQL et exigences d’environnement de production |
 | [`docs/tickets/T-001.md`](docs/tickets/T-001.md) | Compte rendu de clôture du ticket d’initialisation |
+| [`docs/tickets/T-002.md`](docs/tickets/T-002.md) | Compte rendu de clôture du ticket PostgreSQL et environnement |
 
 ## Convention Git
 
