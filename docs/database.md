@@ -94,3 +94,17 @@ erDiagram
 Les index à prévoir dans les premières migrations utiles concernent `Archive.reference`, les clés étrangères de l’archive, `Archive.document_date`, `Archive.status`, `Archive.confidentiality_level` et `AuditLog.created_at`. La recherche textuelle initiale peut combiner des filtres ORM sur la référence et le titre ; une indexation PostgreSQL plus avancée sera étudiée uniquement si le volume ou les besoins l’exigent.
 
 La valeur `checksum` correspondra à une chaîne hexadécimale SHA-256 de 64 caractères. La taille devra être stockée en octets. La somme de contrôle est une propriété d’intégrité, non une méthode de chiffrement ni de contrôle d’accès.
+
+## Évolution T-003 — Utilisateur personnalisé
+
+À partir de T-003, la table utilisateur est `accounts_user` et non `auth_user`. Elle reprend les champs d’identité, de sécurité, de groupes et de permissions hérités d’`AbstractUser`, puis ajoute `role`. Le champ `username` demeure unique et constitue l’identifiant technique du MVP ; `email` est également unique et obligatoire.
+
+| Attribut ajouté ou structurant | Rôle |
+|---|---|
+| `role` | Rôle métier centralisé : `ADMINISTRATEUR`, `AGENT_ARCHIVES` ou `CONSULTANT` |
+| `email` | Adresse obligatoire et unique ; préparée pour une évolution future sans devenir l’identifiant de connexion dans ce MVP |
+| `is_active` | Désactivation fonctionnelle d’un compte sans suppression des données futures |
+| `is_staff` | Accès explicite à l’administration Django, distinct du rôle métier |
+| `is_superuser` | Privilège technique global Django, distinct du rôle métier |
+
+La contrainte `accounts_user_role_is_valid` interdit l’enregistrement d’une valeur de rôle non prévue, y compris lors d’une tentative de contournement de la validation applicative. Tous les futurs modèles contenant une relation vers un utilisateur devront déclarer leur clé étrangère avec `settings.AUTH_USER_MODEL` afin de rester compatibles avec ce modèle personnalisé.

@@ -61,3 +61,31 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Alternative étudiée.** Se contenter des journaux techniques du serveur.
 
 **Pourquoi elle n’est pas retenue.** Les journaux techniques ne fournissent pas nécessairement une traçabilité métier structurée, recherchable et liée aux entités de l’application.
+
+## ADR-007 — Modèle utilisateur personnalisé dès le démarrage
+
+**Décision.** Le projet utilise `accounts.User`, un modèle personnalisé basé sur `AbstractUser`, déclaré par `AUTH_USER_MODEL = "accounts.User"` avant toute migration métier.
+
+**Justification.** Les rôles métier font partie du besoin initial. Définir le modèle dès le début évite une migration risquée depuis `auth.User` lorsque les archives et journaux d’audit dépendront des utilisateurs. `AbstractUser` conserve le hachage des mots de passe, les permissions, les groupes, les sessions et l’administration native de Django.
+
+**Alternative étudiée.** Conserver le modèle `auth.User` par défaut et créer un profil séparé.
+
+**Pourquoi elle n’est pas retenue.** Cette alternative séparerait les informations d’identité et de rôle, introduirait une relation additionnelle et rendrait l’évolution des relations métier moins directe.
+
+## ADR-008 — Username comme identifiant technique du MVP
+
+**Décision.** Le champ `username` d’`AbstractUser` reste l’identifiant technique de connexion. L’email est obligatoire et unique, mais il n’est pas encore le champ `USERNAME_FIELD`.
+
+**Justification.** Cette solution utilise le flux Django standard sans réécrire les mécanismes d’authentification, ce qui réduit le risque et reste facile à expliquer et tester dans le cadre du MVP. L’unicité de l’email préserve une évolution future si C-Tech décide d’une connexion par email.
+
+**Alternative étudiée.** Utiliser immédiatement l’email comme identifiant principal.
+
+**Pourquoi elle n’est pas retenue.** Ce choix impliquerait une personnalisation plus profonde des formulaires, des commandes et des parcours d’authentification, alors qu’aucune exigence C-Tech ne le justifie encore.
+
+## ADR-009 — Rôle métier distinct des permissions et du superutilisateur
+
+**Décision.** `User.role` exprime le rôle métier principal (`ADMINISTRATEUR`, `AGENT_ARCHIVES`, `CONSULTANT`), tandis que les droits précis resteront attribuables avec les permissions et groupes Django. Le rôle `ADMINISTRATEUR` ne modifie ni `is_staff` ni `is_superuser`.
+
+**Justification.** L’authentification établit l’identité de l’utilisateur ; l’autorisation détermine les actions qu’il peut réaliser. Un rôle métier facilite les règles de haut niveau, tandis que les groupes et permissions permettent un contrôle serveur fin et réutilisable. Un superutilisateur Django détient des privilèges techniques globaux et ne doit pas être créé implicitement par un rôle fonctionnel.
+
+**Conséquence.** Tous les futurs modèles qui ciblent un utilisateur doivent utiliser `settings.AUTH_USER_MODEL` ou `get_user_model()` selon leur contexte. Les imports directs de `django.contrib.auth.models.User` sont interdits dans le code métier.

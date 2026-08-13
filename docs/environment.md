@@ -47,3 +47,9 @@ La connexion est vérifiée par la configuration Django et par l’exécution de
 ## Limites du ticket
 
 T-002 prépare la configuration. Il n’implémente pas encore la politique de sauvegarde de production, le chiffrement au repos, le déploiement HTTPS, le modèle `User` personnalisé ou les modèles métier. Ces sujets restent dépendants des informations à valider avec C-Tech et des tickets ultérieurs.
+
+## Particularité du compte local de test
+
+Le compte `c_tech_app` de cet environnement de développement possède le privilège PostgreSQL `CREATEDB`, uniquement pour permettre à `python manage.py test` de créer puis détruire sa base temporaire `test_c_tech_archives`. Il reste non superutilisateur et ne dispose ni de `CREATEROLE` ni de privilèges d’administration du serveur.
+
+Ce compromis est spécifique au sandbox de développement. En production, le compte exécutant l’application ne doit pas recevoir `CREATEDB`. Les migrations et les opérations d’administration de base doivent y être exécutées par un compte de déploiement distinct, soumis aux procédures C-Tech de sauvegarde et de changement.

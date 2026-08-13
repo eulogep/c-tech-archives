@@ -46,3 +46,18 @@ Des commandes ciblées pourront être utilisées pendant un ticket, mais `python
 ## Données de test
 
 Les fichiers de test seront synthétiques et de taille réduite. Aucun document réel de C-Tech, aucune donnée personnelle réelle et aucun secret ne doivent être ajoutés au dépôt ou aux jeux de tests.
+
+## Couverture ajoutée par T-003
+
+| Référence | Scénario | Résultat attendu |
+|---|---|---|
+| TS-15 | Résolution du modèle actif | `get_user_model()` retourne `accounts.User` |
+| TS-16 | Création d’un utilisateur | Un compte valide est créé avec le rôle Consultant par défaut |
+| TS-17 | Hachage de mot de passe | La valeur persistée diffère du mot de passe source et `check_password()` réussit |
+| TS-18 | Rôles métier | Les valeurs Administrateur, Agent d’archives et Consultant sont acceptées |
+| TS-19 | Rôle invalide | La validation et la contrainte PostgreSQL refusent une valeur hors choix |
+| TS-20 | Compte inactif | `is_active=False` est conservé sans supprimer le compte |
+| TS-21 | Rôle et superutilisateur | Un Administrateur métier n’obtient pas automatiquement les privilèges `is_staff` ou `is_superuser` |
+| TS-22 | Commande de superutilisateur | `createsuperuser` crée un compte compatible avec `accounts.User` et un mot de passe haché |
+
+Les comptes et mots de passe utilisés par ces tests sont synthétiques et isolés dans la base de tests Django. Aucun utilisateur réel ou secret de C-Tech n’est inséré dans l’environnement de développement ou le dépôt.
