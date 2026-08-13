@@ -1,0 +1,89 @@
+# Plateforme web sécurisée de gestion des archives — C-Tech
+
+> **Projet académique de Génie Informatique (3e année).** Cette plateforme vise à centraliser, sécuriser et tracer la gestion des archives de C-Tech, sans présumer de processus métier non encore validés par l’organisation.
+
+## État du projet
+
+Le dépôt est initialisé avec la **conception fonctionnelle et technique préalable au code**. Cette approche permet de conserver un lien démontrable entre les besoins, les choix de conception, les tests et les futures itérations Git.
+
+| Élément | État |
+|---|---|
+| Analyse du besoin et périmètre MVP | Préparé |
+| Architecture, données, sécurité et tests | Documentés |
+| Roadmap par tickets | Préparée |
+| T-001 — Initialisation Django | À démarrer |
+| Application Django | Non implémentée |
+
+## Objectif du MVP
+
+Le MVP permettra à des utilisateurs authentifiés de gérer des archives et leurs métadonnées, selon des droits contrôlés côté serveur. Les actions sensibles seront journalisées et chaque fichier déposé recevra une empreinte SHA-256 permettant un contrôle ultérieur de son intégrité.
+
+Les rôles prévus sont **Administrateur**, **Agent d’archives** et **Consultant**. L’application s’appuiera sur Django, PostgreSQL, Django Templates et Bootstrap. Le frontend restera intégré à Django pendant le MVP.
+
+## Architecture cible
+
+```text
+c-tech-archives/
+├── config/                 # Configuration Django, réglages par environnement
+├── accounts/               # Utilisateur personnalisé, rôles et gestion des comptes
+├── archives/               # Archives, catégories, services, types de document
+├── audit/                  # Journal d’audit applicatif
+├── dashboard/              # Indicateurs et vue d’accueil
+├── templates/              # Gabarits Django partagés
+├── static/                 # Ressources statiques, dont Bootstrap
+├── media/                  # Fichiers locaux de développement — non versionnés
+├── tests/                  # Tests transversaux et de sécurité
+├── docs/                   # Documentation pour le mémoire
+├── requirements.txt
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+La logique métier ne devra pas être concentrée dans une seule application. Les frontières fonctionnelles sont décrites dans [`docs/architecture.md`](docs/architecture.md).
+
+## Démarrage prévu après T-001
+
+Une fois le ticket **T-001** implémenté, l’exécution locale suivra le flux ci-dessous. Ces commandes sont documentées à titre de cible et ne sont pas encore exécutables tant que le projet Django n’est pas initialisé.
+
+```bash
+git clone https://github.com/eulogep/c-tech-archives.git
+cd c-tech-archives
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python manage.py migrate
+python manage.py runserver
+```
+
+## Documentation
+
+| Document | Contenu |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | Architecture modulaire, composants et flux principaux |
+| [`docs/database.md`](docs/database.md) | Modèles Django, MCD et MLD initiaux |
+| [`docs/security.md`](docs/security.md) | Exigences et mesures de sécurité du MVP |
+| [`docs/use-cases.md`](docs/use-cases.md) | Cas d’utilisation et acteurs |
+| [`docs/roadmap.md`](docs/roadmap.md) | Tickets séquentiels et conditions de passage |
+| [`docs/tests.md`](docs/tests.md) | Stratégie de test et matrice de couverture |
+| [`docs/decisions.md`](docs/decisions.md) | Journal des décisions techniques pour le mémoire |
+| [`docs/open-questions.md`](docs/open-questions.md) | Informations à valider avec C-Tech |
+
+## Convention Git
+
+Le dépôt suivra une organisation simple : `main`, `develop`, `feature/*` et `fix/*`. Un ticket correspond à une branche de fonctionnalité, à des tests associés et à un commit explicite. Aucun ticket ne doit être considéré terminé si ses tests échouent.
+
+Exemple de commit :
+
+```text
+feat(auth): add role-based authentication
+```
+
+## Hors périmètre du MVP
+
+La blockchain, l’intelligence artificielle, l’OCR avancé, les applications mobiles, la signature électronique, les microservices, Kubernetes et l’architecture distribuée constituent des **perspectives** et ne seront pas implémentés dans le MVP.
+
+## Licence
+
+Les modalités de licence et de propriété intellectuelle restent à définir avec C-Tech et l’établissement académique. Aucune licence publique n’est déclarée à ce stade.
