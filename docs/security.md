@@ -46,3 +46,13 @@ Le fichier `.env` contiendra notamment `SECRET_KEY`, les paramètres de connexio
 ## Limites et perspectives
 
 Le MVP n’inclut pas le chiffrement au repos, l’antivirus, la signature électronique, le DLP, l’authentification multifacteur ou une gestion documentaire réglementaire complète. Ces sujets pourront être étudiés comme perspectives après une analyse des risques, des contraintes légales applicables et des besoins réels de C-Tech.
+
+## Fondations d’identité et d’autorisation — T-003
+
+Le projet s’appuie sur `accounts.User`, déclaré comme `AUTH_USER_MODEL` avant la création des modèles métier. Django gère le hachage et la vérification des mots de passe ; aucune fonctionnalité du projet ne doit stocker ou comparer un mot de passe en clair. Les tests vérifient qu’un mot de passe créé par le gestionnaire Django est distinct de sa valeur source et qu’il reste vérifiable avec `check_password()`.
+
+> **Authentification** : le système vérifie qui est l’utilisateur. **Autorisation** : le système vérifie que cet utilisateur dispose du droit d’effectuer une action donnée. Ces mécanismes sont complémentaires et les futures vues devront toujours vérifier les permissions côté serveur.
+
+Le champ `role` contient le rôle métier principal et ses valeurs sont limitées à `ADMINISTRATEUR`, `AGENT_ARCHIVES` et `CONSULTANT` par les choix Django et une contrainte de base de données. Il ne remplace pas les groupes ni les permissions. En particulier, un Administrateur métier ne devient pas automatiquement un superutilisateur Django ou un membre du personnel d’administration. Les privilèges `is_staff` et `is_superuser` restent explicites, contrôlés et réservés aux besoins techniques.
+
+Les futures clés étrangères vers l’utilisateur utiliseront `settings.AUTH_USER_MODEL`. Les règles de permissions fines, les décorateurs et les mixins seront mis en œuvre par les tickets fonctionnels concernés, notamment lors de la gestion des archives ; ils ne sont pas anticipés par des contrôles d’interface dans T-003.

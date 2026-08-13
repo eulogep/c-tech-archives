@@ -12,8 +12,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | Architecture, données, sécurité et tests | Documentés |
 | Roadmap par tickets | Préparée |
 | T-001 — Initialisation Django | Terminé et intégré à `develop` |
-| T-002 — PostgreSQL et environnement | Terminé sur `feature/postgresql-environment` |
-| Application Django | Socle modulaire et PostgreSQL configurés ; fonctionnalités MVP non implémentées |
+| T-002 — PostgreSQL et environnement | Terminé et intégré à `develop` |
+| T-003 — Utilisateur personnalisé et rôles | Terminé sur `feature/custom-user-roles` |
+| Application Django | Socle modulaire, PostgreSQL et modèle utilisateur personnalisé configurés ; fonctionnalités MVP non implémentées |
 
 ## Objectif du MVP
 
@@ -74,6 +75,7 @@ python manage.py runserver
 | [`docs/environment.md`](docs/environment.md) | Configuration PostgreSQL et exigences d’environnement de production |
 | [`docs/tickets/T-001.md`](docs/tickets/T-001.md) | Compte rendu de clôture du ticket d’initialisation |
 | [`docs/tickets/T-002.md`](docs/tickets/T-002.md) | Compte rendu de clôture du ticket PostgreSQL et environnement |
+| [`docs/tickets/T-003.md`](docs/tickets/T-003.md) | Compte rendu de clôture du ticket utilisateur personnalisé et rôles |
 
 ## Convention Git
 

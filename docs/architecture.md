@@ -69,3 +69,9 @@ Les paramètres secrets sont lus depuis les variables d’environnement. Le dép
 ## Évolutivité contrôlée
 
 Le modèle prévoit des points d’extension pour les règles de confidentialité, les catégories, les types de document et les services. Les processus de conservation documentaire, les droits par service et les éventuelles règles réglementaires doivent toutefois être validés par C-Tech avant d’être considérés comme définitifs.
+
+## Fondation d’identité — T-003
+
+L’application `accounts` fournit le modèle `accounts.User` et constitue la seule source d’identité applicative. Les futures applications métier ne doivent ni importer `auth.User` ni définir de relation figée vers cette table ; elles utiliseront `settings.AUTH_USER_MODEL` dans leurs modèles et `get_user_model()` dans les services qui exigent la classe effective.
+
+Le rôle métier stocké sur l’utilisateur permet d’orienter les règles fonctionnelles de haut niveau. Les groupes et permissions Django restent toutefois la source de vérité pour les autorisations précises, vérifiées côté serveur. Cette séparation empêche qu’un libellé métier tel qu’Administrateur entraîne implicitement des privilèges techniques globaux.
