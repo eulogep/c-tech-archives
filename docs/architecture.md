@@ -90,3 +90,27 @@ flowchart LR
 ```
 
 T-004 n’ajoute aucune vue métier, aucun upload, aucune recherche, aucune règle RBAC d’archive ni journal d’audit. Ces comportements dépendront des modèles désormais disponibles mais restent explicitement hors périmètre du ticket.
+
+## Flux d’authentification — T-006
+
+```mermaid
+sequenceDiagram
+    participant U as Utilisateur
+    participant L as /accounts/login/
+    participant A as Auth Django
+    participant S as Session Django
+    participant H as / (vue protégée)
+
+    U->>H: Requête anonyme
+    H-->>U: Redirection vers login avec next local
+    U->>L: Identifiant, mot de passe et jeton CSRF
+    L->>A: Vérification native
+    A->>S: Création et renouvellement de session
+    L-->>U: Redirection locale autorisée
+    U->>H: Requête authentifiée
+    H-->>U: Page de démonstration protégée
+    U->>S: POST de déconnexion avec CSRF
+    S-->>U: Session invalidée, redirection vers login
+```
+
+Les vues d’archives, les permissions métier et le tableau de bord complet ne sont pas introduits par ce flux. La page racine sert uniquement de preuve contrôlée que l’authentification par session est active avant les travaux du ticket T-007.

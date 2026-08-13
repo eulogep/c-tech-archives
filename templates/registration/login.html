@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="login-title">
+    <h1 id="login-title">Connexion</h1>
+    <p class="muted">Accédez à la plateforme de gestion des archives.</p>
+
+    {% if form.non_field_errors %}
+      <div class="errors" role="alert">Identifiants invalides.</div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+      {% endif %}
+      <p>
+        <label for="{{ form.username.id_for_label }}">Nom d’utilisateur</label><br>
+        {{ form.username }}
+      </p>
+      <p>
+        <label for="{{ form.password.id_for_label }}">Mot de passe</label><br>
+        {{ form.password }}
+      </p>
+      <button class="button" type="submit">Connexion</button>
+    </form>
+  </section>
+{% endblock %}

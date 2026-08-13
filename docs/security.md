@@ -64,3 +64,17 @@ T-004 protège la cohérence des métadonnées avant tout stockage de fichier. L
 Le champ `checksum` accepte uniquement une valeur vide ou une chaîne SHA-256 hexadécimale de 64 caractères. Il ne calcule aucune empreinte dans ce ticket, ne chiffre aucun document et ne confère aucun droit d’accès. Le calcul d’empreinte, la validation MIME, le stockage privé et le téléchargement contrôlé sont reportés au ticket d’upload sécurisé.
 
 Les niveaux de confidentialité sont des métadonnées provisoires. Aucune autorisation d’archive ne doit encore être déduite du champ `confidentiality_level` : les contrôles RBAC et les permissions serveur seront introduits par les tickets fonctionnels pertinents.
+
+## Authentification par session Django — T-006
+
+T-006 utilise `LoginView`, `LogoutView`, `AuthenticationForm`, `@login_required` et le moteur de sessions natif de Django. Cette approche s’intègre directement au modèle `accounts.User`, réutilise les mécanismes éprouvés de vérification de mot de passe et évite de stocker manuellement un identifiant, un rôle ou un mot de passe dans des cookies personnalisés.
+
+> **Authentification** : le serveur vérifie l’identité présentée par un utilisateur. **Autorisation** : le serveur vérifie ensuite ce que cet utilisateur peut faire. T-006 couvre uniquement l’authentification ; les permissions métier sur les archives seront introduites dans le ticket T-011.
+
+Le mot de passe n’est jamais lu depuis PostgreSQL ni comparé manuellement. Django conserve une **empreinte de hachage** non réversible, et vérifie la valeur saisie avec son mécanisme de hachage. Un hash n’est pas un chiffrement : il ne doit pas être déchiffré pour authentifier un utilisateur.
+
+La page de connexion contient un jeton `{% csrf_token %}`. La protection CSRF empêche un site tiers de déclencher à l’insu d’un utilisateur authentifié une action utilisant sa session. La déconnexion est réalisée par un formulaire POST protégé CSRF, conformément au comportement moderne de Django, afin de ne pas être déclenchée par une simple ressource intégrable.
+
+Après une connexion réussie, Django crée et renouvelle la session associée à l’utilisateur ; l’application ne forge ni ne fixe d’identifiant de session. Ce renouvellement réduit le risque de fixation de session. Après la déconnexion, la session est invalidée et l’accès à la page protégée redirige de nouveau vers la connexion.
+
+Les utilisateurs `is_active=False` sont refusés par le backend Django standard. Les échecs liés à un mot de passe incorrect, un utilisateur inconnu ou un utilisateur inactif affichent le même message générique afin de ne pas aider à l’énumération des comptes. Le paramètre `next` est traité par les contrôles Django : une destination locale est acceptée, tandis qu’une URL externe arbitraire est neutralisée.

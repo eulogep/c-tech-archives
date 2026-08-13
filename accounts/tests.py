@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import Client, TestCase
 
 from .models import Role, User
 
@@ -118,3 +118,114 @@ class UserModelTests(TestCase):
         self.assertTrue(superuser.is_superuser)
         self.assertTrue(superuser.is_staff)
         self.assertTrue(superuser.check_password("MotDePasse-Superuser-2026"))
+
+
+class AuthenticationFlowTests(TestCase):
+    """Couvre le parcours d’authentification natif Django du ticket T-006."""
+
+    password = "MotDePasse-Authentification-2026"
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="auth-user",
+            email="auth-user@example.test",
+            password=self.password,
+        )
+        self.login_url = "/accounts/login/"
+        self.logout_url = "/accounts/logout/"
+        self.home_url = "/"
+
+    def test_auth_001_anonymous_user_is_redirected_to_login(self):
+        response = self.client.get(self.home_url)
+
+        self.assertRedirects(response, f"{self.login_url}?next=/")
+
+    def test_auth_002_valid_user_login_creates_session_and_redirects(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": self.user.username, "password": self.password},
+        )
+
+        self.assertRedirects(response, self.home_url)
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_auth_003_wrong_password_is_refused_with_generic_message(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": self.user.username, "password": "Mauvais-Mot-De-Passe"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Identifiants invalides.")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_auth_004_unknown_user_is_refused_with_same_generic_message(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": "inconnu", "password": "Mauvais-Mot-De-Passe"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Identifiants invalides.")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_auth_005_inactive_user_is_refused(self):
+        self.user.is_active = False
+        self.user.save(update_fields=["is_active"])
+
+        response = self.client.post(
+            self.login_url,
+            {"username": self.user.username, "password": self.password},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Identifiants invalides.")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_auth_006_authenticated_user_can_access_protected_view(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.home_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.user.username)
+
+    def test_auth_007_logout_invalidates_session_and_protects_home_again(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.logout_url)
+
+        self.assertRedirects(response, self.login_url)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertRedirects(self.client.get(self.home_url), f"{self.login_url}?next=/")
+
+    def test_auth_008_login_post_requires_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.get(self.login_url)
+
+        response = csrf_client.post(
+            self.login_url,
+            {"username": self.user.username, "password": self.password},
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_auth_009_local_next_parameter_is_accepted(self):
+        response = self.client.post(
+            f"{self.login_url}?next={self.home_url}",
+            {"username": self.user.username, "password": self.password, "next": self.home_url},
+        )
+
+        self.assertRedirects(response, self.home_url)
+
+    def test_auth_010_external_next_parameter_is_neutralized(self):
+        response = self.client.post(
+            f"{self.login_url}?next=https://example.invalid/",
+            {
+                "username": self.user.username,
+                "password": self.password,
+                "next": "https://example.invalid/",
+            },
+        )
+
+        self.assertRedirects(response, self.home_url)

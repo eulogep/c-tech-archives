@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Espace protégé | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="home-title">
+    <h1 id="home-title">Espace protégé</h1>
+    <p>Vous êtes connecté en tant que <strong>{{ user.username }}</strong>.</p>
+    <p class="muted">Cette page sert uniquement à démontrer l’authentification par session. Le tableau de bord fonctionnel sera traité dans le ticket T-007.</p>
+  </section>
+{% endblock %}

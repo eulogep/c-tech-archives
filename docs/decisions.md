@@ -107,3 +107,13 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Justification.** Le ticket est limité à la modélisation et à l’intégrité de la base. Ajouter un stockage de fichier, une validation MIME, une empreinte automatique ou un téléchargement sécurisé créerait des comportements de sécurité qui doivent être traités et testés dans un ticket dédié.
 
 **Conséquence.** `checksum` est accepté uniquement vide ou au format SHA-256, et `file_size` est exprimé en octets avec une valeur non négative. Ces champs préparent l’intégrité future sans prétendre assurer le stockage sécurisé dès T-004.
+
+## ADR-012 — Authentification native Django par session
+
+**Décision.** Le MVP utilise l’authentification native Django par session, avec `LoginView`, `LogoutView`, `AuthenticationForm`, `@login_required` et les cookies de session protégés configurés au ticket T-002.
+
+**Justification.** La plateforme est rendue côté serveur avec Django Templates. Les sessions Django s’intègrent directement au modèle utilisateur personnalisé, aux protections CSRF, aux mécanismes de hachage et aux vues génériques du framework. Cette solution est éprouvée, réduite et facilement démontrable pour le MVP.
+
+**Alternative étudiée.** JWT ou un système d’authentification personnalisé.
+
+**Pourquoi elle n’est pas retenue.** JWT répond davantage aux API sans état ou à des clients séparés et ajouterait une gestion de token inutile à cette architecture. Un système personnalisé risquerait de réimplémenter de manière moins sûre le hachage, les sessions ou les contrôles de redirection déjà fournis par Django.

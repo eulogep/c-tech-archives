@@ -76,3 +76,28 @@ Les comptes et mots de passe utilisés par ces tests sont synthétiques et isol�
 | TS-30 | Dates et représentation | Les timestamps sont produits ; `document_date`, `archived_at` et `__str__` sont vérifiés |
 
 Ces tests distinguent volontairement la validation applicative lancée par `full_clean()` des contraintes PostgreSQL appliquées lors de l’écriture. Les deux niveaux sont nécessaires car l’appel standard à `save()` ne lance pas automatiquement `full_clean()`.
+
+## Couverture ajoutée par T-006
+
+| Référence | Scénario | Résultat attendu |
+|---|---|---|
+| AUTH-001 | Accès anonyme à la page protégée | Redirection vers `/accounts/login/` avec destination locale |
+| AUTH-002 | Connexion valide | Session créée et redirection vers la page protégée |
+| AUTH-003 | Mot de passe erroné | Authentification refusée et message générique |
+| AUTH-004 | Utilisateur inconnu | Authentification refusée avec le même message générique |
+| AUTH-005 | Utilisateur inactif | Authentification refusée, sans session créée |
+| AUTH-006 | Utilisateur connecté | Accès HTTP 200 à la page protégée |
+| AUTH-007 | Déconnexion POST | Session invalidée puis nouvelle redirection vers login |
+| AUTH-008 | CSRF | Soumission de connexion sans jeton CSRF refusée par HTTP 403 |
+| AUTH-009 | `next` local | Destination locale demandée après connexion acceptée |
+| AUTH-010 | `next` externe | Destination externe arbitraire neutralisée par Django |
+
+## Scénario de démonstration pour la soutenance
+
+1. Ouvrir `/` sans connexion et constater la redirection vers la connexion.
+2. Saisir de mauvais identifiants et constater le refus générique.
+3. Saisir un username et un mot de passe valides, puis accéder à la page protégée.
+4. Envoyer le formulaire de déconnexion.
+5. Revenir sur `/` et constater que la redirection vers la connexion est de nouveau appliquée.
+
+Ce scénario ne démontre pas encore les droits métier sur les archives : il prouve seulement l’identité, la session, le contrôle de la vue protégée et la déconnexion sécurisée.
