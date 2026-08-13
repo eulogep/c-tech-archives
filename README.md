@@ -11,8 +11,8 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | Analyse du besoin et périmètre MVP | Préparé |
 | Architecture, données, sécurité et tests | Documentés |
 | Roadmap par tickets | Préparée |
-| T-001 — Initialisation Django | À démarrer |
-| Application Django | Non implémentée |
+| T-001 — Initialisation Django | Terminé sur `feature/initialisation-django` |
+| Application Django | Socle modulaire initialisé ; fonctionnalités MVP non implémentées |
 
 ## Objectif du MVP
 
@@ -42,9 +42,9 @@ c-tech-archives/
 
 La logique métier ne devra pas être concentrée dans une seule application. Les frontières fonctionnelles sont décrites dans [`docs/architecture.md`](docs/architecture.md).
 
-## Démarrage prévu après T-001
+## Démarrage local après T-001
 
-Une fois le ticket **T-001** implémenté, l’exécution locale suivra le flux ci-dessous. Ces commandes sont documentées à titre de cible et ne sont pas encore exécutables tant que le projet Django n’est pas initialisé.
+Le socle Django est initialisé. Les commandes suivantes permettent de l’exécuter localement ; PostgreSQL et les modèles métier seront ajoutés dans les tickets suivants. Pendant T-001, SQLite reste une solution temporaire de démarrage.
 
 ```bash
 git clone https://github.com/eulogep/c-tech-archives.git
@@ -68,7 +68,9 @@ python manage.py runserver
 | [`docs/roadmap.md`](docs/roadmap.md) | Tickets séquentiels et conditions de passage |
 | [`docs/tests.md`](docs/tests.md) | Stratégie de test et matrice de couverture |
 | [`docs/decisions.md`](docs/decisions.md) | Journal des décisions techniques pour le mémoire |
-| [`docs/open-questions.md`](docs/open-questions.md) | Informations à valider avec C-Tech |
+| [`docs/open-questions.md`](docs/open-questions.md) | Informations métier et organisationnelles à valider avec C-Tech |
+| [`docs/technical-validation-questions.md`](docs/technical-validation-questions.md) | Décisions techniques à valider avant intégration et déploiement |
+| [`docs/tickets/T-001.md`](docs/tickets/T-001.md) | Compte rendu de clôture du ticket d’initialisation |
 
 ## Convention Git
 
