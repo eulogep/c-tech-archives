@@ -1,0 +1,35 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}C-Tech Archives{% endblock %}</title>
+  <style>
+    :root { color-scheme: light; font-family: Arial, sans-serif; }
+    body { margin: 0; background: #f4f6f8; color: #1f2937; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: #17324d; color: #fff; }
+    main { max-width: 720px; margin: 3rem auto; padding: 0 1.25rem; }
+    .panel { background: #fff; border-radius: 0.5rem; box-shadow: 0 2px 8px rgb(0 0 0 / 12%); padding: 2rem; }
+    .button { border: 0; border-radius: 0.25rem; background: #1f6f8b; color: #fff; cursor: pointer; padding: 0.7rem 1rem; }
+    .button:hover { background: #175b73; }
+    .logout-form { margin: 0; }
+    .muted { color: #52616b; }
+    .errors { color: #a61b1b; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>C-Tech Archives</strong>
+    {% if user.is_authenticated %}
+      <form class="logout-form" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="button" type="submit">Déconnexion</button>
+      </form>
+    {% endif %}
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

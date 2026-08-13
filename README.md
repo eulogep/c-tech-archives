@@ -14,8 +14,10 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-001 — Initialisation Django | Terminé et intégré à `develop` |
 | T-002 — PostgreSQL et environnement | Terminé et intégré à `develop` |
 | T-003 — Utilisateur personnalisé et rôles | Terminé et intégré à `develop` |
-| T-004 — Modèles métier fondamentaux des archives | Terminé sur `feature/archive-domain-models` |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur et modèles métier fondamentaux configurés ; interfaces MVP non implémentées |
+| T-004 — Modèles métier fondamentaux des archives | Terminé et intégré à `develop` |
+| T-005 — Migrations et administration | **ABSORBED_BY_T004** ; clôture documentaire, sans code métier supplémentaire |
+| T-006 — Authentification sécurisée | Terminé sur `feature/authentication` |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier et authentification par session configurés ; interfaces MVP non implémentées |
 
 ## Objectif du MVP
 
@@ -79,6 +81,8 @@ python manage.py runserver
 | [`docs/tickets/T-002.md`](docs/tickets/T-002.md) | Compte rendu de clôture du ticket PostgreSQL et environnement |
 | [`docs/tickets/T-003.md`](docs/tickets/T-003.md) | Compte rendu de clôture du ticket utilisateur personnalisé et rôles |
 | [`docs/tickets/T-004.md`](docs/tickets/T-004.md) | Compte rendu de clôture du ticket modèles métier fondamentaux |
+| [`docs/tickets/T-005.md`](docs/tickets/T-005.md) | Clôture documentaire du ticket absorbé par T-004 |
+| [`docs/tickets/T-006.md`](docs/tickets/T-006.md) | Compte rendu de clôture du ticket authentification sécurisée |
 
 ## Convention Git
 
