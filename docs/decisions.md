@@ -89,3 +89,21 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Justification.** L’authentification établit l’identité de l’utilisateur ; l’autorisation détermine les actions qu’il peut réaliser. Un rôle métier facilite les règles de haut niveau, tandis que les groupes et permissions permettent un contrôle serveur fin et réutilisable. Un superutilisateur Django détient des privilèges techniques globaux et ne doit pas être créé implicitement par un rôle fonctionnel.
 
 **Conséquence.** Tous les futurs modèles qui ciblent un utilisateur doivent utiliser `settings.AUTH_USER_MODEL` ou `get_user_model()` selon leur contexte. Les imports directs de `django.contrib.auth.models.User` sont interdits dans le code métier.
+
+## ADR-010 — Référentiels séparés et relations protégées pour les archives
+
+**Décision.** Les entités `Service`, `Category` et `DocumentType` sont des référentiels indépendants reliés à `Archive` par des clés étrangères `PROTECT`. Elles comportent un indicateur `is_active` au lieu d’être supprimées lorsqu’elles deviennent obsolètes.
+
+**Justification.** Une archive doit conserver son contexte organisationnel et documentaire. `PROTECT` évite qu’une suppression de référentiel ou d’utilisateur ne supprime un ensemble d’archives ou ne retire leur rattachement historique. Les noms uniques évitent des référentiels ambigus dans le MVP.
+
+**Alternative étudiée.** Suppression en cascade, relations nulles ou hiérarchie récursive de catégories.
+
+**Pourquoi elle n’est pas retenue.** La cascade risquerait de détruire l’historique, `SET_NULL` le rendrait incomplet et une hiérarchie ajouterait une complexité non validée par C-Tech.
+
+## ADR-011 — Métadonnées d’archive sans upload dans T-004
+
+**Décision.** `Archive` conserve la référence unique, les relations métier, les dates, le statut, la confidentialité, la taille et le checksum, mais ne contient pas encore de champ de fichier ni de logique d’upload.
+
+**Justification.** Le ticket est limité à la modélisation et à l’intégrité de la base. Ajouter un stockage de fichier, une validation MIME, une empreinte automatique ou un téléchargement sécurisé créerait des comportements de sécurité qui doivent être traités et testés dans un ticket dédié.
+
+**Conséquence.** `checksum` est accepté uniquement vide ou au format SHA-256, et `file_size` est exprimé en octets avec une valeur non négative. Ces champs préparent l’intégrité future sans prétendre assurer le stockage sécurisé dès T-004.

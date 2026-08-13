@@ -75,3 +75,18 @@ Le modèle prévoit des points d’extension pour les règles de confidentialit�
 L’application `accounts` fournit le modèle `accounts.User` et constitue la seule source d’identité applicative. Les futures applications métier ne doivent ni importer `auth.User` ni définir de relation figée vers cette table ; elles utiliseront `settings.AUTH_USER_MODEL` dans leurs modèles et `get_user_model()` dans les services qui exigent la classe effective.
 
 Le rôle métier stocké sur l’utilisateur permet d’orienter les règles fonctionnelles de haut niveau. Les groupes et permissions Django restent toutefois la source de vérité pour les autorisations précises, vérifiées côté serveur. Cette séparation empêche qu’un libellé métier tel qu’Administrateur entraîne implicitement des privilèges techniques globaux.
+
+## Domaine documentaire — T-004
+
+L’application `accounts` porte l’identité et le modèle utilisateur personnalisé. L’application `archives` porte le domaine documentaire : référentiels de service, catégorie et type de document, puis modèle central `Archive`. Sa relation `uploaded_by` cible `settings.AUTH_USER_MODEL`, ce qui maintient la compatibilité avec l’identité personnalisée introduite au ticket T-003.
+
+```mermaid
+flowchart LR
+    Accounts[accounts\nIdentité et Custom User] --> Archives[archives\nDomaine documentaire]
+    Service[Service] --> Archive[Archive]
+    Category[Category] --> Archive
+    Type[DocumentType] --> Archive
+    Accounts -->|uploaded_by| Archive
+```
+
+T-004 n’ajoute aucune vue métier, aucun upload, aucune recherche, aucune règle RBAC d’archive ni journal d’audit. Ces comportements dépendront des modèles désormais disponibles mais restent explicitement hors périmètre du ticket.
