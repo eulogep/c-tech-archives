@@ -61,3 +61,18 @@ Les fichiers de test seront synthétiques et de taille réduite. Aucun document 
 | TS-22 | Commande de superutilisateur | `createsuperuser` crée un compte compatible avec `accounts.User` et un mot de passe haché |
 
 Les comptes et mots de passe utilisés par ces tests sont synthétiques et isolés dans la base de tests Django. Aucun utilisateur réel ou secret de C-Tech n’est inséré dans l’environnement de développement ou le dépôt.
+
+## Couverture ajoutée par T-004
+
+| Référence | Scénario | Résultat attendu |
+|---|---|---|
+| TS-23 | Référentiel Service | Création, unicité du nom, état actif et timestamps vérifiés |
+| TS-24 | Référentiels Category et DocumentType | Création et représentation textuelle vérifiées séparément |
+| TS-25 | Création d’archive | Les relations métier, les valeurs par défaut et le Custom User sont correctement persistés |
+| TS-26 | Référence d’archive | Une seconde archive ne peut pas réutiliser une référence existante |
+| TS-27 | Conservation des relations | La suppression d’un service, d’une catégorie ou d’un type référencé déclenche `ProtectedError` |
+| TS-28 | Statut et confidentialité | `full_clean()` et les contraintes PostgreSQL refusent les valeurs non prévues |
+| TS-29 | Intégrité de taille et checksum | Les tailles négatives et checksum non conformes sont refusés par validation et base de données |
+| TS-30 | Dates et représentation | Les timestamps sont produits ; `document_date`, `archived_at` et `__str__` sont vérifiés |
+
+Ces tests distinguent volontairement la validation applicative lancée par `full_clean()` des contraintes PostgreSQL appliquées lors de l’écriture. Les deux niveaux sont nécessaires car l’appel standard à `save()` ne lance pas automatiquement `full_clean()`.

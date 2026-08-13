@@ -13,8 +13,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | Roadmap par tickets | Préparée |
 | T-001 — Initialisation Django | Terminé et intégré à `develop` |
 | T-002 — PostgreSQL et environnement | Terminé et intégré à `develop` |
-| T-003 — Utilisateur personnalisé et rôles | Terminé sur `feature/custom-user-roles` |
-| Application Django | Socle modulaire, PostgreSQL et modèle utilisateur personnalisé configurés ; fonctionnalités MVP non implémentées |
+| T-003 — Utilisateur personnalisé et rôles | Terminé et intégré à `develop` |
+| T-004 — Modèles métier fondamentaux des archives | Terminé sur `feature/archive-domain-models` |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur et modèles métier fondamentaux configurés ; interfaces MVP non implémentées |
 
 ## Objectif du MVP
 
@@ -73,9 +74,11 @@ python manage.py runserver
 | [`docs/open-questions.md`](docs/open-questions.md) | Informations métier et organisationnelles à valider avec C-Tech |
 | [`docs/technical-validation-questions.md`](docs/technical-validation-questions.md) | Décisions techniques à valider avant intégration et déploiement |
 | [`docs/environment.md`](docs/environment.md) | Configuration PostgreSQL et exigences d’environnement de production |
+| [`docs/assumptions.md`](docs/assumptions.md) | Hypothèses métier C-Tech à confirmer avant les règles définitives |
 | [`docs/tickets/T-001.md`](docs/tickets/T-001.md) | Compte rendu de clôture du ticket d’initialisation |
 | [`docs/tickets/T-002.md`](docs/tickets/T-002.md) | Compte rendu de clôture du ticket PostgreSQL et environnement |
 | [`docs/tickets/T-003.md`](docs/tickets/T-003.md) | Compte rendu de clôture du ticket utilisateur personnalisé et rôles |
+| [`docs/tickets/T-004.md`](docs/tickets/T-004.md) | Compte rendu de clôture du ticket modèles métier fondamentaux |
 
 ## Convention Git
 

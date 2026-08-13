@@ -56,3 +56,11 @@ Le projet s’appuie sur `accounts.User`, déclaré comme `AUTH_USER_MODEL` avan
 Le champ `role` contient le rôle métier principal et ses valeurs sont limitées à `ADMINISTRATEUR`, `AGENT_ARCHIVES` et `CONSULTANT` par les choix Django et une contrainte de base de données. Il ne remplace pas les groupes ni les permissions. En particulier, un Administrateur métier ne devient pas automatiquement un superutilisateur Django ou un membre du personnel d’administration. Les privilèges `is_staff` et `is_superuser` restent explicites, contrôlés et réservés aux besoins techniques.
 
 Les futures clés étrangères vers l’utilisateur utiliseront `settings.AUTH_USER_MODEL`. Les règles de permissions fines, les décorateurs et les mixins seront mis en œuvre par les tickets fonctionnels concernés, notamment lors de la gestion des archives ; ils ne sont pas anticipés par des contrôles d’interface dans T-003.
+
+## Intégrité du domaine documentaire — T-004
+
+T-004 protège la cohérence des métadonnées avant tout stockage de fichier. La référence d’archive est unique, les tailles négatives sont interdites et les valeurs de statut ou de confidentialité sont limitées à des choix explicites à la fois dans Django et dans PostgreSQL. Les relations protégées empêchent la suppression accidentelle d’un service, d’une catégorie, d’un type documentaire ou d’un utilisateur lorsque des archives les référencent.
+
+Le champ `checksum` accepte uniquement une valeur vide ou une chaîne SHA-256 hexadécimale de 64 caractères. Il ne calcule aucune empreinte dans ce ticket, ne chiffre aucun document et ne confère aucun droit d’accès. Le calcul d’empreinte, la validation MIME, le stockage privé et le téléchargement contrôlé sont reportés au ticket d’upload sécurisé.
+
+Les niveaux de confidentialité sont des métadonnées provisoires. Aucune autorisation d’archive ne doit encore être déduite du champ `confidentiality_level` : les contrôles RBAC et les permissions serveur seront introduits par les tickets fonctionnels pertinents.

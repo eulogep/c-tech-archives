@@ -1,110 +1,112 @@
-# Modèle de données
+# Modèle de données appliqué
 
 ## Principes de modélisation
 
-Le modèle sépare les référentiels (`Service`, `Category`, `DocumentType`) de l’entité centrale `Archive`. Les champs obligatoires finaux, les statuts autorisés et la politique de conservation devront être confirmés avec C-Tech ; ils ne sont donc pas figés au-delà du MVP.
+Le schéma sépare les **référentiels documentaires** (`Service`, `Category`, `DocumentType`) de l’entité centrale `Archive`. Les référentiels possèdent un état `is_active` afin de pouvoir être désactivés sans effacer l’historique. Les valeurs métier, les statuts et les niveaux de confidentialité restent provisoires tant que C-Tech ne les a pas validés ; elles sont consignées dans [`assumptions.md`](assumptions.md).
 
-Les clés primaires seront des identifiants techniques. Les dates de création et de mise à jour seront gérées par Django. Les relations sont déclarées dans l’ORM afin de préserver l’intégrité référentielle sans SQL construit manuellement.
+Le projet utilise `accounts.User` comme modèle utilisateur personnalisé. Toutes les relations futures vers un utilisateur devront utiliser `settings.AUTH_USER_MODEL`. Les clés primaires sont techniques et les dates de création ou de mise à jour sont gérées par Django.
 
-## Modèles Django proposés
+## Modèles réellement créés
 
-| Modèle | Champs principaux | Contraintes métier initiales |
+| Modèle | Champs structurants | Contraintes et rôle |
 |---|---|---|
-| `User` | `first_name`, `last_name`, `email`, `role`, `is_active`, `date_joined` | Étend `AbstractUser`; email unique; rôle contrôlé par choix applicatif |
-| `Service` | `name`, `description` | Nom unique recommandé |
-| `Category` | `name`, `description` | Nom unique recommandé |
-| `DocumentType` | `name`, `description` | Nom unique recommandé |
-| `Archive` | `reference`, `title`, `description`, `file`, `category`, `document_type`, `service`, `uploaded_by`, `document_date`, `archived_at`, `status`, `confidentiality_level`, `size`, `checksum`, `created_at`, `updated_at` | Référence unique; empreinte SHA-256; fichier privé; relations obligatoires à confirmer |
-| `AuditLog` | `user`, `action`, `archive`, `created_at`, `ip_address`, `details` | Événement daté; archive nullable pour les actions d’authentification |
+| `accounts.User` | `username`, `email`, `role`, indicateurs Django, dates d’identité | `username` et `email` uniques ; trois rôles métier ; modèle actif via `AUTH_USER_MODEL` |
+| `Service` | `name`, `description`, `is_active`, `created_at`, `updated_at` | Nom unique ; référentiel organisationnel conservé lorsqu’il devient inactif |
+| `Category` | `name`, `description`, `is_active`, `created_at`, `updated_at` | Nom unique ; classement documentaire général |
+| `DocumentType` | `name`, `description`, `is_active`, `created_at`, `updated_at` | Nom unique ; qualification documentaire précise, distincte de la catégorie |
+| `Archive` | `reference`, `title`, `description`, relations, dates, `status`, `confidentiality_level`, `file_size`, `checksum`, timestamps | Référence unique ; contrôles de valeurs et de taille ; fichier réel reporté à un ticket d’upload |
 
-Les choix de rôle initiaux sont `ADMINISTRATEUR`, `AGENT_ARCHIVES` et `CONSULTANT`. Les valeurs exactes de `status` et de `confidentiality_level` ne doivent être ajoutées qu’après validation avec C-Tech. Une proposition de départ est de distinguer les statuts `ACTIF`, `ARCHIVE`, `DESACTIVE` et les niveaux `PUBLIC_INTERNE`, `RESTREINT`, `CONFIDENTIEL`.
+> Une **catégorie** classe largement un document, par exemple « Contrat ». Un **type de document** le qualifie plus précisément, par exemple « Contrat de prestation ». Cette distinction est une hypothèse contrôlée, non une hiérarchie ou une politique définitive C-Tech.
 
-## MCD initial
+## MCD appliqué
 
 ```mermaid
 erDiagram
-    USER ||--o{ ARCHIVE : "ajoute"
-    USER ||--o{ AUDIT_LOG : "effectue"
-    SERVICE ||--o{ ARCHIVE : "rattache"
-    CATEGORY ||--o{ ARCHIVE : "classe"
-    DOCUMENT_TYPE ||--o{ ARCHIVE : "qualifie"
-    ARCHIVE ||--o{ AUDIT_LOG : "concerne"
+    ACCOUNTS_USER ||--o{ ARCHIVES_ARCHIVE : "uploaded_by"
+    ARCHIVES_SERVICE ||--o{ ARCHIVES_ARCHIVE : "service"
+    ARCHIVES_CATEGORY ||--o{ ARCHIVES_ARCHIVE : "category"
+    ARCHIVES_DOCUMENT_TYPE ||--o{ ARCHIVES_ARCHIVE : "document_type"
 
-    USER {
+    ACCOUNTS_USER {
         bigint id PK
-        string first_name
-        string last_name
+        string username UK
         string email UK
         string role
         boolean is_active
-        datetime date_joined
+        boolean is_staff
+        boolean is_superuser
     }
-    SERVICE {
+    ARCHIVES_SERVICE {
         bigint id PK
         string name UK
         text description
+        boolean is_active
+        datetime created_at
+        datetime updated_at
     }
-    CATEGORY {
+    ARCHIVES_CATEGORY {
         bigint id PK
         string name UK
         text description
+        boolean is_active
+        datetime created_at
+        datetime updated_at
     }
-    DOCUMENT_TYPE {
+    ARCHIVES_DOCUMENT_TYPE {
         bigint id PK
         string name UK
         text description
+        boolean is_active
+        datetime created_at
+        datetime updated_at
     }
-    ARCHIVE {
+    ARCHIVES_ARCHIVE {
         bigint id PK
         string reference UK
         string title
         text description
-        string file
         date document_date
         datetime archived_at
         string status
         string confidentiality_level
-        bigint size
+        bigint file_size
         string checksum
         datetime created_at
         datetime updated_at
     }
-    AUDIT_LOG {
-        bigint id PK
-        string action
-        datetime created_at
-        string ip_address
-        text details
-    }
 ```
 
-## MLD initial
+## MLD textuel
 
-| Table | Attributs | Clés et relations |
+| Table | Attributs principaux | Clés, relations et intégrité |
 |---|---|---|
-| `accounts_user` | `id`, `first_name`, `last_name`, `email`, `role`, `is_active`, `date_joined`, champs d’authentification Django | PK `id`; UK `email` |
-| `archives_service` | `id`, `name`, `description` | PK `id`; UK `name` |
-| `archives_category` | `id`, `name`, `description` | PK `id`; UK `name` |
-| `archives_documenttype` | `id`, `name`, `description` | PK `id`; UK `name` |
-| `archives_archive` | `id`, `reference`, `title`, `description`, `file`, `category_id`, `document_type_id`, `service_id`, `uploaded_by_id`, `document_date`, `archived_at`, `status`, `confidentiality_level`, `size`, `checksum`, `created_at`, `updated_at` | PK `id`; UK `reference`; FK vers `category`, `document_type`, `service`, `user` |
-| `audit_auditlog` | `id`, `user_id`, `action`, `archive_id`, `created_at`, `ip_address`, `details` | PK `id`; FK vers `user`; FK nullable vers `archive` |
+| `accounts_user` | Champs hérités d’`AbstractUser`, `email`, `role` | PK `id` ; UK `username` et `email` ; contrainte `accounts_user_role_is_valid` |
+| `archives_service` | `id`, `name`, `description`, `is_active`, `created_at`, `updated_at` | PK `id` ; UK `name` |
+| `archives_category` | `id`, `name`, `description`, `is_active`, `created_at`, `updated_at` | PK `id` ; UK `name` |
+| `archives_documenttype` | `id`, `name`, `description`, `is_active`, `created_at`, `updated_at` | PK `id` ; UK `name` |
+| `archives_archive` | `id`, `reference`, `title`, `description`, `category_id`, `document_type_id`, `service_id`, `uploaded_by_id`, `document_date`, `archived_at`, `status`, `confidentiality_level`, `file_size`, `checksum`, `created_at`, `updated_at` | PK `id` ; UK `reference` ; quatre clés étrangères protégées ; contraintes de statut, confidentialité, taille et checksum |
 
-## Index et intégrité
+## Relations et politique `on_delete`
 
-Les index à prévoir dans les premières migrations utiles concernent `Archive.reference`, les clés étrangères de l’archive, `Archive.document_date`, `Archive.status`, `Archive.confidentiality_level` et `AuditLog.created_at`. La recherche textuelle initiale peut combiner des filtres ORM sur la référence et le titre ; une indexation PostgreSQL plus avancée sera étudiée uniquement si le volume ou les besoins l’exigent.
+| Relation depuis `Archive` | Comportement | Justification |
+|---|---|---|
+| `service` → `Service` | `PROTECT` | Empêche qu’une suppression de service efface ou orpheline les archives déjà rattachées. Un service devenu obsolète est désactivé via `is_active`. |
+| `category` → `Category` | `PROTECT` | Préserve la capacité à comprendre le classement historique des archives. |
+| `document_type` → `DocumentType` | `PROTECT` | Préserve la qualification documentaire historique. |
+| `uploaded_by` → `settings.AUTH_USER_MODEL` | `PROTECT` | Préserve la traçabilité de l’utilisateur ayant ajouté l’archive. Les comptes doivent être désactivés, non supprimés, lorsqu’ils sont référencés. |
 
-La valeur `checksum` correspondra à une chaîne hexadécimale SHA-256 de 64 caractères. La taille devra être stockée en octets. La somme de contrôle est une propriété d’intégrité, non une méthode de chiffrement ni de contrôle d’accès.
+`CASCADE` n’est pas utilisé car il pourrait supprimer massivement des archives à la suite de la suppression d’un référentiel ou d’un utilisateur. `SET_NULL` n’est pas retenu dans T-004, car il détruirait l’information de rattachement historique. Ces choix pourront être réévalués seulement après validation de la politique de conservation par C-Tech.
 
-## Évolution T-003 — Utilisateur personnalisé
+## Statuts, confidentialité et métadonnées provisoires
 
-À partir de T-003, la table utilisateur est `accounts_user` et non `auth_user`. Elle reprend les champs d’identité, de sécurité, de groupes et de permissions hérités d’`AbstractUser`, puis ajoute `role`. Le champ `username` demeure unique et constitue l’identifiant technique du MVP ; `email` est également unique et obligatoire.
+`Archive.status` accepte `ACTIVE` ou `ARCHIVED`. `Archive.confidentiality_level` accepte `PUBLIC`, `INTERNAL` ou `CONFIDENTIAL`. Les deux champs utilisent `TextChoices` et des contraintes PostgreSQL dédiées, mais ne déclenchent encore aucune règle d’autorisation.
 
-| Attribut ajouté ou structurant | Rôle |
-|---|---|
-| `role` | Rôle métier centralisé : `ADMINISTRATEUR`, `AGENT_ARCHIVES` ou `CONSULTANT` |
-| `email` | Adresse obligatoire et unique ; préparée pour une évolution future sans devenir l’identifiant de connexion dans ce MVP |
-| `is_active` | Désactivation fonctionnelle d’un compte sans suppression des données futures |
-| `is_staff` | Accès explicite à l’administration Django, distinct du rôle métier |
-| `is_superuser` | Privilège technique global Django, distinct du rôle métier |
+`document_date` est la date portée par le document lui-même ; elle peut être inconnue. `archived_at` est la date à laquelle le document est officiellement placé dans le système d’archives ; elle peut également être renseignée dans un ticket ultérieur lorsque le workflow exact sera validé. `created_at` et `updated_at` décrivent les opérations de persistance de l’enregistrement applicatif.
 
-La contrainte `accounts_user_role_is_valid` interdit l’enregistrement d’une valeur de rôle non prévue, y compris lors d’une tentative de contournement de la validation applicative. Tous les futurs modèles contenant une relation vers un utilisateur devront déclarer leur clé étrangère avec `settings.AUTH_USER_MODEL` afin de rester compatibles avec ce modèle personnalisé.
+`file_size` est stocké en octets et doit être supérieur ou égal à zéro. `checksum` est soit vide, soit une empreinte SHA-256 hexadécimale de 64 caractères. Une somme de contrôle mesure l’**intégrité** future du fichier ; elle n’est ni du chiffrement ni une permission. T-004 ne stocke ni fichier ni processus de calcul d’empreinte.
+
+## Index et contraintes
+
+La contrainte d’unicité de `reference` crée déjà un index. Django crée également les index nécessaires aux clés étrangères. Le seul index explicite de T-004 est `archives_status_date_idx` sur (`status`, `document_date`), car les futures listes d’archives pourront filtrer les documents actifs ou archivés par date. Aucun index textuel ou index supplémentaire n’est anticipé sans usage démontré.
+
+Les contraintes PostgreSQL `archives_archive_status_is_valid`, `archives_archive_confidentiality_is_valid`, `archives_archive_file_size_nonnegative` et `archives_archive_checksum_is_sha256_or_empty` complètent la validation Django. `full_clean()` valide au niveau applicatif lorsqu’il est explicitement appelé ; `save()` ne l’appelle pas automatiquement. Les contraintes de base protègent donc aussi contre des écritures qui contourneraient la validation applicative.
