@@ -9,10 +9,10 @@ from archives.permissions import visible_archives_for
 
 @login_required
 def home(request):
-    """Affiche les indicateurs agrégés du MVP, sans métadonnée individuelle.
+    """Affiche des indicateurs agrégés limités au périmètre visible du rôle.
 
-    La visibilité détaillée des archives sera définie au ticket T-011. Avant
-    cette politique, le dashboard ne doit retourner aucune archive individuelle.
+    Le RBAC T-011 filtre déjà les archives avant tout compteur. Le dashboard
+    ne retourne aucune métadonnée individuelle et n’infère aucun niveau masqué.
     """
     visible_archives = visible_archives_for(request.user)
     context = {

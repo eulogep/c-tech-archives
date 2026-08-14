@@ -15,6 +15,7 @@ Le projet utilise `accounts.User` comme modèle utilisateur personnalisé. Toute
 | `Category` | `name`, `description`, `is_active`, `created_at`, `updated_at` | Nom unique ; classement documentaire général |
 | `DocumentType` | `name`, `description`, `is_active`, `created_at`, `updated_at` | Nom unique ; qualification documentaire précise, distincte de la catégorie |
 | `Archive` | `reference`, `title`, `description`, relations, dates, `status`, `confidentiality_level`, `file`, `file_size`, `checksum`, timestamps | Référence unique ; chemin de document privé, contrôles de valeurs et de taille ; contenu binaire hors PostgreSQL |
+| `AuditLog` | `actor`, `actor_identifier`, `action`, `archive`, `archive_reference`, `timestamp`, `ip_address`, `details` | Événement métier append-only ; relations protégées, snapshots lisibles et détails JSON minimaux |
 
 > Une **catégorie** classe largement un document, par exemple « Contrat ». Un **type de document** le qualifie plus précisément, par exemple « Contrat de prestation ». Cette distinction est une hypothèse contrôlée, non une hiérarchie ou une politique définitive C-Tech.
 
@@ -26,6 +27,8 @@ erDiagram
     ARCHIVES_SERVICE ||--o{ ARCHIVES_ARCHIVE : "service"
     ARCHIVES_CATEGORY ||--o{ ARCHIVES_ARCHIVE : "category"
     ARCHIVES_DOCUMENT_TYPE ||--o{ ARCHIVES_ARCHIVE : "document_type"
+    ACCOUNTS_USER ||--o{ AUDIT_AUDITLOG : "actor"
+    ARCHIVES_ARCHIVE ||--o{ AUDIT_AUDITLOG : "archive"
 
     ACCOUNTS_USER {
         bigint id PK
@@ -60,6 +63,15 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+    AUDIT_AUDITLOG {
+        bigint id PK
+        string actor_identifier
+        string action
+        string archive_reference
+        datetime timestamp
+        string ip_address
+        json details
+    }
     ARCHIVES_ARCHIVE {
         bigint id PK
         string reference UK
@@ -86,6 +98,7 @@ erDiagram
 | `archives_category` | `id`, `name`, `description`, `is_active`, `created_at`, `updated_at` | PK `id` ; UK `name` |
 | `archives_documenttype` | `id`, `name`, `description`, `is_active`, `created_at`, `updated_at` | PK `id` ; UK `name` |
 | `archives_archive` | `id`, `reference`, `title`, `description`, `category_id`, `document_type_id`, `service_id`, `uploaded_by_id`, `document_date`, `archived_at`, `status`, `confidentiality_level`, `file`, `file_size`, `checksum`, `created_at`, `updated_at` | PK `id` ; UK `reference` ; quatre clés étrangères protégées ; le champ `file` conserve un chemin généré vers le stockage privé ; contraintes de statut, confidentialité, taille et checksum |
+| `audit_auditlog` | `id`, `actor_id`, `actor_identifier`, `action`, `archive_id`, `archive_reference`, `timestamp`, `ip_address`, `details` | PK `id` ; `actor_id` obligatoire en `PROTECT` ; `archive_id` nullable en `PROTECT` ; ordre stable par `-timestamp`, `-pk` |
 
 ## Relations et politique `on_delete`
 
@@ -97,6 +110,8 @@ erDiagram
 | `uploaded_by` → `settings.AUTH_USER_MODEL` | `PROTECT` | Préserve la traçabilité de l’utilisateur ayant ajouté l’archive. Les comptes doivent être désactivés, non supprimés, lorsqu’ils sont référencés. |
 
 `CASCADE` n’est pas utilisé car il pourrait supprimer massivement des archives à la suite de la suppression d’un référentiel ou d’un utilisateur. `SET_NULL` n’est pas retenu dans T-004, car il détruirait l’information de rattachement historique. Ces choix pourront être réévalués seulement après validation de la politique de conservation par C-Tech.
+
+T-012 applique également `PROTECT` entre `AuditLog` et son acteur, ainsi qu’entre `AuditLog` et son archive lorsqu’elle est concernée. Les snapshots `actor_identifier` et `archive_reference` gardent une lecture immédiate de l’événement. `details` est un JSON minimal limité à `source` et, pour une modification, `changed_fields` ; il ne reçoit ni mot de passe, ni hash, ni session, ni contenu ou chemin privé de fichier.
 
 ## Statuts, confidentialité et métadonnées provisoires
 

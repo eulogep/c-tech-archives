@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Journal d’audit | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="audit-title">
+    <h1 id="audit-title">Journal d’audit</h1>
+    <p class="muted">Historique métier append-only des opérations sensibles. Les événements sont réservés aux administrateurs autorisés.</p>
+
+    {% if events %}
+      <table style="border-collapse:collapse; margin-top:1.5rem; width:100%;">
+        <thead>
+          <tr style="background:#eef3f6;">
+            <th style="padding:.65rem; text-align:left;">Horodatage</th>
+            <th style="padding:.65rem; text-align:left;">Acteur</th>
+            <th style="padding:.65rem; text-align:left;">Action</th>
+            <th style="padding:.65rem; text-align:left;">Référence archive</th>
+            <th style="padding:.65rem; text-align:left;">Adresse IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in events %}
+            <tr>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ event.timestamp|date:"d/m/Y H:i:s" }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ event.actor_identifier }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ event.get_action_display }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ event.archive_reference|default:"—" }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ event.ip_address|default:"Non disponible" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if is_paginated %}
+        <nav aria-label="Pagination du journal d’audit" style="margin-top:1rem;">
+          {% if page_obj.has_previous %}
+            <a class="button button-secondary" href="?page={{ page_obj.previous_page_number }}">Précédent</a>
+          {% endif %}
+          <span style="margin:0 .75rem;">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a class="button button-secondary" href="?page={{ page_obj.next_page_number }}">Suivant</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <p class="muted">Aucun événement d’audit n’est encore enregistré.</p>
+    {% endif %}
+  </section>
+{% endblock %}

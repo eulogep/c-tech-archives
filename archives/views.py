@@ -3,10 +3,14 @@
 from pathlib import Path
 
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db import transaction
 from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
+
+from audit.models import AuditAction
+from audit.services import record_audit_event
 
 from .access import (
     ArchiveCreatePermissionMixin,
@@ -95,7 +99,16 @@ class ArchiveCreateView(ArchiveCreatePermissionMixin, SuccessMessageMixin, Creat
         form.instance.uploaded_by = self.request.user
         form.instance.file_size = uploaded_file.size if uploaded_file else 0
         form.instance.checksum = ""
-        return super().form_valid(form)
+        with transaction.atomic():
+            response = super().form_valid(form)
+            record_audit_event(
+                actor=self.request.user,
+                action=AuditAction.ARCHIVE_CREATE,
+                request=self.request,
+                archive=self.object,
+                details={"source": "web"},
+            )
+        return response
 
     def get_success_url(self):
         return reverse_lazy("archives:detail", kwargs={"pk": self.object.pk})
@@ -115,6 +128,17 @@ class ArchiveDetailView(ArchiveVisibleQuerysetMixin, DetailView):
             )
         )
 
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        record_audit_event(
+            actor=request.user,
+            action=AuditAction.ARCHIVE_VIEW,
+            request=request,
+            archive=self.object,
+            details={"source": "web"},
+        )
+        return response
+
 
 class ArchiveDownloadView(ArchiveVisibleQuerysetMixin, DetailView):
     """Diffuse un document privé après contrôle d’accès serveur."""
@@ -133,6 +157,13 @@ class ArchiveDownloadView(ArchiveVisibleQuerysetMixin, DetailView):
         except OSError as error:
             raise Http404("Le fichier associé est indisponible.") from error
 
+        record_audit_event(
+            actor=request.user,
+            action=AuditAction.ARCHIVE_DOWNLOAD,
+            request=request,
+            archive=archive,
+            details={"source": "web"},
+        )
         download_name = f"{archive.reference}{Path(archive.file.name).suffix}"
         return FileResponse(file_handle, as_attachment=True, filename=download_name)
 
@@ -150,6 +181,20 @@ class ArchiveUpdateView(ArchiveUpdatePermissionMixin, SuccessMessageMixin, Updat
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
+
+    def form_valid(self, form):
+        changed_fields = list(form.changed_data)
+        with transaction.atomic():
+            response = super().form_valid(form)
+            if changed_fields:
+                record_audit_event(
+                    actor=self.request.user,
+                    action=AuditAction.ARCHIVE_UPDATE,
+                    request=self.request,
+                    archive=self.object,
+                    details={"changed_fields": changed_fields, "source": "web"},
+                )
+        return response
 
     def get_success_url(self):
         return reverse_lazy("archives:detail", kwargs={"pk": self.object.pk})

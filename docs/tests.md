@@ -273,3 +273,32 @@ Le détail et le téléchargement appliquent la même politique que la liste. L�
 ### Question jury — Comment un Consultant ne peut-il pas deviner une archive confidentielle ?
 
 > Le QuerySet est filtré selon le rôle avant toute liste, recherche, pagination ou agrégation. Les vues objet réutilisent cette règle et retournent 404 pour une archive hors périmètre. Même avec l’identifiant ou le titre, l’utilisateur ne reçoit ni objet, ni compteur, ni confirmation de son existence.
+
+
+## Couverture ajoutée par T-012
+
+| Références | Contrôle vérifié |
+|---|---|
+| AUDIT-001 à AUDIT-003 | Connexion et déconnexion réelles journalisées ; aucun mot de passe dans un LOGIN |
+| AUDIT-004 à AUDIT-008 | Création et modification réussies journalisées ; invalidité, refus RBAC et escalade exclus ; `changed_fields` minimal |
+| AUDIT-009 à AUDIT-013 | Consultation et téléchargement autorisés journalisés ; 404, refus et fichier absent exclus |
+| AUDIT-014 à AUDIT-016 | `REMOTE_ADDR`, IP absente et horodatage déterminé côté serveur |
+| AUDIT-017 à AUDIT-019 | Acteur et archive corrects ; détails sans mot de passe, hash ni session |
+| AUDIT-020 à AUDIT-024 | Route `/audit/` refusée à l’Agent et au Consultant, ouverte à l’Administrateur/superuser, redirection anonyme |
+| AUDIT-025 à AUDIT-026 | Pagination à 25 événements et ordre décroissant stable |
+| AUDIT-027 à AUDIT-029 | Administration Django en lecture seule, sans ajout ni suppression |
+| AUDIT-030 | Liste et recherche d’archives sans bruit de logs de consultation |
+
+Les trente scénarios `AuditLogTests` s’ajoutent aux cent cinquante-quatre tests précédents et portent la suite à cent quatre-vingt-quatre tests. Ils emploient seulement des utilisateurs et fichiers synthétiques ; les répertoires privés sont isolés dans des `TemporaryDirectory`.
+
+## Fiche pédagogique — audit métier et append-only
+
+Un **journal d’audit** est un historique structuré d’opérations métier importantes : qui a fait quoi, sur quelle archive, quand et depuis quelle adresse IP si elle est disponible. Il ne remplace pas les logs techniques d’un serveur web, qui servent principalement au fonctionnement et au diagnostic.
+
+Le terme **append-only** signifie qu’à l’échelle applicative les événements sont ajoutés par le système, sans écran métier de modification ni suppression. Cette mesure rend plus difficile l’effacement d’une trace dans l’application, mais elle ne constitue pas une immutabilité cryptographique. Une architecture de production à exigences élevées pourrait compléter ce choix par un SIEM, un stockage externe ou un mécanisme d’intégrité des journaux.
+
+Les détails d’audit doivent être **minimaux**. Enregistrer `changed_fields=["title", "status"]` suffit à expliquer une modification sans recopier les valeurs avant/après, le fichier, les secrets ou les données personnelles inutiles. L’adresse IP apporte un contexte d’origine, mais ne prouve pas à elle seule l’identité ; le MVP ne fait confiance qu’à `REMOTE_ADDR` et ignore `X-Forwarded-For` tant qu’un proxy de confiance n’est pas défini.
+
+### Question jury — Un administrateur peut-il modifier les logs pour cacher son activité ?
+
+> Dans l’application, le journal est append-only : aucune fonction métier ne permet de modifier ou supprimer une entrée, et l’administration Django est configurée en lecture seule. Cette protection reste applicative ; un stockage externe ou immuable serait requis pour une garantie de production plus forte.

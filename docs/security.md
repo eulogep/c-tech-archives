@@ -127,3 +127,16 @@ La confidentialité est appliquée avant toute recherche et pagination par `visi
 Une archive hors périmètre produit HTTP 404 dans le détail, l’édition ciblée et le téléchargement. Cette réponse ne confirme pas qu’un identifiant correspond à une archive confidentielle existante. Une action interdite sur une archive déjà visible, telle qu’un Consultant qui tente de modifier une archive PUBLIC, retourne HTTP 403. Le téléchargement réutilise le même QuerySet autorisé que le détail ; l’URL directe ne permet donc pas de contourner le RBAC.
 
 Les formulaires reçoivent l’utilisateur de la requête. Ils limitent les choix de confidentialité visibles et valident de nouveau la valeur soumise : un Agent ne peut pas créer ou transformer une archive en CONFIDENTIAL via un POST falsifié. Masquer un bouton ou une option améliore l’interface, mais le contrôle serveur reste l’autorité de sécurité. La politique actuelle reste provisoire et n’introduit ni ACL par service, ni règle nominative, ni audit.
+
+
+## Journal d’audit métier — T-012
+
+Le journal `AuditLog` trace les opérations métier sensibles après leur réussite : connexion, déconnexion, création, modification, consultation et téléchargement d’archive. Il est distinct des logs de serveur, qui servent au diagnostic technique. Les listes et recherches d’archives ne sont pas journalisées afin d’éviter le bruit et de limiter la collecte.
+
+Les entrées sont créées uniquement par `record_audit_event` ou par les signaux de connexion et déconnexion. Les utilisateurs métier ne disposent d’aucune vue de création, modification ou suppression du journal ; l’interface Django Admin désactive également ces opérations. Cette garantie est **append-only au niveau applicatif** : elle limite les modifications depuis l’application mais ne remplace ni un SIEM externe, ni un stockage immuable, ni un chaînage cryptographique de production.
+
+Les détails JSON sont normalisés à `source` et `changed_fields`. Le service ne conserve ni mot de passe, hash de mot de passe, formulaire POST complet, cookie, session, en-tête Authorization, contenu de fichier ou chemin privé. La référence documentaire est suffisante pour relier l’événement à l’archive sans recopier de métadonnées confidentielles.
+
+L’adresse IP provient de `REMOTE_ADDR` lorsqu’elle est présente et valide. `X-Forwarded-For` n’est pas interprété par le MVP, car aucun proxy de confiance n’est encore validé pour cette information. Une IP indisponible est stockée à `NULL`. Les événements d’archive ne sont créés qu’après les contrôles RBAC : une tentative 404 ou 403 n’est pas présentée comme une consultation ou un téléchargement réussi.
+
+La page `/audit/` est exclusivement accessible à l’Administrateur métier et au superuser ; un Agent ou Consultant reçoit HTTP 403, et un anonyme est redirigé vers la connexion. Cette restriction est nécessaire car le journal peut référencer des archives CONFIDENTIAL, même si un Agent ne peut pas les consulter directement.

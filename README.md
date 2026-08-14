@@ -21,8 +21,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-008 — CRUD des métadonnées d’archives | **INTEGRATED** dans `develop` ; accès technique temporairement restreint aux comptes staff |
 | T-009 — Recherche et filtres d’archives | **INTEGRATED** dans `develop` ; recherche GET ORM et filtres de métadonnées accessibles aux comptes staff |
 | T-010 — Téléversement et téléchargement sécurisés | **INTEGRATED** dans `develop` ; stockage privé, validation serveur et téléchargement contrôlé |
-| T-011 — RBAC et confidentialité | **IN_REVIEW** sur `feature/rbac-confidentiality` ; droits métier centralisés et visibilité filtrée au niveau QuerySet |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé et RBAC provisoire de confidentialité configurés ; audit et checksum automatique restent à réaliser |
+| T-011 — RBAC et confidentialité | **INTEGRATED** dans `develop` ; droits métier centralisés et visibilité filtrée au niveau QuerySet |
+| T-012 — Journal d’audit | **IN_REVIEW** sur `feature/audit-log` ; événements métier structurés, append-only et consultation administrateur |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé, RBAC et audit métier append-only configurés ; checksum automatique reste à réaliser |
 
 ## Objectif du MVP
 
@@ -93,7 +94,8 @@ python manage.py runserver
 | [`docs/tickets/T-008.md`](docs/tickets/T-008.md) | Compte rendu du ticket CRUD des métadonnées intégré |
 | [`docs/tickets/T-009.md`](docs/tickets/T-009.md) | Compte rendu du ticket recherche et filtres d’archives intégré |
 | [`docs/tickets/T-010.md`](docs/tickets/T-010.md) | Compte rendu du ticket téléversement et téléchargement sécurisés intégré |
-| [`docs/tickets/T-011.md`](docs/tickets/T-011.md) | Compte rendu du ticket RBAC et confidentialité en revue |
+| [`docs/tickets/T-011.md`](docs/tickets/T-011.md) | Compte rendu du ticket RBAC et confidentialité intégré |
+| [`docs/tickets/T-012.md`](docs/tickets/T-012.md) | Compte rendu du ticket journal d’audit en revue |
 
 ## Convention Git
 
