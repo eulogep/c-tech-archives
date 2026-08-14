@@ -60,13 +60,25 @@ CREATE DATABASE c_tech_archives OWNER c_tech_app;
 
 Ne réutilisez pas cet exemple de mot de passe ; il est fourni uniquement pour illustrer la commande. Vérifiez que `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST` et `POSTGRES_PORT` de `.env` correspondent à votre instance.
 
-## Migrations, compte administrateur et lancement
+## Migrations, comptes privilégiés et lancement
 
-Appliquez le schéma Django, puis créez un compte d’administration local lorsque nécessaire :
+Appliquez d’abord le schéma Django :
 
 ```bash
 python manage.py migrate
-python manage.py createsuperuser
+```
+
+Les comptes privilégiés C-Tech peuvent ensuite être initialisés ou réconciliés explicitement avec la commande suivante :
+
+```bash
+python manage.py bootstrap_default_admins
+```
+
+Cette commande lit uniquement `CTECH_STEVEN_EMAIL`, `CTECH_STEVEN_PASSWORD`, `CTECH_EULOGE_EMAIL` et `CTECH_EULOGE_PASSWORD` depuis `.env` ou l’environnement d’exécution. Elle ne crée aucun utilisateur au démarrage de l’application, ne révèle aucun mot de passe et peut être relancée sans créer de doublon. Le compte métier Administrateur et les privilèges techniques Django restent distincts : le bootstrap configure un administrateur métier sans droits Django illimités et un compte technique superutilisateur séparé.
+
+Après avoir configuré les variables d’environnement requises, démarrez l’application :
+
+```bash
 python manage.py runserver
 ```
 
