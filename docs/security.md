@@ -78,3 +78,9 @@ La page de connexion contient un jeton `{% csrf_token %}`. La protection CSRF em
 Après une connexion réussie, Django crée et renouvelle la session associée à l’utilisateur ; l’application ne forge ni ne fixe d’identifiant de session. Ce renouvellement réduit le risque de fixation de session. Après la déconnexion, la session est invalidée et l’accès à la page protégée redirige de nouveau vers la connexion.
 
 Les utilisateurs `is_active=False` sont refusés par le backend Django standard. Les échecs liés à un mot de passe incorrect, un utilisateur inconnu ou un utilisateur inactif affichent le même message générique afin de ne pas aider à l’énumération des comptes. Le paramètre `next` est traité par les contrôles Django : une destination locale est acceptée, tandis qu’une URL externe arbitraire est neutralisée.
+
+## Confidentialité du dashboard avant RBAC — correctif de revue T-007
+
+> Le dashboard T-007 n’affiche volontairement aucune métadonnée d’archive individuelle avant l’implémentation de la politique d’autorisation T-011. Une archive confidentielle peut révéler des informations sensibles par son titre, sa référence, son service ou sa catégorie même lorsque son fichier n’est pas accessible.
+
+L’authentification par session prouve uniquement l’identité de l’utilisateur. Elle ne définit pas encore les droits documentaires par rôle, par niveau de confidentialité ou par ressource. Le dashboard ne retourne donc que des métriques agrégées. Ces métriques globales sont provisoirement visibles par tous les utilisateurs authentifiés ; leur visibilité par rôle devra être réévaluée avec C-Tech au ticket T-011.

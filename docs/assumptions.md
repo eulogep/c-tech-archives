@@ -14,3 +14,7 @@
 ## Distinction retenue pour le MVP
 
 Une **catégorie** est un classement documentaire large, tel que « Contrat », « Facture » ou « Rapport ». Un **type de document** est une qualification métier plus précise, éventuellement dépendante d’une convention future de C-Tech, telle que « Contrat de prestation » ou « Facture fournisseur ». Les deux référentiels restent séparés afin de ne pas perdre cette capacité de précision. Si C-Tech ne confirme pas cette distinction, `DocumentType` pourra être simplifié dans une évolution ultérieure, mais aucune hiérarchie artificielle n’est introduite dans T-004.
+
+## Visibilité des métriques du dashboard — T-007
+
+Les six métriques globales du dashboard sont provisoirement visibles par tout utilisateur authentifié. **À valider avec C-Tech avant T-011 :** ces compteurs doivent-ils rester globaux pour tous les rôles, être filtrés par service, ou être réservés à certains profils ? Aucune règle partielle n’est implémentée avant la définition complète du RBAC et de la confidentialité documentaire.
