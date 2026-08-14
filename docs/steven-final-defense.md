@@ -32,7 +32,7 @@ Utilisez cette fiche pour expliquer les choix du MVP avec des termes précis, un
 
 > **Cacher un bouton suffit-il à protéger une action ?** Non. L’interface est seulement ergonomique. Les vues serveur vérifient toujours l’utilisateur et le périmètre.
 
-> **Le MVP est-il certifié OWASP ou prêt production immédiatement ?** Non. Il possède une revue de sécurité et 255 tests, mais pas de pentest externe, de certification, ni toutes les mesures d’exploitation nécessaires.
+> **Le MVP est-il certifié OWASP ou prêt production immédiatement ?** Non. Il possède une revue de sécurité et 263 tests, mais pas de pentest externe, de certification, ni toutes les mesures d’exploitation nécessaires.
 
 ## Phrase de conclusion
 
