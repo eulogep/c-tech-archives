@@ -13,7 +13,7 @@ Cette grille prépare une démonstration robuste : chaque affirmation fonctionne
 | Le téléchargement est autorisé | Télécharger un document visible | Pièce jointe servie par la vue contrôlée | `RBAC-029` à `RBAC-034` | Montrer la route `download/` et les tests RBAC |
 | L’intégrité est vérifiable | Cliquer « Vérifier l’intégrité » sur une archive synthétique | Message `VALID` si le fichier est intact | `HASH-001` à `HASH-024`, `UI-015` | Expliquer les états documentés `VALID`/`MISMATCH` |
 | L’audit est réservé à l’Administrateur | Se connecter Administrateur puis ouvrir Audit | Journal visible ; Agent et Consultant refusés | `AUDIT-020` à `AUDIT-029`, `UI-016` | Montrer la matrice audit et l’accès serveur |
-| La sécurité est testée transversalement | Présenter le résultat de la suite de test | 255 tests réussis ; durcissement couvert | `HARD-001` à `HARD-026` | Exécuter `python manage.py test` ou montrer la sortie enregistrée |
+| La sécurité est testée transversalement | Présenter le résultat de la suite de test | 263 tests réussis ; durcissement couvert | `HARD-001` à `HARD-026` | Exécuter `python manage.py test` ou montrer la sortie enregistrée |
 | L’interface est responsive et guidée par le rôle | Réduire la fenêtre ou utiliser l’émulation navigateur | Navigation compacte, tables défilables, actions adaptées | `UI-002` à `UI-021`, `ui-guidelines.md` | Montrer les breakpoints dans `app.css` |
 
 ## Données de démonstration autorisées

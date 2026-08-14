@@ -19,6 +19,6 @@ Cette matrice décrit l’état réellement intégré du MVP C-Tech Archives apr
 
 ## Lecture de la preuve
 
-Les tests regroupés sont conservés dans les applications métier et dans `tests/`. La commande `python manage.py test` exécute actuellement **255 tests**. La démonstration doit employer uniquement des données synthétiques ; les exemples de comptes, de services et de documents ne doivent jamais correspondre à des données réelles de C-Tech.
+Les tests regroupés sont conservés dans les applications métier et dans `tests/`. La commande `python manage.py test` exécute actuellement **263 tests**. La démonstration doit employer uniquement des données synthétiques ; les exemples de comptes, de services et de documents ne doivent jamais correspondre à des données réelles de C-Tech.
 
 > Une action masquée dans l’interface améliore l’expérience du rôle concerné. Elle ne constitue pas la preuve de sécurité : les autorisations sont imposées par les QuerySets, les mixins, les vues, les formulaires et les services côté serveur.

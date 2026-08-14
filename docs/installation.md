@@ -99,7 +99,7 @@ python manage.py migrate --noinput
 python manage.py test
 ```
 
-La baseline actuelle contient **255 tests**. Le contrôle de déploiement local affiche cinq warnings attendus lorsque le développement conserve HTTP et `DEBUG=True` :
+La baseline actuelle contient **263 tests**. Le contrôle de déploiement local affiche cinq warnings attendus lorsque le développement conserve HTTP et `DEBUG=True` :
 
 ```bash
 python manage.py check --deploy
