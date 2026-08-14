@@ -114,3 +114,19 @@ sequenceDiagram
 ```
 
 Les vues d’archives, les permissions métier et le tableau de bord complet ne sont pas introduits par ce flux. La page racine sert uniquement de preuve contrôlée que l’authentification par session est active avant les travaux du ticket T-007.
+
+## Tableau de bord de synthèse — T-007
+
+L’application `dashboard` devient responsable de la synthèse authentifiée. `accounts` conserve l’identité et l’authentification ; `archives` reste propriétaire des données documentaires. La page racine est protégée par `@login_required` et ne présente ni création, ni modification, ni suppression, ni recherche d’archives.
+
+```mermaid
+flowchart LR
+    User[Utilisateur authentifié] --> Dashboard[dashboard.home]
+    Dashboard -->|compteurs ORM| Archives[(archives_* PostgreSQL)]
+    Dashboard -->|select_related| Recent[5 dernières archives]
+    Accounts[accounts\nidentité et session] --> Dashboard
+```
+
+Les six indicateurs sont calculés à partir de requêtes ORM lisibles. Les cinq dernières archives sont triées par `-created_at` et leurs relations `category`, `document_type`, `service` et `uploaded_by` sont préchargées avec `select_related`. Cette stratégie conserve une requête de liste indépendante du nombre de lignes affichées et évite un accès relationnel N+1 dans le template.
+
+Le dashboard n’affiche aucune activité récente, car le modèle d’audit n’existe pas encore. Il n’expose ni checksum ni donnée de mot de passe et ne déduit aucun droit métier du rôle utilisateur avant T-011.

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <style>
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 1rem; margin: 1.5rem 0 2rem; }
+    .metric { background: #eaf2f6; border-left: 4px solid #1f6f8b; border-radius: 0.25rem; padding: 1rem; }
+    .metric-label { color: #52616b; display: block; font-size: 0.9rem; }
+    .metric-value { display: block; font-size: 1.7rem; font-weight: 700; margin-top: 0.35rem; }
+    .archive-table { border-collapse: collapse; width: 100%; }
+    .archive-table th, .archive-table td { border-bottom: 1px solid #d8e0e6; padding: 0.7rem 0.5rem; text-align: left; }
+    .archive-table th { background: #eef3f6; }
+    .empty-state { border: 1px dashed #9aa9b3; border-radius: 0.25rem; padding: 1rem; color: #52616b; }
+  </style>
+
+  <section class="panel" aria-labelledby="dashboard-title">
+    <h1 id="dashboard-title">Tableau de bord</h1>
+    <p class="muted">Bienvenue, <strong>{{ user.username }}</strong>. Cette synthèse reflète les données actuellement enregistrées dans la plateforme.</p>
+
+    <div class="metric-grid" aria-label="Indicateurs des archives">
+      <article class="metric"><span class="metric-label">Archives</span><strong class="metric-value">{{ archive_count }}</strong></article>
+      <article class="metric"><span class="metric-label">Archives actives</span><strong class="metric-value">{{ active_archive_count }}</strong></article>
+      <article class="metric"><span class="metric-label">Archives archivées</span><strong class="metric-value">{{ archived_archive_count }}</strong></article>
+      <article class="metric"><span class="metric-label">Services actifs</span><strong class="metric-value">{{ active_service_count }}</strong></article>
+      <article class="metric"><span class="metric-label">Catégories actives</span><strong class="metric-value">{{ active_category_count }}</strong></article>
+      <article class="metric"><span class="metric-label">Types documentaires actifs</span><strong class="metric-value">{{ active_document_type_count }}</strong></article>
+    </div>
+
+    <h2>Dernières archives</h2>
+    {% if latest_archives %}
+      <table class="archive-table">
+        <thead>
+          <tr>
+            <th scope="col">Référence</th>
+            <th scope="col">Titre</th>
+            <th scope="col">Catégorie</th>
+            <th scope="col">Service</th>
+            <th scope="col">Statut</th>
+            <th scope="col">Date du document</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for archive in latest_archives %}
+            <tr>
+              <td>{{ archive.reference }}</td>
+              <td>{{ archive.title }}</td>
+              <td>{{ archive.category.name }}</td>
+              <td>{{ archive.service.name }}</td>
+              <td>{{ archive.get_status_display }}</td>
+              <td>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty-state">Aucune archive enregistrée.</p>
+    {% endif %}
+  </section>
+{% endblock %}

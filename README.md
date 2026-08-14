@@ -16,8 +16,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-003 — Utilisateur personnalisé et rôles | Terminé et intégré à `develop` |
 | T-004 — Modèles métier fondamentaux des archives | Terminé et intégré à `develop` |
 | T-005 — Migrations et administration | **ABSORBED_BY_T004** ; clôture documentaire, sans code métier supplémentaire |
-| T-006 — Authentification sécurisée | Terminé sur `feature/authentication` |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier et authentification par session configurés ; interfaces MVP non implémentées |
+| T-006 — Authentification sécurisée | **INTEGRATED** dans `develop` |
+| T-007 — Tableau de bord | **IN_REVIEW** sur `feature/dashboard` |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier, authentification par session et synthèse dashboard configurés ; interfaces MVP non implémentées |
 
 ## Objectif du MVP
 
@@ -83,6 +84,7 @@ python manage.py runserver
 | [`docs/tickets/T-004.md`](docs/tickets/T-004.md) | Compte rendu de clôture du ticket modèles métier fondamentaux |
 | [`docs/tickets/T-005.md`](docs/tickets/T-005.md) | Clôture documentaire du ticket absorbé par T-004 |
 | [`docs/tickets/T-006.md`](docs/tickets/T-006.md) | Compte rendu de clôture du ticket authentification sécurisée |
+| [`docs/tickets/T-007.md`](docs/tickets/T-007.md) | Compte rendu du ticket tableau de bord en revue |
 
 ## Convention Git
 

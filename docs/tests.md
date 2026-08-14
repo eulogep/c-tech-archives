@@ -101,3 +101,28 @@ Ces tests distinguent volontairement la validation applicative lancée par `full
 5. Revenir sur `/` et constater que la redirection vers la connexion est de nouveau appliquée.
 
 Ce scénario ne démontre pas encore les droits métier sur les archives : il prouve seulement l’identité, la session, le contrôle de la vue protégée et la déconnexion sécurisée.
+
+## Couverture ajoutée par T-007
+
+| Référence | Scénario | Résultat attendu |
+|---|---|---|
+| DASH-001 | Accès anonyme | Redirection vers la connexion |
+| DASH-002 | Accès authentifié | Réponse HTTP 200 et tableau de bord rendu |
+| DASH-003 | Base vide | Zéro archive et état vide explicite |
+| DASH-004 | Compteur total | Nombre d’archives conforme à PostgreSQL |
+| DASH-005 | Compteurs de statut | Archives actives et archivées distinguées |
+| DASH-006 | Référentiels actifs | Seuls les services, catégories et types actifs sont comptabilisés |
+| DASH-007 | Limite de liste | Cinq dernières archives au maximum |
+| DASH-008 | Ordre | Archives ordonnées par `-created_at` |
+| DASH-009 | Relations | Données relationnelles rendues via `select_related` sans N+1 |
+| DASH-010 | Données sensibles | Ni checksum ni hash de mot de passe dans le HTML |
+
+## Fiche pédagogique — Tableau de bord
+
+Un **dashboard** est une vue synthétique qui présente les informations importantes du système. Les nombres affichés proviennent de requêtes ORM exécutées sur PostgreSQL ; ils ne sont donc jamais inscrits en dur dans le HTML. Un **QuerySet** représente une requête Django vers la base de données. `select_related` charge les relations SQL nécessaires dans une même requête de liste afin d’éviter une requête supplémentaire pour chaque archive affichée.
+
+Il n’existe pas encore de section « activité récente » car `AuditLog` n’est pas implémenté. Il faut présenter cette absence comme une limite volontaire du ticket T-007, et non comme une fonctionnalité existante.
+
+### Scénario de démonstration
+
+Après connexion, ouvrir le dashboard, montrer les compteurs d’archives, de services et de catégories, puis les cinq dernières archives. Expliquer que les valeurs proviennent directement de PostgreSQL. Cette démonstration doit durer entre 30 et 45 secondes et ne doit pas être confondue avec les futurs CRUD, recherche, audit ou RBAC.
