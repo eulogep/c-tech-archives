@@ -116,3 +116,14 @@ Avant stockage, `ArchiveForm` rejette les extensions hors allowlist, les fichier
 `file_size` est calculé depuis le fichier réellement reçu et `uploaded_by` reste imposé par le serveur. `checksum` demeure vide : aucun calcul SHA-256 n’est anticipé avant T-013. Le formulaire d’édition retire le champ de fichier, interdisant tout remplacement silencieux avant une politique de versioning validée.
 
 Le document privé n’est jamais lié par `archive.file.url`. La route `/archives/<pk>/download/` est protégée par `StaffRequiredMixin`; une requête anonyme est redirigée vers la connexion et un compte authentifié non staff reçoit HTTP 403. La vue utilise `FileResponse` avec une pièce jointe, traite une archive sans fichier ou un fichier manquant par HTTP 404, et ne supprime pas la métadonnée dans ce dernier cas. La restriction staff reste une mesure temporaire deny-by-default qui sera remplacée par le RBAC métier au T-011.
+
+
+## RBAC métier et confidentialité — T-011
+
+La politique d’autorisation est centralisée dans `archives.permissions`. Elle distingue l’authentification, qui établit l’identité, de l’autorisation, qui détermine le périmètre d’archives et les actions permises. Aucun écran d’archives ne décide seul à partir de `is_staff` ni ne répète une condition `user.role` dans les vues. Les rôles métier valides et le superuser technique sont traités dans une seule source de vérité ; un rôle absent ou invalide conduit au deny-by-default.
+
+La confidentialité est appliquée avant toute recherche et pagination par `visible_archives_for`. Un Consultant ne reçoit que les archives PUBLIC ; un Agent reçoit PUBLIC et INTERNAL ; un Administrateur métier et un superuser reçoivent tous les niveaux. Cette restriction au niveau QuerySet évite les fuites par liste, recherche exacte, compteur de résultats, pagination, filtres ou indicateurs du dashboard. Les référentiels proposés en recherche proviennent également du périmètre visible.
+
+Une archive hors périmètre produit HTTP 404 dans le détail, l’édition ciblée et le téléchargement. Cette réponse ne confirme pas qu’un identifiant correspond à une archive confidentielle existante. Une action interdite sur une archive déjà visible, telle qu’un Consultant qui tente de modifier une archive PUBLIC, retourne HTTP 403. Le téléchargement réutilise le même QuerySet autorisé que le détail ; l’URL directe ne permet donc pas de contourner le RBAC.
+
+Les formulaires reçoivent l’utilisateur de la requête. Ils limitent les choix de confidentialité visibles et valident de nouveau la valeur soumise : un Agent ne peut pas créer ou transformer une archive en CONFIDENTIAL via un POST falsifié. Masquer un bouton ou une option améliore l’interface, mais le contrôle serveur reste l’autorité de sécurité. La politique actuelle reste provisoire et n’introduit ni ACL par service, ni règle nominative, ni audit.

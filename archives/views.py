@@ -8,12 +8,16 @@ from django.http import FileResponse, Http404
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from .access import StaffRequiredMixin
+from .access import (
+    ArchiveCreatePermissionMixin,
+    ArchiveUpdatePermissionMixin,
+    ArchiveVisibleQuerysetMixin,
+)
 from .forms import ArchiveForm, ArchiveSearchForm
 from .models import Archive
 
 
-class ArchiveListView(StaffRequiredMixin, ListView):
+class ArchiveListView(ArchiveVisibleQuerysetMixin, ListView):
     """Liste paginée des archives pour les comptes techniques autorisés."""
 
     model = Archive
@@ -23,12 +27,16 @@ class ArchiveListView(StaffRequiredMixin, ListView):
 
     def get_search_form(self):
         if not hasattr(self, "_search_form"):
-            self._search_form = ArchiveSearchForm(self.request.GET)
+            self._search_form = ArchiveSearchForm(
+                self.request.GET, user=self.request.user
+            )
         return self._search_form
 
     def get_queryset(self):
-        queryset = Archive.objects.select_related(
-            "category", "document_type", "service", "uploaded_by"
+        queryset = self.visible_archive_queryset(
+            Archive.objects.select_related(
+                "category", "document_type", "service", "uploaded_by"
+            )
         )
         form = self.get_search_form()
         if not form.is_valid():
@@ -69,13 +77,18 @@ class ArchiveListView(StaffRequiredMixin, ListView):
         return context
 
 
-class ArchiveCreateView(StaffRequiredMixin, SuccessMessageMixin, CreateView):
+class ArchiveCreateView(ArchiveCreatePermissionMixin, SuccessMessageMixin, CreateView):
     """Crée une archive en imposant l’auteur côté serveur."""
 
     model = Archive
     form_class = ArchiveForm
     template_name = "archives/archive_form.html"
     success_message = "Archive créée."
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         uploaded_file = form.cleaned_data.get("file")
@@ -88,7 +101,7 @@ class ArchiveCreateView(StaffRequiredMixin, SuccessMessageMixin, CreateView):
         return reverse_lazy("archives:detail", kwargs={"pk": self.object.pk})
 
 
-class ArchiveDetailView(StaffRequiredMixin, DetailView):
+class ArchiveDetailView(ArchiveVisibleQuerysetMixin, DetailView):
     """Présente les métadonnées de détail sans checksum ni mot de passe."""
 
     model = Archive
@@ -96,15 +109,20 @@ class ArchiveDetailView(StaffRequiredMixin, DetailView):
     context_object_name = "archive"
 
     def get_queryset(self):
-        return Archive.objects.select_related(
-            "category", "document_type", "service", "uploaded_by"
+        return self.visible_archive_queryset(
+            Archive.objects.select_related(
+                "category", "document_type", "service", "uploaded_by"
+            )
         )
 
 
-class ArchiveDownloadView(StaffRequiredMixin, DetailView):
+class ArchiveDownloadView(ArchiveVisibleQuerysetMixin, DetailView):
     """Diffuse un document privé après contrôle d’accès serveur."""
 
     model = Archive
+
+    def get_queryset(self):
+        return self.visible_archive_queryset(Archive.objects.all())
 
     def get(self, request, *args, **kwargs):
         archive = self.get_object()
@@ -119,7 +137,7 @@ class ArchiveDownloadView(StaffRequiredMixin, DetailView):
         return FileResponse(file_handle, as_attachment=True, filename=download_name)
 
 
-class ArchiveUpdateView(StaffRequiredMixin, SuccessMessageMixin, UpdateView):
+class ArchiveUpdateView(ArchiveUpdatePermissionMixin, SuccessMessageMixin, UpdateView):
     """Modifie les seules métadonnées présentes dans ArchiveForm."""
 
     model = Archive
@@ -127,6 +145,11 @@ class ArchiveUpdateView(StaffRequiredMixin, SuccessMessageMixin, UpdateView):
     template_name = "archives/archive_form.html"
     context_object_name = "archive"
     success_message = "Archive modifiée."
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def get_success_url(self):
         return reverse_lazy("archives:detail", kwargs={"pk": self.object.pk})

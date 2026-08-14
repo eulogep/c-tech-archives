@@ -242,3 +242,34 @@ Le répertoire privé n’est jamais rendu public par une URL. `FileResponse` pe
 > **« Un exécutable renommé en PDF est-il sûr ? »** Non. L’extension seule ne suffit pas. Le MVP croise plusieurs signaux de format, mais ne prétend pas remplacer une solution antivirus/anti-malware de production.
 
 > **« Pourquoi ne pas publier les fichiers dans `/media/` ? »** Une URL publique pourrait contourner les autorisations. Le document reste dans un stockage privé et la vue Django contrôle l’utilisateur avant de renvoyer une pièce jointe.
+
+
+## Couverture ajoutée par T-011
+
+| Références | Contrôle vérifié |
+|---|---|
+| RBAC-001 à RBAC-004 | Redirection anonyme puis accès HTTP 200 à la liste pour Administrateur, Agent et Consultant |
+| RBAC-005 à RBAC-010 | Visibilité de liste conforme à PUBLIC, INTERNAL et CONFIDENTIAL selon le rôle |
+| RBAC-011 à RBAC-014 | Recherche exacte d’archives invisibles sans résultat ; recherche Administrateur autorisée |
+| RBAC-015 à RBAC-018 | Détail direct d’une archive hors périmètre en HTTP 404 ; Administrateur autorisé |
+| RBAC-019 à RBAC-023 | Création refusée au Consultant, autorisée à l’Agent pour PUBLIC/INTERNAL et à l’Administrateur pour CONFIDENTIAL |
+| RBAC-024 à RBAC-028 | Modification refusée au Consultant, autorisée à l’Agent sur le périmètre visible et protection contre l’escalade vers CONFIDENTIAL |
+| RBAC-029 à RBAC-034 | Téléchargement selon la même règle de visibilité que le détail |
+| RBAC-035 | Non-inférence : liste, pagination, recherche exacte et dashboard d’un Consultant n’exposent pas les archives CONFIDENTIAL |
+| RBAC-036 à RBAC-037 | Compteurs de dashboard limités au périmètre Agent ou Administrateur |
+| RBAC-038 | Superuser technique avec accès complet documenté |
+| RBAC-039 à RBAC-040 | Navigation Consultant sans actions mutables ; Agent avec les actions autorisées |
+
+Les quarante scénarios `ArchiveRbacTests` s’ajoutent aux cent quatorze scénarios précédents et portent la suite à cent cinquante-quatre tests. Ils utilisent uniquement des archives et fichiers PDF synthétiques stockés dans des répertoires temporaires.
+
+## Fiche pédagogique — RBAC, QuerySet et non-inférence
+
+**RBAC** signifie *Role-Based Access Control*. L’authentification répond à la question « qui est connecté ? » ; l’autorisation répond à « quelles archives et quelles actions cette personne peut-elle consulter ou effectuer ? ». Dans le MVP, le rôle métier donne un périmètre de confidentialité provisoire : tous les niveaux pour un Administrateur, PUBLIC et INTERNAL pour un Agent, PUBLIC seulement pour un Consultant.
+
+Un **QuerySet** filtré est une protection essentielle : l’application part des seules archives visibles avant de chercher, filtrer, paginer ou compter. Contrôler uniquement la page détail serait insuffisant, car un titre exact, un compteur ou une page supplémentaire pourrait alors révéler qu’une archive confidentielle existe. Une archive invisibile retourne HTTP 404, afin de ne pas distinguer un identifiant inexistant d’un document auquel le rôle n’a pas accès.
+
+Le détail et le téléchargement appliquent la même politique que la liste. L’interface masque aussi les actions interdites, mais cette mesure n’est pas une sécurité : un navigateur peut envoyer un POST manuel ou saisir une URL. Les vues et formulaires vérifient donc toujours l’autorisation côté serveur.
+
+### Question jury — Comment un Consultant ne peut-il pas deviner une archive confidentielle ?
+
+> Le QuerySet est filtré selon le rôle avant toute liste, recherche, pagination ou agrégation. Les vues objet réutilisent cette règle et retournent 404 pour une archive hors périmètre. Même avec l’identifiant ou le titre, l’utilisateur ne reçoit ni objet, ni compteur, ni confirmation de son existence.

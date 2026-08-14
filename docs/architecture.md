@@ -198,3 +198,32 @@ La validation combine une allowlist d’extensions configurable, une taille maxi
 Le téléchargement est distinct du stockage. La route `/archives/<pk>/download/` passe par `ArchiveDownloadView`, conserve `StaffRequiredMixin`, vérifie l’existence du fichier puis renvoie `FileResponse` avec `as_attachment=True`. Les gabarits ne construisent aucune URL à partir de `archive.file.url`; ils pointent exclusivement vers cette route applicative. Une archive sans fichier, une archive inconnue ou un fichier disparu du stockage obtient une réponse 404 sans suppression silencieuse des métadonnées.
 
 La modification des métadonnées retire volontairement le champ `file` du formulaire d’édition. Le remplacement d’un contenu documentaire est donc exclu tant que C-Tech n’a pas validé une politique de versioning, de conservation et de traçabilité.
+
+
+## Autorisation RBAC et confidentialité — T-011
+
+T-011 remplace la garde technique `StaffRequiredMixin` par une politique métier centralisée dans `archives.permissions`. Cette couche associe les rôles métier aux niveaux de confidentialité visibles, construit le QuerySet autorisé avec `visible_archives_for`, décide les droits de création et de modification, puis sert de référence unique aux mixins, formulaires, vues, navigation et dashboard. Un superuser Django reçoit un accès technique complet ; ce statut reste distinct du rôle métier `ADMINISTRATEUR`.
+
+| Rôle | PUBLIC | INTERNAL | CONFIDENTIAL | Création / modification |
+|---|---|---|---|---|
+| Administrateur | Lecture / écriture | Lecture / écriture | Lecture / écriture | Toutes les confidences |
+| Agent d’archives | Lecture / écriture | Lecture / écriture | Aucun accès | PUBLIC et INTERNAL seulement |
+| Consultant | Lecture | Aucun accès | Aucun accès | Aucune |
+
+```mermaid
+flowchart LR
+    Request[Requête authentifiée] --> Policy[archives.permissions]
+    Policy --> Visible[visible_archives_for]
+    Visible --> List[Liste et recherche]
+    Visible --> Detail[Détail et téléchargement]
+    Policy --> Form[ArchiveForm avec utilisateur]
+    Visible --> Dashboard[Compteurs visibles]
+    Detail -->|Objet hors périmètre| Hidden[HTTP 404]
+    Form -->|Action interdite| Denied[HTTP 403 ou erreur de validation]
+```
+
+La liste construit d’abord le QuerySet autorisé, puis applique la recherche textuelle, les filtres et la pagination. Cette séquence évite qu’un terme recherché, un compteur de résultats ou une pagination révèle l’existence d’une archive hors périmètre. Les choix de référentiels dans la recherche sont également dérivés des seules archives visibles.
+
+Les vues de détail et de téléchargement réutilisent le même filtrage ; une archive existante mais invisible retourne HTTP 404 afin de ne pas confirmer son existence. À l’inverse, une archive PUBLIC visible mais qu’un Consultant tente de modifier retourne HTTP 403 : son existence est déjà connue, mais l’action est interdite. Le dashboard calcule ses agrégats et ses référentiels actifs à partir du même périmètre visible.
+
+La matrice reste provisoire : aucune ACL par service, attribution nominative, règle de partage ou logique d’audit n’est introduite dans cette étape. Ces axes restent à valider avec C-Tech.

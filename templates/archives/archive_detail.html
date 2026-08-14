@@ -9,7 +9,9 @@
         <h1 id="archive-title">{{ archive.reference }}</h1>
         <p class="muted">Fiche de métadonnées documentaires</p>
       </div>
-      <a class="button" href="{% url 'archives:update' archive.pk %}">Modifier</a>
+      {% if archive_policy.can_update %}
+        <a class="button" href="{% url 'archives:update' archive.pk %}">Modifier</a>
+      {% endif %}
     </div>
 
     <dl style="display:grid; grid-template-columns:minmax(160px, 1fr) 2fr; gap:.75rem 1rem; margin-top:1.5rem;">
