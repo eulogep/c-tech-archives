@@ -88,6 +88,10 @@
                     <a class="button button-secondary button-compact" href="{% url 'archives:download' archive.pk %}" title="Télécharger le fichier">
                       Télécharger<span class="visually-hidden"> {{ archive.reference }}</span>
                     </a>
+                    <form class="inline-action-form" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
+                      {% csrf_token %}
+                      <button class="button button-secondary button-compact" type="submit">Vérifier l’intégrité<span class="visually-hidden"> de {{ archive.reference }}</span></button>
+                    </form>
                   {% endif %}
                 </td>
               </tr>

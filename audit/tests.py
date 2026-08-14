@@ -217,6 +217,7 @@ class AuditLogTests(TestCase):
         self.client.force_login(self.consultant)
 
         response = self.client.get(f"/archives/{archive.pk}/download/")
+        b"".join(response.streaming_content)
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(self.audit_events(AuditAction.ARCHIVE_DOWNLOAD, archive).exists())

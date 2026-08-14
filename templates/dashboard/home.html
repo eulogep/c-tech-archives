@@ -42,6 +42,84 @@
       </article>
     </div>
 
+    <section class="section-block" aria-labelledby="recent-archives-title">
+      <div class="section-header">
+        <h2 id="recent-archives-title">Dernières archives visibles</h2>
+        <a href="{% url 'archives:list' %}">Voir toutes les archives</a>
+      </div>
+      {% if recent_archives %}
+        <div class="table-responsive" tabindex="0" aria-label="Dernières archives visibles, défilement horizontal disponible sur petit écran">
+          <table class="data-table data-table-compact">
+            <thead>
+              <tr>
+                <th scope="col">Référence</th>
+                <th scope="col">Titre</th>
+                <th scope="col">Confidentialité</th>
+                <th scope="col">Statut</th>
+                <th scope="col">Date</th>
+                <th scope="col"><span class="visually-hidden">Action</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for archive in recent_archives %}
+                <tr>
+                  <td><a class="table-link" href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a></td>
+                  <td>{{ archive.title }}</td>
+                  <td><span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span></td>
+                  <td><span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span></td>
+                  <td>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}{{ archive.created_at|date:"d/m/Y" }}{% endif %}</td>
+                  <td><a class="button button-secondary button-compact" href="{% url 'archives:detail' archive.pk %}">Consulter<span class="visually-hidden"> {{ archive.reference }}</span></a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state empty-state-compact">
+          <h2>Aucune archive visible</h2>
+          <p>Aucune archive n’est actuellement accessible dans votre périmètre.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if audit_policy.can_view %}
+      <section class="section-block" aria-labelledby="recent-activity-title">
+        <div class="section-header">
+          <h2 id="recent-activity-title">Activité récente</h2>
+          <a href="{% url 'audit:list' %}">Voir le journal d’audit</a>
+        </div>
+        {% if recent_audit_events %}
+          <div class="table-responsive" tabindex="0" aria-label="Activité récente, défilement horizontal disponible sur petit écran">
+            <table class="data-table data-table-compact">
+              <thead>
+                <tr>
+                  <th scope="col">Action</th>
+                  <th scope="col">Archive</th>
+                  <th scope="col">Utilisateur</th>
+                  <th scope="col">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for event in recent_audit_events %}
+                  <tr>
+                    <td><span class="audit-badge audit-badge-{{ event.action|lower }}">{{ event.get_action_display }}</span></td>
+                    <td>{{ event.archive_reference|default:"—" }}</td>
+                    <td>{{ event.actor_identifier }}</td>
+                    <td>{{ event.timestamp|date:"d/m/Y H:i" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state empty-state-compact">
+            <h2>Aucune activité récente</h2>
+            <p>Aucun événement d’audit n’est encore enregistré.</p>
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
+
     <div class="section-block">
       <div class="section-header">
         <h2>Accès rapides</h2>

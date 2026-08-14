@@ -198,3 +198,70 @@ class UIPolishTests(TestCase):
             self.client.get(f"/archives/{self.confidential_archive.pk}/").status_code,
             404,
         )
+
+    def test_ui_polish_011_consultant_recent_archives_contain_public_only(self):
+        self.client.force_login(self.consultant)
+
+        response = self.client.get("/")
+
+        self.assertContains(response, "Dernières archives visibles")
+        self.assertContains(response, self.public_archive.reference)
+        self.assertNotContains(response, self.internal_archive.reference)
+        self.assertNotContains(response, self.confidential_archive.reference)
+
+    def test_ui_polish_012_agent_recent_archives_exclude_confidential(self):
+        self.client.force_login(self.agent)
+
+        response = self.client.get("/")
+
+        self.assertContains(response, self.public_archive.reference)
+        self.assertContains(response, self.internal_archive.reference)
+        self.assertNotContains(response, self.confidential_archive.reference)
+
+    def test_ui_polish_013_administrator_recent_archives_include_confidential(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.get("/")
+
+        self.assertContains(response, self.confidential_archive.reference)
+
+    def test_ui_polish_014_recent_archives_are_limited_to_five(self):
+        for index in range(5):
+            self.create_archive(
+                f"CT-POLISH-RECENT-{index}", ConfidentialityLevel.PUBLIC
+            )
+        self.client.force_login(self.consultant)
+
+        response = self.client.get("/")
+
+        self.assertEqual(len(response.context["recent_archives"]), 5)
+        self.assertNotContains(response, self.public_archive.reference)
+
+    def test_ui_polish_015_recent_audit_activity_is_hidden_from_unauthorized_roles(self):
+        for user in (self.consultant, self.agent):
+            with self.subTest(user=user.username):
+                self.client.force_login(user)
+                response = self.client.get("/")
+                self.assertNotContains(response, "Activité récente")
+                self.assertNotIn("recent_audit_events", response.context)
+
+    def test_ui_polish_016_recent_audit_activity_is_visible_to_business_admin(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.get("/")
+
+        self.assertContains(response, "Activité récente")
+        self.assertContains(response, "Connexion réussie")
+        self.assertIn("recent_audit_events", response.context)
+
+    def test_ui_polish_017_list_integrity_action_remains_post_and_csrf(self):
+        self.client.force_login(self.consultant)
+
+        response = self.client.get("/archives/")
+
+        self.assertContains(
+            response,
+            f'action="/archives/{self.public_archive.pk}/verify-integrity/"',
+        )
+        self.assertContains(response, 'method="post"')
+        self.assertContains(response, "csrfmiddlewaretoken")

@@ -457,7 +457,7 @@ a:hover {
 /* Metric Cards & Summary */
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
 }
 
@@ -558,6 +558,17 @@ a:hover {
 .section-header a {
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.data-table-compact th,
+.data-table-compact td {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+.inline-action-form {
+  display: inline-flex;
+  margin: 0;
 }
 
 /* Buttons */
@@ -974,6 +985,14 @@ a:hover {
   max-width: 28rem;
 }
 
+.empty-state-compact {
+  padding: var(--space-5);
+}
+
+.empty-state-compact h2 {
+  font-size: 1.05rem;
+}
+
 /* Messages & Feedback */
 .message-stack {
   display: flex;
@@ -1106,9 +1125,17 @@ a:hover {
   .panel {
     padding: var(--space-4);
   }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
   .page-header {
     flex-direction: column;
     align-items: stretch;

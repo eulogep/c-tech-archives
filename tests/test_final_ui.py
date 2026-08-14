@@ -244,7 +244,8 @@ class FinalInterfaceTests(TestCase):
     def test_ui_019_templates_do_not_use_public_file_urls(self):
         templates_root = Path(__file__).resolve().parents[1] / "templates"
         rendered_sources = "\n".join(
-            template.read_text() for template in templates_root.rglob("*.html")
+            template.read_text(encoding="utf-8")
+            for template in templates_root.rglob("*.html")
         )
 
         self.assertNotIn("archive.file.url", rendered_sources)
@@ -261,8 +262,12 @@ class FinalInterfaceTests(TestCase):
 
         response = self.client.get("/archives/")
         project_root = Path(__file__).resolve().parents[1]
-        base_template = (project_root / "templates" / "base.html").read_text()
-        stylesheet = (project_root / "static" / "css" / "app.css").read_text()
+        base_template = (project_root / "templates" / "base.html").read_text(
+            encoding="utf-8"
+        )
+        stylesheet = (project_root / "static" / "css" / "app.css").read_text(
+            encoding="utf-8"
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "<title>Archives | C-Tech Archives</title>")
