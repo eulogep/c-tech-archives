@@ -122,11 +122,10 @@ L’application `dashboard` devient responsable de la synthèse authentifiée. `
 ```mermaid
 flowchart LR
     User[Utilisateur authentifié] --> Dashboard[dashboard.home]
-    Dashboard -->|compteurs ORM| Archives[(archives_* PostgreSQL)]
-    Dashboard -->|select_related| Recent[5 dernières archives]
+    Dashboard -->|compteurs ORM agrégés| Archives[(archives_* PostgreSQL)]
     Accounts[accounts\nidentité et session] --> Dashboard
 ```
 
-Les six indicateurs sont calculés à partir de requêtes ORM lisibles. Les cinq dernières archives sont triées par `-created_at` et leurs relations `category`, `document_type`, `service` et `uploaded_by` sont préchargées avec `select_related`. Cette stratégie conserve une requête de liste indépendante du nombre de lignes affichées et évite un accès relationnel N+1 dans le template.
+Les six indicateurs sont calculés à partir de requêtes ORM lisibles sur les tables d’archives et de référentiels. Aucune archive individuelle, relation documentaire ou métadonnée associée n’est renvoyée par la vue. Cette décision évite qu’un utilisateur authentifié voie une référence, un titre, un service ou une catégorie confidentiels avant que T-011 n’ait défini la politique d’autorisation complète.
 
 Le dashboard n’affiche aucune activité récente, car le modèle d’audit n’existe pas encore. Il n’expose ni checksum ni donnée de mot de passe et ne déduit aucun droit métier du rôle utilisateur avant T-011.

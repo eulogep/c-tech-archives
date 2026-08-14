@@ -17,7 +17,7 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-004 — Modèles métier fondamentaux des archives | Terminé et intégré à `develop` |
 | T-005 — Migrations et administration | **ABSORBED_BY_T004** ; clôture documentaire, sans code métier supplémentaire |
 | T-006 — Authentification sécurisée | **INTEGRATED** dans `develop` |
-| T-007 — Tableau de bord | **IN_REVIEW** sur `feature/dashboard` |
+| T-007 — Tableau de bord | **IN_REVIEW** sur `feature/dashboard` ; indicateurs agrégés uniquement avant RBAC T-011 |
 | Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier, authentification par session et synthèse dashboard configurés ; interfaces MVP non implémentées |
 
 ## Objectif du MVP

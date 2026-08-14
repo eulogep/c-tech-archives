@@ -108,21 +108,25 @@ Ce scénario ne démontre pas encore les droits métier sur les archives : il pr
 |---|---|---|
 | DASH-001 | Accès anonyme | Redirection vers la connexion |
 | DASH-002 | Accès authentifié | Réponse HTTP 200 et tableau de bord rendu |
-| DASH-003 | Base vide | Zéro archive et état vide explicite |
+| DASH-003 | Base vide | Zéro pour les métriques agrégées, sans liste détaillée |
 | DASH-004 | Compteur total | Nombre d’archives conforme à PostgreSQL |
 | DASH-005 | Compteurs de statut | Archives actives et archivées distinguées |
 | DASH-006 | Référentiels actifs | Seuls les services, catégories et types actifs sont comptabilisés |
-| DASH-007 | Limite de liste | Cinq dernières archives au maximum |
-| DASH-008 | Ordre | Archives ordonnées par `-created_at` |
-| DASH-009 | Relations | Données relationnelles rendues via `select_related` sans N+1 |
-| DASH-010 | Données sensibles | Ni checksum ni hash de mot de passe dans le HTML |
+| DASH-007 | Métadonnée confidentielle | Référence et titre d’une archive confidentielle absents du HTML |
+| DASH-008 | Agrégats avec plusieurs archives | Total et compteurs de statut restent exacts |
+| DASH-009 | Données sensibles | Ni checksum, hash de mot de passe ni titre confidentiel dans le HTML |
+| DASH-010 | Contexte de vue | Aucun `latest_archives` ni libellé de liste détaillée |
 
 ## Fiche pédagogique — Tableau de bord
 
-Un **dashboard** est une vue synthétique qui présente les informations importantes du système. Les nombres affichés proviennent de requêtes ORM exécutées sur PostgreSQL ; ils ne sont donc jamais inscrits en dur dans le HTML. Un **QuerySet** représente une requête Django vers la base de données. `select_related` charge les relations SQL nécessaires dans une même requête de liste afin d’éviter une requête supplémentaire pour chaque archive affichée.
+Un **dashboard** est une vue synthétique qui présente les informations importantes du système. Les nombres affichés proviennent de requêtes ORM exécutées sur PostgreSQL ; ils ne sont donc jamais inscrits en dur dans le HTML. Un **QuerySet** représente une requête Django vers la base de données. Dans le périmètre corrigé de T-007, la vue ne retourne que des agrégats : elle n’a donc pas besoin de `select_related` ni de relations documentaires individuelles.
 
-Il n’existe pas encore de section « activité récente » car `AuditLog` n’est pas implémenté. Il faut présenter cette absence comme une limite volontaire du ticket T-007, et non comme une fonctionnalité existante.
+Il n’existe pas encore de section « activité récente » car `AuditLog` n’est pas implémenté. La liste des dernières archives est elle aussi volontairement absente : l’authentification existe, mais la politique RBAC et de confidentialité documentaire n’est pas encore définie au ticket T-011.
 
 ### Scénario de démonstration
 
-Après connexion, ouvrir le dashboard, montrer les compteurs d’archives, de services et de catégories, puis les cinq dernières archives. Expliquer que les valeurs proviennent directement de PostgreSQL. Cette démonstration doit durer entre 30 et 45 secondes et ne doit pas être confondue avec les futurs CRUD, recherche, audit ou RBAC.
+Après connexion, ouvrir le dashboard et montrer les compteurs d’archives, de services et de catégories. Expliquer que les valeurs proviennent directement de PostgreSQL et qu’aucune archive individuelle n’est affichée avant T-011. Cette démonstration doit durer entre 30 et 45 secondes et ne doit pas être confondue avec les futurs CRUD, recherche, audit ou RBAC.
+
+### Question jury — Pourquoi les derniers documents ne sont-ils pas affichés ?
+
+> Parce que l’authentification existe déjà, mais la politique d’autorisation détaillée des archives n’est pas encore implémentée. Afficher les dernières archives à tous les utilisateurs authentifiés pourrait révéler des métadonnées confidentielles. Nous avons donc préféré attendre le contrôle d’accès du ticket RBAC plutôt que d’implémenter une règle de sécurité partielle.

@@ -12,7 +12,7 @@ Les tickets sont exécutés **un par un**, sur une branche dédiée. À la fin d
 | 4 | T-004 | Modèles de référentiel et archive | Modèles `Service`, `Category`, `DocumentType`, `Archive` validés | `feat(archives): add core archive models` |
 | 5 | T-005 | Migrations et administration | **ABSORBED_BY_T004** — migrations initiales appliquées et modèles administrables pendant T-004 ; aucun développement supplémentaire requis | Aucun commit dédié |
 | 6 | T-006 | Authentification | Connexion, déconnexion, protection des vues et tests associés | `feat(auth): add secure authentication flow` |
-| 7 | T-007 | Tableau de bord | Indicateurs, dernières archives et dernières actions selon droits | `feat(dashboard): add archive overview` |
+| 7 | T-007 | Tableau de bord | Indicateurs agrégés sans métadonnée documentaire individuelle avant RBAC T-011 | `feat(dashboard): add archive overview` puis `fix(dashboard): avoid exposing archive metadata before RBAC` |
 | 8 | T-008 | CRUD des archives | Création, liste, détail, modification et suppression/désactivation contrôlées | `feat(archives): add archive management` |
 | 9 | T-009 | Recherche et filtres | Recherche par référence, titre, catégorie, type, service et date | `feat(search): add archive filters` |
 | 10 | T-010 | Téléversement sécurisé | Validation des fichiers, stockage privé et téléchargement protégé | `feat(files): secure archive uploads and downloads` |

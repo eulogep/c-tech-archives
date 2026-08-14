@@ -4,14 +4,11 @@
 
 {% block content %}
   <style>
-    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 1rem; margin: 1.5rem 0 2rem; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
     .metric { background: #eaf2f6; border-left: 4px solid #1f6f8b; border-radius: 0.25rem; padding: 1rem; }
     .metric-label { color: #52616b; display: block; font-size: 0.9rem; }
     .metric-value { display: block; font-size: 1.7rem; font-weight: 700; margin-top: 0.35rem; }
-    .archive-table { border-collapse: collapse; width: 100%; }
-    .archive-table th, .archive-table td { border-bottom: 1px solid #d8e0e6; padding: 0.7rem 0.5rem; text-align: left; }
-    .archive-table th { background: #eef3f6; }
-    .empty-state { border: 1px dashed #9aa9b3; border-radius: 0.25rem; padding: 1rem; color: #52616b; }
+    .notice { border: 1px solid #c9d7df; border-radius: 0.25rem; color: #455a64; padding: 1rem; }
   </style>
 
   <section class="panel" aria-labelledby="dashboard-title">
@@ -27,34 +24,6 @@
       <article class="metric"><span class="metric-label">Types documentaires actifs</span><strong class="metric-value">{{ active_document_type_count }}</strong></article>
     </div>
 
-    <h2>Dernières archives</h2>
-    {% if latest_archives %}
-      <table class="archive-table">
-        <thead>
-          <tr>
-            <th scope="col">Référence</th>
-            <th scope="col">Titre</th>
-            <th scope="col">Catégorie</th>
-            <th scope="col">Service</th>
-            <th scope="col">Statut</th>
-            <th scope="col">Date du document</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for archive in latest_archives %}
-            <tr>
-              <td>{{ archive.reference }}</td>
-              <td>{{ archive.title }}</td>
-              <td>{{ archive.category.name }}</td>
-              <td>{{ archive.service.name }}</td>
-              <td>{{ archive.get_status_display }}</td>
-              <td>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p class="empty-state">Aucune archive enregistrée.</p>
-    {% endif %}
+    <p class="notice">La consultation détaillée des archives sera disponible dans l’espace documentaire selon les droits de l’utilisateur.</p>
   </section>
 {% endblock %}
