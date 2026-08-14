@@ -140,3 +140,16 @@ Les détails JSON sont normalisés à `source` et `changed_fields`. Le service n
 L’adresse IP provient de `REMOTE_ADDR` lorsqu’elle est présente et valide. `X-Forwarded-For` n’est pas interprété par le MVP, car aucun proxy de confiance n’est encore validé pour cette information. Une IP indisponible est stockée à `NULL`. Les événements d’archive ne sont créés qu’après les contrôles RBAC : une tentative 404 ou 403 n’est pas présentée comme une consultation ou un téléchargement réussi.
 
 La page `/audit/` est exclusivement accessible à l’Administrateur métier et au superuser ; un Agent ou Consultant reçoit HTTP 403, et un anonyme est redirigé vers la connexion. Cette restriction est nécessaire car le journal peut référencer des archives CONFIDENTIAL, même si un Agent ne peut pas les consulter directement.
+
+
+## Intégrité des fichiers SHA-256 — T-013
+
+T-013 utilise SHA-256 comme empreinte déterministe de référence pour détecter une altération du contenu stocké. Le checksum est calculé sur le fichier réellement enregistré dans le stockage privé, par blocs de 64 KiB, puis conservé dans `Archive.checksum`. Le client ne peut pas proposer cette valeur par POST, query string ou en-tête.
+
+Une vérification contrôlée compare l’empreinte recalculée à la référence et retourne un état explicite. `MISMATCH` signale que le contenu actuel ne produit plus la même empreinte ; il ne remplace jamais le checksum historique. Les cas sans fichier, sans empreinte, fichier absent et erreur de lecture sont distingués afin d’éviter un faux résultat `VALID` ou une erreur HTTP non maîtrisée.
+
+La route de vérification utilise POST avec CSRF et le QuerySet RBAC déjà appliqué au détail : un utilisateur peut vérifier uniquement une archive qu’il peut consulter. Une archive hors périmètre répond 404. Toute vérification est auditée sous `ARCHIVE_INTEGRITY_CHECK` avec le seul résultat autorisé ; les deux hashes complets ne sont pas dupliqués dans l’audit.
+
+> SHA-256 dans ce MVP n’est **ni un chiffrement, ni une signature électronique, ni un contrôle d’accès, ni un antivirus, ni une preuve absolue de non-répudiation**. Il permet de détecter une différence entre le fichier actuel et l’empreinte de référence conservée.
+
+Un acteur ayant simultanément le contrôle complet du stockage et de la base pourrait modifier le fichier et son checksum. Une signature numérique, un stockage immuable ou une infrastructure de confiance séparée serait nécessaire pour une garantie plus forte. De même, une modification concurrente du fichier pendant sa lecture (TOCTOU) peut théoriquement influencer le résultat ; ce risque et la vérification automatique à chaque téléchargement restent hors périmètre MVP.

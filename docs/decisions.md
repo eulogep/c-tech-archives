@@ -181,3 +181,16 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Alternative étudiée.** Journaliser tous les GET, utiliser un `post_save` général ou mélanger les événements métier avec les logs techniques du serveur.
 
 **Pourquoi elle n’est pas retenue.** Ces alternatives génèrent du bruit, ne possèdent pas assez de contexte métier ou risquent de collecter des données sensibles. L’append-only applicatif ne prétend pas assurer une immutabilité absolue : un SIEM, une externalisation ou une chaîne cryptographique sont des évolutions de production hors périmètre.
+
+
+## ADR-018 — SHA-256 comme empreinte de référence d’intégrité
+
+**Décision.** Le champ `Archive.checksum` existant devient la référence SHA-256 de l’intégrité du fichier. L’empreinte est calculée par le module central `archives.integrity` après stockage du fichier lors de la création, à l’aide de `hashlib.sha256()` et de blocs de 64 KiB. Aucune valeur client ne peut la définir. La vérification est explicite, via POST avec CSRF, et renvoie un état non ambigu sans modifier la référence historique.
+
+**Justification.** SHA-256 est un algorithme standard disponible dans la bibliothèque Python. Une empreinte déterministe permet de comparer le contenu actuel au contenu enregistré lors du dépôt. Lire par blocs limite la mémoire supplémentaire utilisée, alors que le coût I/O de la vérification demeure proportionnel à la taille du fichier.
+
+**États et audit.** Le service distingue `VALID`, `MISMATCH`, `NO_FILE`, `MISSING_CHECKSUM`, `FILE_MISSING` et `ERROR`. `MISMATCH` ne réécrit jamais le checksum. Chaque vérification autorisée est journalisée par `ARCHIVE_INTEGRITY_CHECK` avec le seul résultat ; les hashes complets ne sont pas dupliqués dans l’audit.
+
+**Alternative étudiée.** Recalculer à chaque téléchargement ou consultation, créer un nouveau champ checksum, ou considérer SHA-256 comme un mécanisme de sécurité complet.
+
+**Pourquoi elle n’est pas retenue.** Le recalcul automatique imposerait un coût I/O inutile sur les parcours courants. Le champ existant respecte déjà le format requis, donc une migration du domaine archive serait sans justification. SHA-256 mesure l’intégrité mais n’est ni du chiffrement, ni une signature numérique, ni une défense contre une compromission simultanée du stockage et de la base. La vérification reste soumise à un risque TOCTOU hors périmètre MVP.

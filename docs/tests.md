@@ -302,3 +302,31 @@ Les détails d’audit doivent être **minimaux**. Enregistrer `changed_fields=[
 ### Question jury — Un administrateur peut-il modifier les logs pour cacher son activité ?
 
 > Dans l’application, le journal est append-only : aucune fonction métier ne permet de modifier ou supprimer une entrée, et l’administration Django est configurée en lecture seule. Cette protection reste applicative ; un stockage externe ou immuable serait requis pour une garantie de production plus forte.
+
+
+## Couverture ajoutée par T-013
+
+| Références | Contrôle vérifié |
+|---|---|
+| HASH-001 à HASH-002 | Empreinte connue, lecture par blocs et mémoire bornée par chunk |
+| HASH-003 à HASH-005 | Calcul automatique après upload, checksum client ignoré et format hexadécimal de 64 caractères |
+| HASH-006 à HASH-011 | États `NO_FILE`, `MISSING_CHECKSUM`, `VALID`, `MISMATCH`, conservation de la référence et `FILE_MISSING` |
+| HASH-012 | Restauration de la position initiale d’un flux repositionnable |
+| HASH-013 à HASH-018 | Redirection anonyme et visibilité RBAC identique au détail pour Consultant, Agent et Administrateur |
+| HASH-019 | Vérification POST soumise à CSRF |
+| HASH-020 à HASH-022 | Événement `ARCHIVE_INTEGRITY_CHECK` pour VALID/MISMATCH et détail limité au résultat autorisé |
+| HASH-023 à HASH-024 | Absence de recalcul sur liste, recherche et téléchargement |
+
+Les vingt-quatre scénarios d’intégrité s’ajoutent aux cent quatre-vingt-quatre tests précédents et portent la suite à deux cent huit tests. Les fichiers et altérations de démonstration sont exclusivement synthétiques et isolés dans des stockages temporaires.
+
+## Fiche pédagogique — empreinte SHA-256
+
+Un **hash** est une fonction qui transforme un contenu en empreinte de taille fixe. Dans le cas de SHA-256, l’empreinte est représentée par soixante-quatre caractères hexadécimaux. Le même contenu produit toujours la même empreinte ; un contenu modifié produit en pratique une empreinte différente. Le calcul est réalisé par blocs de 64 KiB afin d’éviter de charger le fichier entier en mémoire.
+
+Le checksum enregistré lors du dépôt est la **référence historique**. Lors d’une vérification, l’application recalcule l’empreinte du fichier actuellement stocké et compare les deux valeurs. `VALID` signifie qu’elles correspondent ; `MISMATCH` signifie que le contenu actuel n’est plus identique à la référence. La référence n’est pas remplacée lors d’un mismatch, car elle est précisément nécessaire pour détecter l’altération.
+
+SHA-256 n’est pas du chiffrement réversible : on ne peut pas retrouver pratiquement le fichier depuis son empreinte. Il ne protège pas non plus contre un acteur qui modifierait simultanément le fichier et la valeur en base. Une signature numérique, une infrastructure séparée ou un stockage immuable serait nécessaire pour répondre à ce niveau de menace.
+
+### Question jury — Si quelqu’un modifie le fichier et le checksum dans la base en même temps ?
+
+> Le mécanisme actuel détecte une différence entre le fichier et l’empreinte de référence conservée. Un acteur ayant un contrôle complet simultané du stockage et de la base pourrait modifier les deux. Une protection plus forte demanderait une signature numérique, un stockage immuable ou une infrastructure de confiance séparée, ce qui dépasse le périmètre du MVP.

@@ -13,6 +13,7 @@ class AuditAction(models.TextChoices):
     ARCHIVE_UPDATE = "ARCHIVE_UPDATE", "Modification d’archive"
     ARCHIVE_VIEW = "ARCHIVE_VIEW", "Consultation d’archive"
     ARCHIVE_DOWNLOAD = "ARCHIVE_DOWNLOAD", "Téléchargement d’archive"
+    ARCHIVE_INTEGRITY_CHECK = "ARCHIVE_INTEGRITY_CHECK", "Vérification d’intégrité"
 
 
 class AuditLog(models.Model):

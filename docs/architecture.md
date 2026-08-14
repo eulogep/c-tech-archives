@@ -253,3 +253,14 @@ sequenceDiagram
 Les événements de connexion et déconnexion utilisent les signaux Django `user_logged_in` et `user_logged_out`. Les actions d’archive sont intégrées explicitement après la réussite des vues : création et modification dans une transaction avec l’archive, consultation après obtention d’un objet autorisé, téléchargement après validation de l’accès et ouverture effective du fichier. Les listes et recherches ne génèrent aucun événement de consultation afin d’éviter le bruit.
 
 La consultation métier `/audit/` est paginée, triée par `-timestamp, -pk` et réservée à l’Administrateur métier ou au superuser technique. L’administration Django est également en lecture seule. Cette append-only policy est applicative : elle ne prétend pas fournir une immutabilité cryptographique ou un stockage externe inviolable.
+
+
+## Contrôle d’intégrité SHA-256 — T-013
+
+Le module `archives.integrity` centralise tout calcul d’empreinte. `calculate_sha256` utilise `hashlib.sha256()` et lit les flux par blocs de 64 KiB, ce qui borne la mémoire supplémentaire utilisée indépendamment de la taille du fichier. Lorsqu’un flux le permet, sa position initiale est restaurée après calcul pour ne pas perturber une opération suivante de stockage ou de téléchargement.
+
+Après une création d’archive avec fichier, la vue persiste d’abord le document dans le stockage privé puis calcule `calculate_archive_checksum` sur ce fichier réellement stocké. L’empreinte obtenue est écrite dans le champ `Archive.checksum` existant ; aucune valeur de checksum venue du client n’est utilisée. La création d’archive et l’écriture du checksum restent dans le même flux transactionnel PostgreSQL, mais le stockage de fichiers et la base ne constituent pas une transaction distribuée parfaite : un échec tardif peut théoriquement laisser un fichier orphelin à traiter opérationnellement.
+
+`verify_archive_integrity` ne modifie jamais le checksum historique et retourne un état explicite : `VALID`, `MISMATCH`, `NO_FILE`, `MISSING_CHECKSUM`, `FILE_MISSING` ou `ERROR`. La vérification est déclenchée seulement par `POST /archives/<pk>/verify-integrity/`, avec CSRF et le même QuerySet visible que les vues de détail et téléchargement. Elle est disponible à tout rôle pouvant consulter l’archive ; un objet hors périmètre reste HTTP 404.
+
+La vérification crée l’événement d’audit `ARCHIVE_INTEGRITY_CHECK` avec le seul détail `result`. Les empreintes attendue ou calculée ne sont pas dupliquées dans l’audit. Aucun recalcul n’est effectué automatiquement lors des listes, recherches, dashboards ou téléchargements, car cette opération est proportionnelle à la taille du fichier et doit rester explicite dans le MVP.
