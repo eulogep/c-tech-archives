@@ -194,3 +194,14 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Alternative étudiée.** Recalculer à chaque téléchargement ou consultation, créer un nouveau champ checksum, ou considérer SHA-256 comme un mécanisme de sécurité complet.
 
 **Pourquoi elle n’est pas retenue.** Le recalcul automatique imposerait un coût I/O inutile sur les parcours courants. Le champ existant respecte déjà le format requis, donc une migration du domaine archive serait sans justification. SHA-256 mesure l’intégrité mais n’est ni du chiffrement, ni une signature numérique, ni une défense contre une compromission simultanée du stockage et de la base. La vérification reste soumise à un risque TOCTOU hors périmètre MVP.
+
+
+## ADR-019 — Durcissement fondé sur des tests transverses et classification explicite des limites
+
+**Décision.** T-014 ajoute une revue transverse et la matrice `HARD-001` à `HARD-025` sans introduire de nouvelle fonctionnalité de sécurité disproportionnée. Les faiblesses doivent être reproduites par test avant correction. En l’absence de vulnérabilité significative reproductible, le ticket documente les contrôles existants, les résultats de `check --deploy` et les risques résiduels au lieu de déclarer artificiellement une faille critique.
+
+**Justification.** Le MVP possède déjà des contrôles distribués entre authentification, RBAC, formulaires, stockage privé, audit et intégrité. Les tests transverses vérifient leur cohérence au niveau des routes et de la configuration, notamment les scénarios IDOR, CSRF et mass assignment que des tests unitaires isolés peuvent manquer.
+
+**Déploiement.** Les warnings `check --deploy` observés en développement ne sont pas désactivés, car le développement local est volontairement HTTP avec DEBUG. La production doit fournir son secret, ses hôtes, HTTPS, cookies secure, redirection SSL et HSTS par environnement. Le preload HSTS reste une décision explicite après validation du domaine complet.
+
+**Limites.** T-014 ne prétend pas certifier OWASP, fournir un pentest externe, installer un rate limiter, un antivirus, une signature numérique, une immutabilité WORM ou un scanner de dépendances. Ces éléments sont recensés comme prérequis ou risques résiduels pour la production.
