@@ -170,3 +170,31 @@ flowchart LR
 La vue construit un `QuerySet` Django incrémental. Elle charge les relations rendues par le tableau avec `select_related`, combine les trois champs textuels par objets `Q`, applique les filtres structurés seulement lorsqu’ils sont fournis et impose l’ordre déterministe `-created_at`, `-pk`. La pagination reste fixée à vingt résultats ; la query string sans le paramètre `page` est transmise au gabarit afin de conserver tous les critères entre les pages.
 
 Cette étape ne crée aucune migration et n’ajoute ni recherche PostgreSQL plein texte, ni `tsvector`, ni Elasticsearch, ni embeddings, ni recherche sémantique. Elle ne modifie ni le modèle `Archive`, ni la politique de conservation, ni la journalisation d’audit, ni les règles RBAC métier futures.
+
+
+## Téléversement et téléchargement privés — T-010
+
+T-010 ajoute un `FileField` facultatif à `Archive`, sans placer le contenu binaire dans PostgreSQL. Le chemin relatif est enregistré dans la table d’archives, alors que Django Storage écrit le fichier sous `PRIVATE_MEDIA_ROOT`. La fonction `archive_private_upload_to` remplace le nom et le chemin soumis par le navigateur par `archives/<uuid>.<extension>` ; deux noms clients identiques ne peuvent donc pas écraser le même fichier physique.
+
+```mermaid
+sequenceDiagram
+    participant U as Staff
+    participant F as ArchiveForm multipart
+    participant V as ArchiveCreateView
+    participant S as PrivateArchiveStorage
+    participant D as PostgreSQL
+
+    U->>F: POST multipart + fichier
+    F->>F: Extension, taille, type déclaré et signatures simples
+    F-->>V: Données validées
+    V->>V: uploaded_by et file_size fixés côté serveur
+    V->>S: Écriture sous nom UUID privé
+    V->>D: Chemin FileField + métadonnées
+    V-->>U: Redirection vers le détail
+```
+
+La validation combine une allowlist d’extensions configurable, une taille maximale configurable, le refus des fichiers vides, le type de contenu déclaré lorsqu’il est disponible et une vérification de signature pour PDF, PNG et JPEG. Les formats Office et texte ne font l’objet d’aucune prétention d’analyse de contenu exhaustive. Ces contrôles réduisent le risque, mais ne remplacent ni un antivirus ni une politique de filtrage de contenu spécialisée.
+
+Le téléchargement est distinct du stockage. La route `/archives/<pk>/download/` passe par `ArchiveDownloadView`, conserve `StaffRequiredMixin`, vérifie l’existence du fichier puis renvoie `FileResponse` avec `as_attachment=True`. Les gabarits ne construisent aucune URL à partir de `archive.file.url`; ils pointent exclusivement vers cette route applicative. Une archive sans fichier, une archive inconnue ou un fichier disparu du stockage obtient une réponse 404 sans suppression silencieuse des métadonnées.
+
+La modification des métadonnées retire volontairement le champ `file` du formulaire d’édition. Le remplacement d’un contenu documentaire est donc exclu tant que C-Tech n’a pas validé une politique de versioning, de conservation et de traçabilité.

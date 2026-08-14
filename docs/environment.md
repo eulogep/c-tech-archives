@@ -53,3 +53,18 @@ T-002 prépare la configuration. Il n’implémente pas encore la politique de s
 Le compte `c_tech_app` de cet environnement de développement possède le privilège PostgreSQL `CREATEDB`, uniquement pour permettre à `python manage.py test` de créer puis détruire sa base temporaire `test_c_tech_archives`. Il reste non superutilisateur et ne dispose ni de `CREATEROLE` ni de privilèges d’administration du serveur.
 
 Ce compromis est spécifique au sandbox de développement. En production, le compte exécutant l’application ne doit pas recevoir `CREATEDB`. Les migrations et les opérations d’administration de base doivent y être exécutées par un compte de déploiement distinct, soumis aux procédures C-Tech de sauvegarde et de changement.
+
+
+## Stockage privé des archives — T-010
+
+Les documents d’archives ne sont pas stockés dans PostgreSQL et ne sont pas diffusés par `MEDIA_URL`. Le contenu est écrit par Django Storage dans un répertoire privé configuré, tandis que PostgreSQL conserve uniquement le chemin relatif du `FileField` et les métadonnées associées.
+
+| Variable | Valeur de développement | Rôle | Exigence de production |
+|---|---|---|---|
+| `PRIVATE_MEDIA_ROOT` | `private_media` résolu sous la racine du projet | Répertoire de contenu privé des archives | Chemin absolu ou montage privé, accessible au processus applicatif mais non publié par le serveur web |
+| `ARCHIVE_MAX_UPLOAD_SIZE` | `10485760` (10 MiB) | Plafond applicatif de taille en octets | Valeur à confirmer avec C-Tech et cohérente avec les limites du proxy/web server |
+| `ARCHIVE_ALLOWED_EXTENSIONS` | `.pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png` | Allowlist provisoire de formats documentaires | Liste métier validée par C-Tech, revue à chaque extension ajoutée |
+
+`private_media/` est ignoré par Git. Aucun fichier C-Tech, document réel, image personnelle ou artefact de test ne doit être ajouté au dépôt. Les tests redéfinissent `PRIVATE_MEDIA_ROOT` avec un répertoire temporaire, supprimé après leur exécution.
+
+En production, le serveur web ne doit pas mapper le répertoire privé vers une URL. Le téléchargement doit rester routé par `/archives/<pk>/download/`, où Django applique l’authentification et la garde temporaire `StaffRequiredMixin` avant de retourner une réponse en pièce jointe. Le backend local est adapté au MVP ; il pourra être remplacé par un stockage objet privé ou réseau sans changer le modèle métier qui dépend de l’abstraction Django Storage.

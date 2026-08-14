@@ -1,12 +1,15 @@
 """Tests des modèles métier fondamentaux des archives."""
 
 from datetime import date
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
-from django.test import Client, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import Resolver404, resolve
 
 from accounts.models import Role
@@ -774,3 +777,272 @@ class ArchiveSearchTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, dated.reference)
         self.assertNotContains(response, undated.reference)
+
+
+class ArchiveFileHandlingTests(TestCase):
+    """Vérifie le stockage privé et les téléchargements contrôlés de T-010."""
+
+    PDF_CONTENT = b"%PDF-1.4\nsynthetic C-Tech test document\n"
+
+    def setUp(self):
+        self.private_media = TemporaryDirectory()
+        self.settings_override = override_settings(
+            PRIVATE_MEDIA_ROOT=self.private_media.name,
+            ARCHIVE_MAX_UPLOAD_SIZE=10 * 1024 * 1024,
+        )
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
+        self.addCleanup(self.private_media.cleanup)
+
+        user_model = get_user_model()
+        self.staff = user_model.objects.create_user(
+            username="staff-files",
+            email="staff-files@example.test",
+            password="MotDePasse-Files-2026",
+            is_staff=True,
+        )
+        self.non_staff = user_model.objects.create_user(
+            username="non-staff-files",
+            email="non-staff-files@example.test",
+            password="MotDePasse-NonStaffFiles-2026",
+            role=Role.CONSULTANT,
+        )
+        self.service = Service.objects.create(name="Service fichiers")
+        self.category = Category.objects.create(name="Catégorie fichiers")
+        self.document_type = DocumentType.objects.create(name="Type fichiers")
+        self.create_url = "/archives/new/"
+
+    def valid_pdf(self, name="document-demo.pdf"):
+        return SimpleUploadedFile(
+            name,
+            self.PDF_CONTENT,
+            content_type="application/pdf",
+        )
+
+    def payload(self, **overrides):
+        data = {
+            "reference": f"CT-FILE-{Archive.objects.count() + 1:05d}",
+            "title": "Archive fichier de test",
+            "description": "Document synthétique pour tests de sécurité",
+            "category": str(self.category.pk),
+            "document_type": str(self.document_type.pk),
+            "service": str(self.service.pk),
+            "document_date": "2026-08-14",
+            "status": ArchiveStatus.ACTIVE,
+            "confidentiality_level": ConfidentialityLevel.INTERNAL,
+        }
+        data.update(overrides)
+        return data
+
+    def post_create(self, uploaded_file, **overrides):
+        self.client.force_login(self.staff)
+        return self.client.post(
+            self.create_url,
+            self.payload(file=uploaded_file, **overrides),
+        )
+
+    def create_archive_with_file(self, name="document-demo.pdf", **overrides):
+        data = dict(overrides)
+        data.setdefault("reference", f"CT-FILE-{Archive.objects.count() + 1:05d}")
+        response = self.post_create(self.valid_pdf(name), **data)
+        self.assertEqual(response.status_code, 302)
+        return Archive.objects.get(reference=data["reference"])
+
+    def private_files(self):
+        root = Path(self.private_media.name)
+        return [path for path in root.rglob("*") if path.is_file()]
+
+    def test_file_001_valid_upload_creates_private_file_and_real_size(self):
+        archive = self.create_archive_with_file()
+
+        self.assertTrue(archive.file.name.startswith("archives/"))
+        self.assertTrue(archive.file.storage.exists(archive.file.name))
+        self.assertEqual(archive.file_size, len(self.PDF_CONTENT))
+        self.assertEqual(archive.checksum, "")
+
+    def test_file_002_uploaded_by_is_always_assigned_on_server(self):
+        other_user = get_user_model().objects.create_user(
+            username="tampered-owner",
+            email="tampered-owner@example.test",
+            password="MotDePasse-Tampered-2026",
+        )
+
+        archive = self.create_archive_with_file(uploaded_by=str(other_user.pk))
+
+        self.assertEqual(archive.uploaded_by, self.staff)
+
+    def test_file_003_tampered_file_size_is_ignored_for_real_size(self):
+        archive = self.create_archive_with_file(file_size="99999999")
+
+        self.assertEqual(archive.file_size, len(self.PDF_CONTENT))
+
+    def test_file_004_disallowed_extension_is_rejected_without_persistence(self):
+        response = self.post_create(
+            SimpleUploadedFile("payload.exe", b"MZ synthetic", content_type="application/octet-stream")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("file", response.context["form"].errors)
+        self.assertEqual(Archive.objects.count(), 0)
+        self.assertEqual(self.private_files(), [])
+
+    def test_file_005_file_larger_than_configured_limit_is_rejected(self):
+        with override_settings(ARCHIVE_MAX_UPLOAD_SIZE=10):
+            response = self.post_create(self.valid_pdf("large.pdf"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("file", response.context["form"].errors)
+        self.assertEqual(Archive.objects.count(), 0)
+        self.assertEqual(self.private_files(), [])
+
+    def test_file_006_empty_file_is_rejected(self):
+        response = self.post_create(
+            SimpleUploadedFile("empty.pdf", b"", content_type="application/pdf")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("file", response.context["form"].errors)
+        self.assertEqual(self.private_files(), [])
+
+    def test_file_007_fake_pdf_with_invalid_signature_is_rejected(self):
+        response = self.post_create(
+            SimpleUploadedFile(
+                "fake.pdf", b"plain text that is not a PDF", content_type="application/pdf"
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("file", response.context["form"].errors)
+        self.assertEqual(self.private_files(), [])
+
+    def test_file_008_traversal_filename_cannot_escape_private_root(self):
+        archive = self.create_archive_with_file("../../secret.pdf")
+        physical_path = Path(archive.file.path).resolve()
+
+        self.assertTrue(physical_path.is_relative_to(Path(self.private_media.name).resolve()))
+        self.assertTrue(archive.file.name.startswith("archives/"))
+        self.assertNotIn("secret.pdf", archive.file.name)
+
+    def test_file_009_duplicate_original_names_produce_distinct_private_paths(self):
+        first = self.create_archive_with_file("rapport.pdf")
+        second = self.create_archive_with_file("rapport.pdf")
+
+        self.assertNotEqual(first.file.name, second.file.name)
+        self.assertEqual(len(self.private_files()), 2)
+
+    def test_file_010_detail_uses_controlled_download_route_not_public_url(self):
+        archive = self.create_archive_with_file()
+        self.client.force_login(self.staff)
+
+        response = self.client.get(f"/archives/{archive.pk}/")
+
+        self.assertContains(response, f"/archives/{archive.pk}/download/")
+        self.assertNotContains(response, archive.file.name)
+        self.assertNotContains(response, "/media/")
+
+    def test_file_011_anonymous_download_redirects_to_login(self):
+        archive = self.create_archive_with_file()
+        self.client.logout()
+
+        response = self.client.get(f"/archives/{archive.pk}/download/")
+
+        self.assertRedirects(
+            response, f"/accounts/login/?next=/archives/{archive.pk}/download/"
+        )
+
+    def test_file_012_non_staff_download_is_denied(self):
+        archive = self.create_archive_with_file()
+        self.client.force_login(self.non_staff)
+
+        response = self.client.get(f"/archives/{archive.pk}/download/")
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_file_013_staff_download_returns_attachment_and_content(self):
+        archive = self.create_archive_with_file()
+        self.client.force_login(self.staff)
+
+        response = self.client.get(f"/archives/{archive.pk}/download/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response["Content-Disposition"].startswith("attachment;"))
+        self.assertIn(f"filename=\"{archive.reference}.pdf\"", response["Content-Disposition"])
+        self.assertEqual(b"".join(response.streaming_content), self.PDF_CONTENT)
+
+    def test_file_014_unknown_archive_download_returns_404(self):
+        self.client.force_login(self.staff)
+
+        response = self.client.get("/archives/999999/download/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_file_015_archive_without_file_returns_404_on_download(self):
+        archive = Archive.objects.create(
+            reference="CT-FILE-WITHOUT-DOCUMENT",
+            title="Archive historique sans fichier",
+            category=self.category,
+            document_type=self.document_type,
+            service=self.service,
+            uploaded_by=self.staff,
+            file_size=0,
+        )
+        self.client.force_login(self.staff)
+
+        response = self.client.get(f"/archives/{archive.pk}/download/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_file_016_missing_physical_file_returns_404_without_deleting_metadata(self):
+        archive = self.create_archive_with_file()
+        archive.file.storage.delete(archive.file.name)
+        self.client.force_login(self.staff)
+
+        response = self.client.get(f"/archives/{archive.pk}/download/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Archive.objects.filter(pk=archive.pk).exists())
+
+    def test_file_017_upload_without_csrf_token_is_denied(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.staff)
+
+        response = csrf_client.post(self.create_url, self.payload(file=self.valid_pdf()))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Archive.objects.count(), 0)
+        self.assertEqual(self.private_files(), [])
+
+    def test_file_018_update_cannot_replace_existing_document(self):
+        archive = self.create_archive_with_file()
+        original_name = archive.file.name
+        self.client.force_login(self.staff)
+
+        response = self.client.post(
+            f"/archives/{archive.pk}/edit/",
+            self.payload(
+                reference=archive.reference,
+                title="Métadonnées modifiées",
+                file=self.valid_pdf("replacement.pdf"),
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        archive.refresh_from_db()
+        self.assertEqual(archive.file.name, original_name)
+        self.assertEqual(archive.title, "Métadonnées modifiées")
+        self.assertEqual(len(self.private_files()), 1)
+
+    def test_file_019_html_like_original_name_is_never_rendered_as_active_markup(self):
+        archive = self.create_archive_with_file("<script>alert(1)</script>.pdf")
+        self.client.force_login(self.staff)
+
+        response = self.client.get(f"/archives/{archive.pk}/")
+
+        self.assertNotContains(response, "<script>alert(1)</script>", html=False)
+        self.assertNotContains(response, archive.file.name)
+
+    def test_file_020_uses_only_synthetic_uploaded_files(self):
+        uploaded_file = self.valid_pdf()
+
+        self.assertIsInstance(uploaded_file, SimpleUploadedFile)
+        self.assertEqual(uploaded_file.read(), self.PDF_CONTENT)

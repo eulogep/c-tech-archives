@@ -1,6 +1,9 @@
 """Formulaires explicites du domaine documentaire."""
 
+from pathlib import Path
+
 from django import forms
+from django.conf import settings
 from django.db.models import Q
 
 from .models import (
@@ -32,17 +35,75 @@ class ArchiveForm(forms.ModelForm):
             "document_date",
             "status",
             "confidentiality_level",
+            "file",
         )
         widgets = {
             "document_date": forms.DateInput(attrs={"type": "date"}),
             "description": forms.Textarea(attrs={"rows": 4}),
         }
 
+    _CONTENT_TYPES = {
+        ".pdf": {"application/pdf"},
+        ".doc": {"application/msword"},
+        ".docx": {
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        },
+        ".xls": {"application/vnd.ms-excel"},
+        ".xlsx": {
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        ".txt": {"text/plain"},
+        ".jpg": {"image/jpeg"},
+        ".jpeg": {"image/jpeg"},
+        ".png": {"image/png"},
+    }
+    _SIGNATURES = {
+        ".pdf": b"%PDF-",
+        ".png": b"\x89PNG\r\n\x1a\n",
+        ".jpg": b"\xff\xd8\xff",
+        ".jpeg": b"\xff\xd8\xff",
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._limit_reference_choices("service", Service)
         self._limit_reference_choices("category", Category)
         self._limit_reference_choices("document_type", DocumentType)
+        if self.instance and self.instance.pk:
+            self.fields.pop("file", None)
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data.get("file")
+        if not uploaded_file:
+            return uploaded_file
+
+        extension = Path(uploaded_file.name).suffix.lower()
+        allowed_extensions = {value.lower() for value in settings.ARCHIVE_ALLOWED_EXTENSIONS}
+        if extension not in allowed_extensions:
+            raise forms.ValidationError("Le type de fichier n’est pas autorisé.")
+        if uploaded_file.size <= 0:
+            raise forms.ValidationError("Un fichier vide ne peut pas être archivé.")
+        if uploaded_file.size > settings.ARCHIVE_MAX_UPLOAD_SIZE:
+            raise forms.ValidationError("Le fichier dépasse la taille maximale autorisée.")
+
+        declared_type = uploaded_file.content_type
+        expected_types = self._CONTENT_TYPES.get(extension)
+        if declared_type and expected_types and declared_type not in expected_types:
+            raise forms.ValidationError("Le type déclaré ne correspond pas à l’extension du fichier.")
+        if not self._has_expected_signature(uploaded_file, extension):
+            raise forms.ValidationError("Le contenu du fichier ne correspond pas au format annoncé.")
+        return uploaded_file
+
+    def _has_expected_signature(self, uploaded_file, extension: str) -> bool:
+        signature = self._SIGNATURES.get(extension)
+        if not signature:
+            return True
+        position = uploaded_file.tell()
+        try:
+            uploaded_file.seek(0)
+            return uploaded_file.read(len(signature)).startswith(signature)
+        finally:
+            uploaded_file.seek(position)
 
     def _limit_reference_choices(self, field_name, model):
         """Propose les valeurs actives, avec la valeur historique courante.

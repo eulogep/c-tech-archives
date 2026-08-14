@@ -200,3 +200,45 @@ L’ORM transforme ces expressions Python en requêtes paramétrées pour Postgr
 ### Question jury — Pourquoi utiliser GET pour la recherche ?
 
 > Parce qu’une recherche ne change pas l’état du système. GET rend les critères visibles et réutilisables dans l’URL, facilite la pagination et évite de traiter une simple consultation comme une opération métier mutable. Les formulaires qui écrivent des données restent, eux, en POST avec CSRF.
+
+
+## Couverture ajoutée par T-010
+
+| Référence | Scénario | Résultat attendu |
+|---|---|---|
+| FILE-001 | Upload PDF synthétique valide | Archive créée, fichier enregistré sous stockage privé et `file_size` réel persistant |
+| FILE-002 | Manipulation de `uploaded_by` | Le serveur conserve l’utilisateur de la requête |
+| FILE-003 | Manipulation de `file_size` | La valeur POST est ignorée au profit de la taille réelle du fichier |
+| FILE-004 | Extension interdite | Formulaire invalide et aucun fichier persistant |
+| FILE-005 | Fichier au-delà de la limite | Formulaire invalide et aucun fichier persistant |
+| FILE-006 | Fichier vide | Formulaire invalide |
+| FILE-007 | Faux PDF | Signature PDF absente, fichier refusé |
+| FILE-008 | Nom avec traversal | Le chemin final reste sous le répertoire privé configuré |
+| FILE-009 | Deux noms clients identiques | Deux noms physiques UUID distincts sont créés |
+| FILE-010 | Écran de détail | Lien vers la route contrôlée, sans URL ou chemin direct de stockage |
+| FILE-011 | Téléchargement anonyme | Redirection vers la connexion |
+| FILE-012 | Téléchargement non staff | Réponse HTTP 403 |
+| FILE-013 | Téléchargement staff | HTTP 200, pièce jointe et contenu synthétique attendu |
+| FILE-014 | Archive inconnue | Réponse HTTP 404 |
+| FILE-015 | Archive sans fichier | Réponse HTTP 404 sans erreur serveur |
+| FILE-016 | Fichier absent sur disque | Réponse HTTP 404 et métadonnée conservée |
+| FILE-017 | Upload sans CSRF | Réponse HTTP 403 et aucun fichier persistant |
+| FILE-018 | Modification de métadonnées avec fichier joint | Le fichier original ne change pas |
+| FILE-019 | Nom d’origine avec HTML | Aucune balise active ni chemin privé rendu dans le détail |
+| FILE-020 | Jeux de tests | Utilisation exclusive de `SimpleUploadedFile` synthétique |
+
+Les scénarios de fichiers utilisent `TemporaryDirectory` et `override_settings(PRIVATE_MEDIA_ROOT=...)`. Ils ne laissent donc aucun fichier dans le répertoire privé réel du projet. Ces vingt tests s’ajoutent aux quatre-vingt-quatorze tests précédents et portent la suite à cent quatorze scénarios automatisés.
+
+## Fiche pédagogique — fichier privé et validation de téléversement
+
+Un `FileField` ne place pas le contenu du document dans PostgreSQL : la base conserve les métadonnées et le chemin relatif, tandis que Django Storage écrit le contenu dans le répertoire configuré. Le nom physique est généré par le serveur avec un UUID. Ce choix évite qu’un nom client tel que `rapport.pdf` ou `../../secret.pdf` détermine le chemin réel ou écrase un document existant.
+
+Un type MIME est une indication sur le format d’un fichier. Le navigateur peut le déclarer, mais cette valeur n’est pas une preuve et peut être falsifiée. Le MVP combine donc l’extension, le MIME déclaré lorsqu’il est disponible et quelques signatures simples, par exemple `%PDF-` pour un PDF. Ces contrôles sont utiles mais ne remplacent pas un antivirus ou une analyse de contenu spécialisée.
+
+Le répertoire privé n’est jamais rendu public par une URL. `FileResponse` permet à Django de lire le fichier seulement après les contrôles d’accès de la vue, puis de proposer le document en pièce jointe. Le remplacement libre d’un fichier est volontairement absent : une archive documentaire requiert une future politique de versioning, de conservation et d’audit avant qu’un nouveau contenu puisse remplacer l’ancien.
+
+### Questions jury — réponses attendues
+
+> **« Un exécutable renommé en PDF est-il sûr ? »** Non. L’extension seule ne suffit pas. Le MVP croise plusieurs signaux de format, mais ne prétend pas remplacer une solution antivirus/anti-malware de production.
+
+> **« Pourquoi ne pas publier les fichiers dans `/media/` ? »** Une URL publique pourrait contourner les autorisations. Le document reste dans un stockage privé et la vue Django contrôle l’utilisateur avant de renvoyer une pièce jointe.

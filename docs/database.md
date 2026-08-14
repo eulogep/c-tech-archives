@@ -14,7 +14,7 @@ Le projet utilise `accounts.User` comme modèle utilisateur personnalisé. Toute
 | `Service` | `name`, `description`, `is_active`, `created_at`, `updated_at` | Nom unique ; référentiel organisationnel conservé lorsqu’il devient inactif |
 | `Category` | `name`, `description`, `is_active`, `created_at`, `updated_at` | Nom unique ; classement documentaire général |
 | `DocumentType` | `name`, `description`, `is_active`, `created_at`, `updated_at` | Nom unique ; qualification documentaire précise, distincte de la catégorie |
-| `Archive` | `reference`, `title`, `description`, relations, dates, `status`, `confidentiality_level`, `file_size`, `checksum`, timestamps | Référence unique ; contrôles de valeurs et de taille ; fichier réel reporté à un ticket d’upload |
+| `Archive` | `reference`, `title`, `description`, relations, dates, `status`, `confidentiality_level`, `file`, `file_size`, `checksum`, timestamps | Référence unique ; chemin de document privé, contrôles de valeurs et de taille ; contenu binaire hors PostgreSQL |
 
 > Une **catégorie** classe largement un document, par exemple « Contrat ». Un **type de document** le qualifie plus précisément, par exemple « Contrat de prestation ». Cette distinction est une hypothèse contrôlée, non une hiérarchie ou une politique définitive C-Tech.
 
@@ -69,6 +69,7 @@ erDiagram
         datetime archived_at
         string status
         string confidentiality_level
+        string file
         bigint file_size
         string checksum
         datetime created_at
@@ -84,7 +85,7 @@ erDiagram
 | `archives_service` | `id`, `name`, `description`, `is_active`, `created_at`, `updated_at` | PK `id` ; UK `name` |
 | `archives_category` | `id`, `name`, `description`, `is_active`, `created_at`, `updated_at` | PK `id` ; UK `name` |
 | `archives_documenttype` | `id`, `name`, `description`, `is_active`, `created_at`, `updated_at` | PK `id` ; UK `name` |
-| `archives_archive` | `id`, `reference`, `title`, `description`, `category_id`, `document_type_id`, `service_id`, `uploaded_by_id`, `document_date`, `archived_at`, `status`, `confidentiality_level`, `file_size`, `checksum`, `created_at`, `updated_at` | PK `id` ; UK `reference` ; quatre clés étrangères protégées ; contraintes de statut, confidentialité, taille et checksum |
+| `archives_archive` | `id`, `reference`, `title`, `description`, `category_id`, `document_type_id`, `service_id`, `uploaded_by_id`, `document_date`, `archived_at`, `status`, `confidentiality_level`, `file`, `file_size`, `checksum`, `created_at`, `updated_at` | PK `id` ; UK `reference` ; quatre clés étrangères protégées ; le champ `file` conserve un chemin généré vers le stockage privé ; contraintes de statut, confidentialité, taille et checksum |
 
 ## Relations et politique `on_delete`
 
@@ -103,7 +104,9 @@ erDiagram
 
 `document_date` est la date portée par le document lui-même ; elle peut être inconnue. `archived_at` est la date à laquelle le document est officiellement placé dans le système d’archives ; elle peut également être renseignée dans un ticket ultérieur lorsque le workflow exact sera validé. `created_at` et `updated_at` décrivent les opérations de persistance de l’enregistrement applicatif.
 
-`file_size` est stocké en octets et doit être supérieur ou égal à zéro. `checksum` est soit vide, soit une empreinte SHA-256 hexadécimale de 64 caractères. Une somme de contrôle mesure l’**intégrité** future du fichier ; elle n’est ni du chiffrement ni une permission. T-004 ne stocke ni fichier ni processus de calcul d’empreinte.
+`file` est un `FileField` Django ajouté par la migration `archives.0002_archive_file`. La table PostgreSQL conserve uniquement son chemin relatif généré par le serveur ; le contenu reste dans un stockage privé administré par l’abstraction Django Storage. Le champ est temporairement vide pour les archives historiques, mais la création fonctionnelle peut désormais joindre un document.
+
+`file_size` est stocké en octets et doit être supérieur ou égal à zéro. Lors d’un upload, il est fixé côté serveur à partir du fichier réel et non d’une valeur POST. `checksum` est soit vide, soit une empreinte SHA-256 hexadécimale de 64 caractères ; T-010 le laisse intentionnellement vide. Une somme de contrôle mesure l’**intégrité** future du fichier ; elle n’est ni du chiffrement ni une permission.
 
 ## Index et contraintes
 

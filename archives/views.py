@@ -1,7 +1,10 @@
 """Vues contrôlées de gestion des métadonnées d’archives."""
 
+from pathlib import Path
+
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Q
+from django.http import FileResponse, Http404
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
@@ -75,7 +78,10 @@ class ArchiveCreateView(StaffRequiredMixin, SuccessMessageMixin, CreateView):
     success_message = "Archive créée."
 
     def form_valid(self, form):
+        uploaded_file = form.cleaned_data.get("file")
         form.instance.uploaded_by = self.request.user
+        form.instance.file_size = uploaded_file.size if uploaded_file else 0
+        form.instance.checksum = ""
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -93,6 +99,24 @@ class ArchiveDetailView(StaffRequiredMixin, DetailView):
         return Archive.objects.select_related(
             "category", "document_type", "service", "uploaded_by"
         )
+
+
+class ArchiveDownloadView(StaffRequiredMixin, DetailView):
+    """Diffuse un document privé après contrôle d’accès serveur."""
+
+    model = Archive
+
+    def get(self, request, *args, **kwargs):
+        archive = self.get_object()
+        if not archive.file or not archive.file.storage.exists(archive.file.name):
+            raise Http404("Aucun fichier associé à cette archive.")
+        try:
+            file_handle = archive.file.open("rb")
+        except OSError as error:
+            raise Http404("Le fichier associé est indisponible.") from error
+
+        download_name = f"{archive.reference}{Path(archive.file.name).suffix}"
+        return FileResponse(file_handle, as_attachment=True, filename=download_name)
 
 
 class ArchiveUpdateView(StaffRequiredMixin, SuccessMessageMixin, UpdateView):

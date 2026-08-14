@@ -23,6 +23,8 @@
       <dt>Date d’archivage</dt><dd>{% if archive.archived_at %}{{ archive.archived_at|date:"d/m/Y H:i" }}{% else %}Non renseignée{% endif %}</dd>
       <dt>Statut</dt><dd>{{ archive.get_status_display }}</dd>
       <dt>Confidentialité</dt><dd>{{ archive.get_confidentiality_level_display }}</dd>
+      <dt>Fichier</dt><dd>{% if archive.file %}<a href="{% url 'archives:download' archive.pk %}">Télécharger le fichier</a>{% else %}Aucun fichier associé.{% endif %}</dd>
+      <dt>Taille</dt><dd>{% if archive.file %}{{ archive.file_size }} octet{{ archive.file_size|pluralize:"s" }}{% else %}Non renseignée{% endif %}</dd>
       <dt>Créée le</dt><dd>{{ archive.created_at|date:"d/m/Y H:i" }}</dd>
       <dt>Modifiée le</dt><dd>{{ archive.updated_at|date:"d/m/Y H:i" }}</dd>
     </dl>

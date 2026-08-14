@@ -11,7 +11,7 @@
       <div class="errors" role="alert">{{ form.non_field_errors }}</div>
     {% endif %}
 
-    <form method="post" novalidate>
+    <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
       {% for field in form %}
         <p>
