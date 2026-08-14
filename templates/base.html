@@ -8,27 +8,42 @@
   <style>
     :root { color-scheme: light; font-family: Arial, sans-serif; }
     body { margin: 0; background: #f4f6f8; color: #1f2937; }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: #17324d; color: #fff; }
-    main { max-width: 720px; margin: 3rem auto; padding: 0 1.25rem; }
+    header { align-items: center; background: #17324d; color: #fff; display: flex; justify-content: space-between; padding: 1rem 2rem; }
+    header a { color: #fff; text-decoration: none; }
+    nav { display: flex; gap: 1rem; align-items: center; }
+    main { max-width: 960px; margin: 3rem auto; padding: 0 1.25rem; }
     .panel { background: #fff; border-radius: 0.5rem; box-shadow: 0 2px 8px rgb(0 0 0 / 12%); padding: 2rem; }
-    .button { border: 0; border-radius: 0.25rem; background: #1f6f8b; color: #fff; cursor: pointer; padding: 0.7rem 1rem; }
+    .button { border: 0; border-radius: 0.25rem; background: #1f6f8b; color: #fff; cursor: pointer; display: inline-block; padding: 0.7rem 1rem; text-decoration: none; }
     .button:hover { background: #175b73; }
+    .button-secondary { background: #52616b; }
     .logout-form { margin: 0; }
     .muted { color: #52616b; }
     .errors { color: #a61b1b; }
+    .message { background: #e8f4ed; border-left: 4px solid #2d7a46; margin-bottom: 1rem; padding: 0.8rem 1rem; }
   </style>
 </head>
 <body>
   <header>
-    <strong>C-Tech Archives</strong>
+    <strong><a href="{% url 'home' %}">C-Tech Archives</a></strong>
     {% if user.is_authenticated %}
-      <form class="logout-form" method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button class="button" type="submit">Déconnexion</button>
-      </form>
+      <nav aria-label="Navigation principale">
+        <a href="{% url 'home' %}">Dashboard</a>
+        {% if user.is_staff or user.is_superuser %}
+          <a href="{% url 'archives:list' %}">Archives</a>
+        {% endif %}
+        <form class="logout-form" method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="button" type="submit">Déconnexion</button>
+        </form>
+      </nav>
     {% endif %}
   </header>
   <main>
+    {% if messages %}
+      {% for message in messages %}
+        <p class="message" role="status">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 </body>

@@ -130,3 +130,29 @@ Après connexion, ouvrir le dashboard et montrer les compteurs d’archives, de 
 ### Question jury — Pourquoi les derniers documents ne sont-ils pas affichés ?
 
 > Parce que l’authentification existe déjà, mais la politique d’autorisation détaillée des archives n’est pas encore implémentée. Afficher les dernières archives à tous les utilisateurs authentifiés pourrait révéler des métadonnées confidentielles. Nous avons donc préféré attendre le contrôle d’accès du ticket RBAC plutôt que d’implémenter une règle de sécurité partielle.
+
+## Couverture ajoutée par T-008
+
+| Références | Contrôle vérifié |
+|---|---|
+| CRUD-001 à CRUD-003 | Redirection de l’anonyme, refus HTTP 403 du non-staff et accès du staff |
+| CRUD-004 à CRUD-006 | Liste autorisée, création valide et attribution serveur de `uploaded_by` |
+| CRUD-007 à CRUD-008 | Ignorance des tentatives de manipulation de `uploaded_by` et `checksum` |
+| CRUD-009 | Référence unique validée côté serveur |
+| CRUD-010 à CRUD-012 | Détail, modification et invariance des champs protégés |
+| CRUD-013 | Absence de route de suppression physique |
+| CRUD-014 à CRUD-015 | Refus CSRF de création et de modification sans jeton |
+| CRUD-016 à CRUD-017 | Référentiels actifs à la création et conservation d’un référentiel historique inactif à l’édition |
+| CRUD-018 | Persistance de `CONFIDENTIAL` sans règle d’autorisation prématurée |
+| CRUD-019 | Échappement XSS du titre dans le détail |
+| CRUD-020 | Réponse HTTP 404 pour une archive absente |
+
+## Fiche pédagogique — CRUD de métadonnées
+
+**CRUD** signifie *Create, Read, Update, Delete*. Dans cette version, la création, la consultation et la modification sont fournies, mais la suppression physique est volontairement reportée : une archive possède une valeur historique et C-Tech doit d’abord valider une politique de conservation. Un **ModelForm** est un formulaire Django lié à un modèle. Il n’utilise pas `fields="__all__"` ici afin que l’utilisateur ne puisse pas contrôler des champs techniques.
+
+`uploaded_by` est attribué côté serveur à l’utilisateur connecté. La validation HTML améliore l’expérience, mais la validation Django et les contraintes PostgreSQL restent l’autorité finale. Les écrans sont temporairement limités à `is_staff` car le RBAC métier complet n’est pas encore défini ; cette stratégie restrictive évite d’exposer les archives avant T-011.
+
+### Question jury — Pourquoi appeler T-008 CRUD sans DELETE ?
+
+> Le parcours CRUD est construit autour de la création, de la consultation et de la modification, mais la suppression physique a volontairement été exclue tant que la politique de conservation de C-Tech n’est pas connue. Pour un système d’archives, supprimer un enregistrement sans règle de conservation validée serait plus dangereux que de reporter cette fonctionnalité.

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}{{ archive.reference }} | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="archive-title">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+      <div>
+        <h1 id="archive-title">{{ archive.reference }}</h1>
+        <p class="muted">Fiche de métadonnées documentaires</p>
+      </div>
+      <a class="button" href="{% url 'archives:update' archive.pk %}">Modifier</a>
+    </div>
+
+    <dl style="display:grid; grid-template-columns:minmax(160px, 1fr) 2fr; gap:.75rem 1rem; margin-top:1.5rem;">
+      <dt>Titre</dt><dd>{{ archive.title }}</dd>
+      <dt>Description</dt><dd>{{ archive.description|default:"Non renseignée"|linebreaksbr }}</dd>
+      <dt>Catégorie</dt><dd>{{ archive.category.name }}</dd>
+      <dt>Type documentaire</dt><dd>{{ archive.document_type.name }}</dd>
+      <dt>Service</dt><dd>{{ archive.service.name }}</dd>
+      <dt>Ajoutée par</dt><dd>{{ archive.uploaded_by.username }}</dd>
+      <dt>Date du document</dt><dd>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</dd>
+      <dt>Date d’archivage</dt><dd>{% if archive.archived_at %}{{ archive.archived_at|date:"d/m/Y H:i" }}{% else %}Non renseignée{% endif %}</dd>
+      <dt>Statut</dt><dd>{{ archive.get_status_display }}</dd>
+      <dt>Confidentialité</dt><dd>{{ archive.get_confidentiality_level_display }}</dd>
+      <dt>Créée le</dt><dd>{{ archive.created_at|date:"d/m/Y H:i" }}</dd>
+      <dt>Modifiée le</dt><dd>{{ archive.updated_at|date:"d/m/Y H:i" }}</dd>
+    </dl>
+
+    <p style="margin-top:1.5rem;"><a class="button button-secondary" href="{% url 'archives:list' %}">Retour à la liste</a></p>
+  </section>
+{% endblock %}

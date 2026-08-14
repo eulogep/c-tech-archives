@@ -17,8 +17,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-004 — Modèles métier fondamentaux des archives | Terminé et intégré à `develop` |
 | T-005 — Migrations et administration | **ABSORBED_BY_T004** ; clôture documentaire, sans code métier supplémentaire |
 | T-006 — Authentification sécurisée | **INTEGRATED** dans `develop` |
-| T-007 — Tableau de bord | **IN_REVIEW** sur `feature/dashboard` ; indicateurs agrégés uniquement avant RBAC T-011 |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier, authentification par session et synthèse dashboard configurés ; interfaces MVP non implémentées |
+| T-007 — Tableau de bord | **INTEGRATED** dans `develop` ; indicateurs agrégés uniquement avant RBAC T-011 |
+| T-008 — CRUD des métadonnées d’archives | **IN_REVIEW** sur `feature/archive-crud` ; accès technique temporairement restreint aux comptes staff |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier, authentification par session, dashboard agrégé et gestion contrôlée des métadonnées configurés ; upload, recherche et RBAC final non implémentés |
 
 ## Objectif du MVP
 
@@ -84,7 +85,8 @@ python manage.py runserver
 | [`docs/tickets/T-004.md`](docs/tickets/T-004.md) | Compte rendu de clôture du ticket modèles métier fondamentaux |
 | [`docs/tickets/T-005.md`](docs/tickets/T-005.md) | Clôture documentaire du ticket absorbé par T-004 |
 | [`docs/tickets/T-006.md`](docs/tickets/T-006.md) | Compte rendu de clôture du ticket authentification sécurisée |
-| [`docs/tickets/T-007.md`](docs/tickets/T-007.md) | Compte rendu du ticket tableau de bord en revue |
+| [`docs/tickets/T-007.md`](docs/tickets/T-007.md) | Compte rendu du ticket tableau de bord intégré après correction de revue |
+| [`docs/tickets/T-008.md`](docs/tickets/T-008.md) | Compte rendu du ticket CRUD des métadonnées en revue |
 
 ## Convention Git
 
