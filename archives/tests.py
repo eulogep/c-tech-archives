@@ -477,3 +477,300 @@ class ArchiveCrudTests(TestCase):
         response = self.client.get("/archives/999999/")
 
         self.assertEqual(response.status_code, 404)
+
+
+class ArchiveSearchTests(TestCase):
+    """Vérifie la recherche GET et les filtres de métadonnées de T-009."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.staff = user_model.objects.create_user(
+            username="staff-search",
+            email="staff-search@example.test",
+            password="MotDePasse-Search-2026",
+            is_staff=True,
+        )
+        self.non_staff = user_model.objects.create_user(
+            username="non-staff-search",
+            email="non-staff-search@example.test",
+            password="MotDePasse-NonStaff-2026",
+            role=Role.CONSULTANT,
+        )
+        self.service = Service.objects.create(name="Service recherche")
+        self.other_service = Service.objects.create(name="Autre service recherche")
+        self.category = Category.objects.create(name="Catégorie recherche")
+        self.other_category = Category.objects.create(name="Autre catégorie recherche")
+        self.document_type = DocumentType.objects.create(name="Type recherche")
+        self.other_document_type = DocumentType.objects.create(name="Autre type recherche")
+        self.list_url = "/archives/"
+
+    def create_archive(self, **overrides):
+        defaults = {
+            "reference": f"CT-SEARCH-{Archive.objects.count() + 1:05d}",
+            "title": "Archive de recherche",
+            "description": "Description de recherche",
+            "category": self.category,
+            "document_type": self.document_type,
+            "service": self.service,
+            "uploaded_by": self.staff,
+            "document_date": date(2026, 3, 15),
+            "status": ArchiveStatus.ACTIVE,
+            "confidentiality_level": ConfidentialityLevel.INTERNAL,
+            "file_size": 0,
+            "checksum": "",
+        }
+        defaults.update(overrides)
+        return Archive.objects.create(**defaults)
+
+    def get_as_staff(self, parameters=None):
+        self.client.force_login(self.staff)
+        return self.client.get(self.list_url, parameters or {})
+
+    def test_search_001_anonymous_user_is_redirected_to_login(self):
+        response = self.client.get(self.list_url, {"q": "contrat"})
+
+        self.assertRedirects(response, "/accounts/login/?next=/archives/%3Fq%3Dcontrat")
+
+    def test_search_002_authenticated_non_staff_user_is_denied(self):
+        self.client.force_login(self.non_staff)
+
+        response = self.client.get(self.list_url, {"q": "contrat"})
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_search_003_staff_user_can_access_search_page(self):
+        response = self.get_as_staff()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("search_form", response.context)
+
+    def test_search_004_reference_partial_match_returns_archive(self):
+        archive = self.create_archive(reference="CT-SEARCH-REFERENCE-PARTIELLE")
+
+        response = self.get_as_staff({"q": "REFERENCE-PART"})
+
+        self.assertContains(response, archive.reference)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_005_title_search_is_case_insensitive(self):
+        archive = self.create_archive(title="Rapport Budgétaire Annuel")
+
+        response = self.get_as_staff({"q": "budgétaire"})
+
+        self.assertContains(response, archive.reference)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_006_description_search_returns_archive(self):
+        archive = self.create_archive(description="Dossier relatif au matériel informatique")
+
+        response = self.get_as_staff({"q": "matériel informatique"})
+
+        self.assertContains(response, archive.reference)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_007_no_result_displays_the_empty_search_state(self):
+        self.create_archive()
+
+        response = self.get_as_staff({"q": "inexistant-total"})
+
+        self.assertEqual(response.context["result_count"], 0)
+        self.assertContains(response, "Aucune archive ne correspond aux critères.")
+
+    def test_search_008_category_filter_returns_matching_archives(self):
+        matching = self.create_archive(category=self.category)
+        self.create_archive(category=self.other_category)
+
+        response = self.get_as_staff({"category": self.category.pk})
+
+        self.assertContains(response, matching.reference)
+        self.assertNotContains(response, "CT-SEARCH-00002")
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_009_document_type_filter_returns_matching_archives(self):
+        matching = self.create_archive(document_type=self.document_type)
+        self.create_archive(document_type=self.other_document_type)
+
+        response = self.get_as_staff({"document_type": self.document_type.pk})
+
+        self.assertContains(response, matching.reference)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_010_service_filter_returns_matching_archives(self):
+        matching = self.create_archive(service=self.service)
+        self.create_archive(service=self.other_service)
+
+        response = self.get_as_staff({"service": self.service.pk})
+
+        self.assertContains(response, matching.reference)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_011_status_filter_supports_active_and_archived_values(self):
+        active = self.create_archive(status=ArchiveStatus.ACTIVE)
+        archived = self.create_archive(status=ArchiveStatus.ARCHIVED)
+
+        active_response = self.get_as_staff({"status": ArchiveStatus.ACTIVE})
+        archived_response = self.get_as_staff({"status": ArchiveStatus.ARCHIVED})
+
+        self.assertContains(active_response, active.reference)
+        self.assertNotContains(active_response, archived.reference)
+        self.assertContains(archived_response, archived.reference)
+        self.assertNotContains(archived_response, active.reference)
+
+    def test_search_012_confidentiality_filter_returns_metadata_without_access_claim(self):
+        internal = self.create_archive(confidentiality_level=ConfidentialityLevel.INTERNAL)
+        confidential = self.create_archive(
+            confidentiality_level=ConfidentialityLevel.CONFIDENTIAL
+        )
+
+        response = self.get_as_staff(
+            {"confidentiality_level": ConfidentialityLevel.CONFIDENTIAL}
+        )
+
+        self.assertContains(response, confidential.reference)
+        self.assertNotContains(response, internal.reference)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_013_document_date_from_is_inclusive(self):
+        before = self.create_archive(document_date=date(2026, 3, 14))
+        matching = self.create_archive(document_date=date(2026, 3, 15))
+
+        response = self.get_as_staff({"document_date_from": "2026-03-15"})
+
+        self.assertContains(response, matching.reference)
+        self.assertNotContains(response, before.reference)
+
+    def test_search_014_document_date_to_is_inclusive(self):
+        matching = self.create_archive(document_date=date(2026, 3, 15))
+        after = self.create_archive(document_date=date(2026, 3, 16))
+
+        response = self.get_as_staff({"document_date_to": "2026-03-15"})
+
+        self.assertContains(response, matching.reference)
+        self.assertNotContains(response, after.reference)
+
+    def test_search_015_document_date_interval_is_combined(self):
+        before = self.create_archive(document_date=date(2026, 3, 14))
+        matching = self.create_archive(document_date=date(2026, 3, 15))
+        after = self.create_archive(document_date=date(2026, 3, 16))
+
+        response = self.get_as_staff(
+            {"document_date_from": "2026-03-15", "document_date_to": "2026-03-15"}
+        )
+
+        self.assertContains(response, matching.reference)
+        self.assertNotContains(response, before.reference)
+        self.assertNotContains(response, after.reference)
+
+    def test_search_016_invalid_date_interval_displays_form_error(self):
+        response = self.get_as_staff(
+            {"document_date_from": "2026-03-16", "document_date_to": "2026-03-15"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["result_count"], 0)
+        self.assertContains(
+            response,
+            "La date de début doit être antérieure ou égale à la date de fin.",
+        )
+
+    def test_search_017_combined_query_service_and_status_filters(self):
+        matching = self.create_archive(
+            title="Dossier cible combiné",
+            service=self.service,
+            status=ArchiveStatus.ACTIVE,
+        )
+        self.create_archive(
+            title="Dossier cible mauvais service",
+            service=self.other_service,
+            status=ArchiveStatus.ACTIVE,
+        )
+        self.create_archive(
+            title="Dossier cible archivé",
+            service=self.service,
+            status=ArchiveStatus.ARCHIVED,
+        )
+
+        response = self.get_as_staff(
+            {"q": "Dossier cible", "service": self.service.pk, "status": ArchiveStatus.ACTIVE}
+        )
+
+        self.assertContains(response, matching.reference)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_018_pagination_splits_more_than_twenty_results(self):
+        for index in range(25):
+            self.create_archive(
+                reference=f"CT-PAGE-{index:05d}",
+                title="Pagination archives",
+            )
+
+        first_page = self.get_as_staff({"q": "Pagination archives"})
+        second_page = self.get_as_staff({"q": "Pagination archives", "page": 2})
+
+        self.assertEqual(first_page.context["paginator"].count, 25)
+        self.assertEqual(len(first_page.context["archives"]), 20)
+        self.assertEqual(second_page.context["page_obj"].number, 2)
+        self.assertEqual(len(second_page.context["archives"]), 5)
+
+    def test_search_019_pagination_links_preserve_active_filters(self):
+        for index in range(21):
+            self.create_archive(
+                reference=f"CT-PRESERVE-{index:05d}",
+                title="Pagination filtrée",
+                service=self.service,
+                status=ArchiveStatus.ACTIVE,
+            )
+
+        response = self.get_as_staff(
+            {"q": "Pagination filtrée", "service": self.service.pk, "status": ArchiveStatus.ACTIVE}
+        )
+
+        expected_link = (
+            f"q=Pagination+filtr%C3%A9e&amp;service={self.service.pk}"
+            "&amp;status=ACTIVE&amp;page=2"
+        )
+        self.assertContains(response, expected_link, html=False)
+
+    def test_search_020_injection_like_query_is_treated_as_plain_text(self):
+        self.create_archive(title="Archive légitime")
+
+        response = self.get_as_staff({"q": "' OR 1=1 --"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["result_count"], 0)
+        self.assertNotContains(response, "Archive légitime")
+
+    def test_search_021_xss_query_is_escaped_in_html(self):
+        response = self.get_as_staff({"q": "<script>alert(1)</script>"})
+
+        self.assertContains(
+            response, "&lt;script&gt;alert(1)&lt;/script&gt;", html=False
+        )
+        self.assertNotContains(response, "<script>alert(1)</script>", html=False)
+
+    def test_search_022_results_do_not_expose_checksum_or_password_hash(self):
+        archive = self.create_archive(checksum="e" * 64)
+
+        response = self.get_as_staff()
+
+        self.assertContains(response, archive.reference)
+        self.assertNotContains(response, archive.checksum)
+        self.assertNotContains(response, self.staff.password)
+
+    def test_search_023_empty_query_returns_the_normal_list(self):
+        archive = self.create_archive()
+
+        response = self.get_as_staff({"q": ""})
+
+        self.assertContains(response, archive.reference)
+        self.assertEqual(response.context["result_count"], 1)
+
+    def test_search_024_null_document_date_does_not_error_with_date_filter(self):
+        undated = self.create_archive(document_date=None)
+        dated = self.create_archive(document_date=date(2026, 3, 15))
+
+        response = self.get_as_staff({"document_date_from": "2026-03-15"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, dated.reference)
+        self.assertNotContains(response, undated.reference)

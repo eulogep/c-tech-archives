@@ -125,3 +125,16 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Justification.** Les rôles métier existent dans le modèle utilisateur mais les règles d’autorisation par action, archive et niveau de confidentialité ne sont pas encore validées. Ouvrir l’espace CRUD à tous les comptes authentifiés, ou assimiler le rôle `ADMINISTRATEUR` à `is_staff`, créerait une politique partielle, incohérente et difficile à remplacer. Une restriction temporaire explicite limite l’exposition jusqu’à ce que le RBAC final soit défini.
 
 **Conséquence.** Les utilisateurs métier non staff reçoivent un refus HTTP 403 malgré leur authentification. Cette limitation est documentée et doit être remplacée, non étendue, au ticket T-011.
+
+
+## ADR-014 — Recherche ORM simple avant moteur de recherche avancé
+
+**Décision.** T-009 met en œuvre une recherche GET fondée sur l’ORM Django : correspondance insensible à la casse sur la référence, le titre et la description, complétée par des filtres combinables de référentiel, de statut, de confidentialité et de date. La vue conserve une pagination de vingt résultats et un ordre déterministe `-created_at`, `-pk`.
+
+**Justification.** Les besoins actuellement validés portent sur une consultation interne de métadonnées structurées. Des `QuerySet` lisibles, paramétrés par Django et couverts par des tests fournissent une solution proportionnée, maintenable et adaptée au MVP. La persistance de la query string entre les pages rend les recherches reproductibles sans ajouter de composant externe.
+
+**Alternative étudiée.** PostgreSQL Full Text Search avec `tsvector`, Elasticsearch, embeddings ou recherche sémantique.
+
+**Pourquoi elle n’est pas retenue.** Aucun volume, exigence de pertinence, besoin linguistique ou contrainte de recherche non structurée n’a été validé pour justifier ces technologies. Elles exigeraient des index, un paramétrage, une stratégie de synchronisation et des tests d’exploitation supplémentaires. Elles restent des évolutions possibles après mesure des besoins réels, sans être anticipées dans le modèle ni dans les migrations de T-009.
+
+**Conséquence.** La recherche textuelle reste volontairement simple et ne prétend pas offrir un classement par pertinence. Les règles RBAC de confidentialité ne sont pas introduites : le filtre de confidentialité s’applique uniquement aux archives déjà accessibles via la garde technique temporaire `StaffRequiredMixin`.

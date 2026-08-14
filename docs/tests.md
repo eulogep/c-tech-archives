@@ -156,3 +156,47 @@ Après connexion, ouvrir le dashboard et montrer les compteurs d’archives, de 
 ### Question jury — Pourquoi appeler T-008 CRUD sans DELETE ?
 
 > Le parcours CRUD est construit autour de la création, de la consultation et de la modification, mais la suppression physique a volontairement été exclue tant que la politique de conservation de C-Tech n’est pas connue. Pour un système d’archives, supprimer un enregistrement sans règle de conservation validée serait plus dangereux que de reporter cette fonctionnalité.
+
+
+## Couverture ajoutée par T-009
+
+| Référence | Scénario | Résultat attendu |
+|---|---|---|
+| SEARCH-001 | Requête anonyme sur la liste | Redirection vers la connexion avec la destination demandée |
+| SEARCH-002 | Compte authentifié non staff | Réponse HTTP 403, même sans exception côté interface |
+| SEARCH-003 | Compte staff | Réponse HTTP 200 et formulaire de recherche disponible |
+| SEARCH-004 | Recherche partielle par référence | L’archive dont la référence contient le terme est retournée |
+| SEARCH-005 | Recherche de titre sans casse | Une casse différente du terme retourne l’archive concernée |
+| SEARCH-006 | Recherche dans la description | Le terme présent dans `description` retourne l’archive concernée |
+| SEARCH-007 | Recherche sans résultat | Compteur à zéro et état vide spécifique aux critères affiché |
+| SEARCH-008 | Filtre `category` | Seules les archives de la catégorie choisie sont listées |
+| SEARCH-009 | Filtre `document_type` | Seules les archives du type choisi sont listées |
+| SEARCH-010 | Filtre `service` | Seules les archives du service choisi sont listées |
+| SEARCH-011 | Filtre `status` | Les valeurs `ACTIVE` et `ARCHIVED` sont distinguées |
+| SEARCH-012 | Filtre `confidentiality_level` | Le filtre métadonnée fonctionne sans prétendre valider une autorisation |
+| SEARCH-013 | Borne inférieure de date | La date `document_date_from` est inclusive (`>=`) |
+| SEARCH-014 | Borne supérieure de date | La date `document_date_to` est inclusive (`<=`) |
+| SEARCH-015 | Intervalle de dates | Les deux bornes sont appliquées conjointement |
+| SEARCH-016 | Intervalle invalide | Erreur de formulaire affichée et aucun résultat retourné |
+| SEARCH-017 | Critères combinés | `q`, `service` et `status` réduisent conjointement le jeu de résultats |
+| SEARCH-018 | Pagination de plus de 20 résultats | La page 1 contient 20 éléments, la page 2 contient le reliquat |
+| SEARCH-019 | Conservation des filtres | Le lien de page suivante conserve la query string hors `page` |
+| SEARCH-020 | Entrée de type injection SQL | Le texte est recherché littéralement et ne contourne aucun filtre |
+| SEARCH-021 | Entrée XSS | Le terme est échappé dans le HTML et aucune balise script n’est rendue |
+| SEARCH-022 | Données sensibles | Ni checksum ni hash de mot de passe n’apparaissent dans les résultats |
+| SEARCH-023 | Recherche `q` vide | La liste normale est retournée sans erreur |
+| SEARCH-024 | Archive sans date documentaire | Le filtre de date ne produit pas d’erreur et écarte naturellement la valeur `NULL` |
+
+Les scénarios SEARCH-001 à SEARCH-024 sont regroupés dans `ArchiveSearchTests`. Ils complètent les soixante-dix scénarios précédemment intégrés et portent la cible du ticket à au moins quatre-vingt-quatorze tests réussis, sans migration supplémentaire.
+
+## Fiche pédagogique — recherche GET, objets `Q` et ORM
+
+Une recherche est une **lecture** : elle ne crée, ne modifie ni ne supprime une archive. Elle emploie donc GET, ce qui place les critères dans l’URL. Cette forme permet de rafraîchir, mettre en favori, partager un lien et passer à une autre page tout en conservant exactement les filtres utilisés. À l’inverse, POST est réservé aux opérations mutables, comme la création ou la modification d’une archive, car il porte une intention de changement et nécessite un jeton CSRF.
+
+Un **QuerySet** est la représentation Django d’une requête vers la base de données. La vue démarre avec l’ensemble des archives puis ajoute les restrictions seulement lorsqu’un critère valide est fourni. Un objet `Q` permet d’exprimer une condition composée ; ici, une même recherche textuelle correspond à la référence **ou** au titre **ou** à la description. Les filtres structurés sont ensuite appliqués avec des `AND`, ce qui rend les critères combinables et lisibles.
+
+L’ORM transforme ces expressions Python en requêtes paramétrées pour PostgreSQL. Le code ne compose pas de SQL depuis une saisie utilisateur. La recherche simple de T-009 suffit pour le volume et les besoins actuels : aucune technologie de plein texte ou de recherche sémantique n’est introduite avant qu’un besoin mesuré ne le justifie.
+
+### Question jury — Pourquoi utiliser GET pour la recherche ?
+
+> Parce qu’une recherche ne change pas l’état du système. GET rend les critères visibles et réutilisables dans l’URL, facilite la pagination et évite de traiter une simple consultation comme une opération métier mutable. Les formulaires qui écrivent des données restent, eux, en POST avec CSRF.

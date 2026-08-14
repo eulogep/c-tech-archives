@@ -147,3 +147,26 @@ flowchart LR
 ```
 
 `ArchiveForm` n’expose que les métadonnées métier modifiables. Le champ `uploaded_by` est fixé côté serveur lors de la création et les champs `file_size`, `checksum`, `created_at` et `updated_at` restent hors formulaire. La suppression physique, le téléversement, la recherche et le contrôle métier de confidentialité ne sont pas introduits dans cette étape.
+
+
+## Recherche et filtres de métadonnées — T-009
+
+La route de liste `/archives/` devient le point d’entrée unique de la recherche. Elle conserve la garde transitoire `StaffRequiredMixin` de T-008 : les requêtes anonymes sont redirigées vers la connexion et les comptes authentifiés non staff reçoivent une réponse HTTP 403. La règle métier par rôle, par service ou par niveau de confidentialité n’est pas introduite ; elle reste réservée à T-011.
+
+```mermaid
+flowchart LR
+    Request[GET /archives/?q=...] --> Gate{StaffRequiredMixin}
+    Gate -->|Anonyme| Login[Connexion Django]
+    Gate -->|Non staff| Deny[HTTP 403]
+    Gate -->|Staff/superuser| Form[ArchiveSearchForm]
+    Form -->|valide| Query[QuerySet ORM progressif]
+    Form -->|intervalle invalide| Error[Erreurs du formulaire + liste vide]
+    Query --> DB[(Archive PostgreSQL)]
+    DB --> Page[Liste paginée de 20 résultats]
+```
+
+`ArchiveSearchForm` est un formulaire GET à champs facultatifs. Il accepte une recherche textuelle sur `reference`, `title` et `description`, puis des filtres combinables sur `category`, `document_type`, `service`, `status`, `confidentiality_level`, `document_date_from` et `document_date_to`. Les listes de référentiels présentent les entrées actives et les entrées historiques déjà associées à une archive, afin qu’une archive existante ne devienne pas introuvable après désactivation d’un référentiel.
+
+La vue construit un `QuerySet` Django incrémental. Elle charge les relations rendues par le tableau avec `select_related`, combine les trois champs textuels par objets `Q`, applique les filtres structurés seulement lorsqu’ils sont fournis et impose l’ordre déterministe `-created_at`, `-pk`. La pagination reste fixée à vingt résultats ; la query string sans le paramètre `page` est transmise au gabarit afin de conserver tous les critères entre les pages.
+
+Cette étape ne crée aucune migration et n’ajoute ni recherche PostgreSQL plein texte, ni `tsvector`, ni Elasticsearch, ni embeddings, ni recherche sémantique. Elle ne modifie ni le modèle `Archive`, ni la politique de conservation, ni la journalisation d’audit, ni les règles RBAC métier futures.

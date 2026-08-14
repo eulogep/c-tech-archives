@@ -94,3 +94,14 @@ Cette règle provisoire n’est pas le RBAC métier final. Elle est centralisée
 Les formulaires reposent sur une liste blanche explicite de champs. `uploaded_by` est imposé par le serveur à l’utilisateur de la requête pendant la création. Les champs `file_size`, `checksum`, `created_at` et `updated_at` ne sont jamais acceptés depuis le navigateur. Cette séparation protège contre le mass assignment et la manipulation de champs techniques. Les formulaires POST conservent la protection CSRF native et les métadonnées sont rendues par Django sans filtre `safe`.
 
 > La suppression physique est volontairement reportée jusqu’à validation de la politique de conservation et des règles C-Tech. T-008 ne crée donc aucune route ni action appelant `archive.delete()`.
+
+
+## Recherche de métadonnées — T-009
+
+La recherche utilise exclusivement l’ORM Django. Les termes saisis sont transmis comme paramètres de requête aux filtres `icontains` et aux objets `Q`; aucune chaîne SQL n’est construite ni concaténée à partir d’une entrée navigateur. Une saisie de type injection, par exemple `' OR 1=1 --`, est donc interprétée comme un texte de recherche et ne doit jamais élargir le jeu de résultats. Le scénario SEARCH-020 couvre ce comportement.
+
+Les critères sont soumis par GET, ce qui rend une recherche partageable et compatible avec la pagination sans déclencher de mutation serveur. Les formulaires de création et de modification restent en POST avec protection CSRF. L’intervalle de dates est validé côté serveur : une date de début postérieure à la date de fin produit une erreur de formulaire et aucune liste de résultats. Les archives sans `document_date` ne provoquent pas d’exception et ne sont pas retenues lorsqu’un filtre de date est appliqué.
+
+Le gabarit repose sur l’échappement automatique de Django et ne marque aucun terme de recherche comme sûr. Une valeur telle que `<script>alert(1)</script>` reste encodée dans le HTML, ce que couvre SEARCH-021. Les résultats ne rendent pas `checksum`, le hash du mot de passe de l’utilisateur ni les champs techniques de stockage. SEARCH-022 vérifie cette absence de divulgation.
+
+La recherche conserve la garde temporaire deny-by-default de T-008 : anonyme vers la connexion et compte authentifié non staff vers HTTP 403. Le filtre `confidentiality_level` restreint uniquement les métadonnées déjà accessibles à ce garde technique ; il ne constitue pas une autorisation fondée sur la confidentialité. Les permissions métier détaillées seront définies et appliquées lors de T-011.
