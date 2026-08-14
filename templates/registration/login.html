@@ -3,9 +3,18 @@
 {% block title %}Connexion | C-Tech Archives{% endblock %}
 
 {% block content %}
-  <section class="panel" aria-labelledby="login-title">
-    <h1 id="login-title">Connexion</h1>
-    <p class="muted">Accédez à la plateforme de gestion des archives.</p>
+  <section class="login-card" aria-labelledby="login-title">
+    <div class="login-brand">
+      <span class="brand-mark" aria-hidden="true">CT</span>
+      <div>
+        <strong>C-Tech Archives</strong>
+        <div class="muted">Plateforme sécurisée de gestion documentaire</div>
+      </div>
+    </div>
+
+    <p class="page-kicker">Accès sécurisé</p>
+    <h1 id="login-title">Connexion à votre espace</h1>
+    <p class="page-description">Connectez-vous pour accéder à l’espace documentaire correspondant à vos autorisations.</p>
 
     {% if form.non_field_errors %}
       <div class="errors" role="alert">Identifiants invalides.</div>
@@ -16,15 +25,19 @@
       {% if next %}
         <input type="hidden" name="next" value="{{ next }}">
       {% endif %}
-      <p>
-        <label for="{{ form.username.id_for_label }}">Nom d’utilisateur</label><br>
+      <p class="form-field">
+        <label for="{{ form.username.id_for_label }}">Nom d’utilisateur</label>
         {{ form.username }}
+        {% for error in form.username.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
       </p>
-      <p>
-        <label for="{{ form.password.id_for_label }}">Mot de passe</label><br>
+      <p class="form-field">
+        <label for="{{ form.password.id_for_label }}">Mot de passe</label>
         {{ form.password }}
+        {% for error in form.password.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
       </p>
       <button class="button" type="submit">Connexion</button>
     </form>
+
+    <p class="login-security-note">L’accès est journalisé et protégé par les contrôles de sécurité de la plateforme.</p>
   </section>
 {% endblock %}

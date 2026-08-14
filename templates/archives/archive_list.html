@@ -4,91 +4,99 @@
 
 {% block content %}
   <section class="panel" aria-labelledby="archives-title">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+    <header class="page-header">
       <div>
+        <p class="page-kicker">Espace documentaire</p>
         <h1 id="archives-title">Archives</h1>
-        <p class="muted">Recherche simple et filtres de métadonnées pour les comptes autorisés.</p>
+        <p class="page-description">Recherchez et consultez les métadonnées documentaires accessibles dans votre périmètre.</p>
       </div>
       {% if archive_policy.can_create %}
         <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
       {% endif %}
-    </div>
+    </header>
 
-    <form method="get" style="background:#eef3f6; margin-top:1.5rem; padding:1rem;">
+    <form class="filter-panel" method="get" aria-label="Recherche et filtres d’archives">
+      <h2 class="filter-heading">Recherche et filtres</h2>
       {% if search_form.non_field_errors %}
         <div class="errors" role="alert">{{ search_form.non_field_errors }}</div>
       {% endif %}
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem;">
-        <p style="grid-column:1 / -1; margin:0;">
-          <label for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label><br>
+      <div class="form-grid">
+        <p class="form-field form-field-wide">
+          <label for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label>
           {{ search_form.q }}
           {% for error in search_form.q.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
         </p>
         {% for field in search_form %}
           {% if field.name != "q" %}
-            <p style="margin:0;">
-              <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
+            <p class="form-field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
               {{ field }}
               {% for error in field.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
             </p>
           {% endif %}
         {% endfor %}
       </div>
-      <p style="margin-bottom:0; margin-top:1rem;">
+      <div class="form-actions">
         <button class="button" type="submit">Rechercher</button>
         <a class="button button-secondary" href="{% url 'archives:list' %}">Réinitialiser</a>
-      </p>
+      </div>
     </form>
 
-    <p class="muted" style="margin-top:1.5rem;">{{ result_count }} résultat{{ result_count|pluralize:"s" }}.</p>
+    <p class="result-meta">{{ result_count }} résultat{{ result_count|pluralize:"s" }}.</p>
 
     {% if archives %}
-      <table style="border-collapse:collapse; margin-top:1rem; width:100%;">
-        <thead>
-          <tr style="background:#eef3f6;">
-            <th style="padding:.65rem; text-align:left;">Référence</th>
-            <th style="padding:.65rem; text-align:left;">Titre</th>
-            <th style="padding:.65rem; text-align:left;">Catégorie</th>
-            <th style="padding:.65rem; text-align:left;">Type</th>
-            <th style="padding:.65rem; text-align:left;">Service</th>
-            <th style="padding:.65rem; text-align:left;">Statut</th>
-            <th style="padding:.65rem; text-align:left;">Confidentialité</th>
-            <th style="padding:.65rem; text-align:left;">Date du document</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for archive in archives %}
+      <div class="table-responsive" tabindex="0" aria-label="Tableau des archives, défilement horizontal disponible sur petit écran">
+        <table class="data-table">
+          <thead>
             <tr>
-              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;"><a href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a></td>
-              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.title }}</td>
-              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.category.name }}</td>
-              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.document_type.name }}</td>
-              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.service.name }}</td>
-              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.get_status_display }}</td>
-              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.get_confidentiality_level_display }}</td>
-              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</td>
+              <th scope="col">Référence</th>
+              <th scope="col">Titre</th>
+              <th scope="col">Service</th>
+              <th scope="col">Type</th>
+              <th scope="col">Statut</th>
+              <th scope="col">Confidentialité</th>
+              <th scope="col">Date</th>
+              <th scope="col">Actions</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for archive in archives %}
+              <tr>
+                <td><a class="table-link" href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a></td>
+                <td>{{ archive.title }}</td>
+                <td>{{ archive.service.name }}</td>
+                <td>{{ archive.document_type.name }}</td>
+                <td><span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span></td>
+                <td><span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span></td>
+                <td>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</td>
+                <td class="table-actions"><a class="button button-secondary button-compact" href="{% url 'archives:detail' archive.pk %}">Consulter<span class="visually-hidden"> {{ archive.reference }}</span></a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
       {% if is_paginated %}
-        <nav aria-label="Pagination des archives" style="margin-top:1rem;">
+        <nav class="pagination" aria-label="Pagination des archives">
           {% if page_obj.has_previous %}
-            <a class="button button-secondary" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a>
+            <a class="button button-secondary button-compact" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">← Précédent</a>
           {% endif %}
-          <span style="margin:0 .75rem;">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+          <span class="pagination-status">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
           {% if page_obj.has_next %}
-            <a class="button button-secondary" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a>
+            <a class="button button-secondary button-compact" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant →</a>
           {% endif %}
         </nav>
       {% endif %}
     {% else %}
-      {% if has_active_search %}
-        <p class="muted">Aucune archive ne correspond aux critères.</p>
-      {% else %}
-        <p class="muted">Aucune archive enregistrée.</p>
-      {% endif %}
+      <div class="empty-state">
+        {% if has_active_search %}
+          <h2>Aucun résultat</h2>
+          <p>Aucune archive ne correspond aux critères.</p>
+        {% else %}
+          <h2>Aucune archive disponible</h2>
+          <p>Aucune archive enregistrée n’est accessible dans votre périmètre.</p>
+        {% endif %}
+      </div>
     {% endif %}
   </section>
 {% endblock %}

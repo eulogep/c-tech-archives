@@ -205,3 +205,16 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Déploiement.** Les warnings `check --deploy` observés en développement ne sont pas désactivés, car le développement local est volontairement HTTP avec DEBUG. La production doit fournir son secret, ses hôtes, HTTPS, cookies secure, redirection SSL et HSTS par environnement. Le preload HSTS reste une décision explicite après validation du domaine complet.
 
 **Limites.** T-014 ne prétend pas certifier OWASP, fournir un pentest externe, installer un rate limiter, un antivirus, une signature numérique, une immutabilité WORM ou un scanner de dépendances. Ces éléments sont recensés comme prérequis ou risques résiduels pour la production.
+
+
+## ADR-020 — Interface Django responsive, sans couche frontend additionnelle
+
+**Décision.** T-015 adopte une feuille de style centralisée et des gabarits Django réutilisables pour fournir une interface responsive et accessible au niveau d’une revue légère. Aucun framework JavaScript, build tooling, CDN critique, modèle, migration ou endpoint backend supplémentaire n’est ajouté.
+
+**Justification.** Le MVP est déjà rendu côté serveur et ses parcours sont principalement documentaires : connexion, recherche, lecture de métadonnées, formulaire, téléchargement contrôlé, intégrité et audit. Une couche frontend distincte augmenterait la surface technique sans répondre à une exigence validée. Des composants CSS partagés, des structures HTML sémantiques et des gabarits cohérents améliorent l’expérience et restent simples à expliquer pendant la soutenance.
+
+**Sécurité.** La visibilité des entrées de navigation réutilise les indicateurs `archive_policy` et `audit_policy` existants. Cette ergonomie ne constitue pas un contrôle d’accès : les politiques RBAC, QuerySets, mixins, vues, méthodes HTTP, CSRF, audit et stockage privé restent les autorités serveur.
+
+**Alternative étudiée.** Introduire React, Vue, un framework CSS externe, un CDN ou du JavaScript applicatif pour la sidebar et les formulaires.
+
+**Pourquoi elle n’est pas retenue.** Ces alternatives créeraient des dépendances, des mécanismes de build et une complexité d’intégration disproportionnés. Elles pourraient également détacher l’interface des protections Django déjà vérifiées. Le T-015 privilégie une application server-rendered fonctionnelle sans JavaScript pour ses parcours principaux.
