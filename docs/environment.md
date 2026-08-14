@@ -1,70 +1,59 @@
-# Configuration PostgreSQL et environnements
+# Configuration des environnements
 
 ## Objet
 
-Ce document accompagne le ticket **T-002**. Il décrit la configuration nécessaire au démarrage de Django avec PostgreSQL et les réglages à renseigner avant tout déploiement. Les valeurs réelles de production ne doivent jamais être ajoutées au dépôt : le fichier versionné est uniquement [`.env.example`](../.env.example).
+Ce document décrit la configuration effectivement utilisée par le MVP C-Tech Archives. Les valeurs réelles de production ne doivent jamais être ajoutées au dépôt : seule la structure non sensible de [`.env.example`](../.env.example) est versionnée. Le fichier `.env` local et les variables de déploiement restent hors Git.
 
-## Environnements
+## Profils d’environnement
 
-| Environnement | `DJANGO_ENV` | `DJANGO_DEBUG` | Base de données | Règle de sécurité |
+| Environnement | `DJANGO_ENV` | `DJANGO_DEBUG` | Base de données | Règle principale |
 |---|---|---:|---|---|
-| Développement | `development` | `True` | PostgreSQL local | HSTS désactivé ; HTTPS non imposé localement |
-| Test | `test` | `False` ou `True` selon le runner | Base de test PostgreSQL créée par Django | Aucune donnée réelle C-Tech |
-| Production | `production` | `False` | Instance PostgreSQL dédiée ou administrée | HTTPS, cookies sécurisés et hôtes explicites obligatoires |
+| Développement | `development` | `True` par défaut | PostgreSQL local | HTTP local autorisé ; hôtes locaux par défaut |
+| Test | `test` ou environnement du runner | Selon le runner | Base PostgreSQL de test créée par Django | Données et fichiers synthétiques uniquement |
+| Production | `production` | `False` obligatoire | PostgreSQL dédiée | HTTPS, cookies secure, HSTS et hôtes explicites |
 
-## Variables obligatoires
+## Variables d’environnement
 
-| Variable | Rôle | Exemple sans secret réel |
-|---|---|---|
-| `DJANGO_ENV` | Sélection de l’environnement | `production` |
-| `DJANGO_SECRET_KEY` | Secret cryptographique Django | Valeur aléatoire longue, non versionnée |
-| `DJANGO_DEBUG` | Mode de débogage | `False` en production |
-| `DJANGO_ALLOWED_HOSTS` | Domaines acceptés par Django | `archives.exemple.c-tech.tld` |
-| `POSTGRES_DB` | Nom de la base | `c_tech_archives` |
-| `POSTGRES_USER` | Compte applicatif PostgreSQL | `c_tech_app` |
-| `POSTGRES_PASSWORD` | Mot de passe du compte applicatif | Secret stocké hors Git |
-| `POSTGRES_HOST` et `POSTGRES_PORT` | Adresse de la base | `127.0.0.1` et `5432` en local |
+| Variable | Obligatoire | Développement | Production | Exemple non sensible |
+|---|---|---|---|---|
+| `DJANGO_ENV` | Oui | `development` | `production` | `production` |
+| `DJANGO_SECRET_KEY` | Oui | Secret local non versionné | Secret unique protégé et renouvelable | `replace-with-a-unique-long-random-secret` |
+| `DJANGO_DEBUG` | Oui | `True` possible | `False` obligatoire | `False` |
+| `DJANGO_ALLOWED_HOSTS` | Oui hors DEBUG | `localhost,127.0.0.1` par défaut | Liste explicite, sans `*` | `archives.example` |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Selon les origines HTTPS | Vide si inutile | Origines HTTPS réelles | `https://archives.example` |
+| `POSTGRES_DB` | Oui | Base locale | Base dédiée | `c_tech_archives` |
+| `POSTGRES_USER` | Oui | Rôle applicatif local | Rôle applicatif à privilèges limités | `c_tech_app` |
+| `POSTGRES_PASSWORD` | Oui | Secret local non versionné | Secret protégé hors Git | `replace-with-a-strong-database-password` |
+| `POSTGRES_HOST` | Oui | `127.0.0.1` | Hôte ou service PostgreSQL privé | `127.0.0.1` |
+| `POSTGRES_PORT` | Oui | `5432` | Port défini par l’infrastructure | `5432` |
+| `POSTGRES_CONN_MAX_AGE` | Non | `60` | Valeur adaptée à l’infrastructure | `60` |
+| `PRIVATE_MEDIA_ROOT` | Oui pour les fichiers | `private_media` | Répertoire ou montage privé | `/srv/c-tech/private_media` |
+| `ARCHIVE_MAX_UPLOAD_SIZE` | Oui | `10485760` | Valeur validée avec C-Tech et proxy | `10485760` |
+| `ARCHIVE_ALLOWED_EXTENSIONS` | Oui | Allowlist MVP | Liste métier validée | `.pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png` |
+| `DJANGO_SESSION_COOKIE_SECURE` | Non localement | `False` possible | `True` | `True` |
+| `DJANGO_CSRF_COOKIE_SECURE` | Non localement | `False` possible | `True` | `True` |
+| `DJANGO_SECURE_SSL_REDIRECT` | Non localement | `False` possible | `True` ou équivalent proxy documenté | `True` |
+| `DJANGO_SECURE_HSTS_SECONDS` | Non localement | `0` | Valeur positive après HTTPS complet | `31536000` |
+| `DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS` | Non localement | `False` | Décision explicite après validation des sous-domaines | `True` |
+| `DJANGO_SECURE_HSTS_PRELOAD` | Non localement | `False` | Décision explicite, après HTTPS complet | `False` |
+| `DJANGO_USE_X_FORWARDED_PROTO` | Non | `False` | `True` seulement avec proxy de confiance documenté | `False` |
 
-## Mise en place locale
+## Validation appliquée par Django
 
-Après installation de PostgreSQL, un rôle applicatif non superutilisateur et une base dédiée sont créés. Le compte applicatif est propriétaire de la base locale de développement, mais ne doit pas disposer de privilèges d’administration PostgreSQL. Un fichier `.env` local, ignoré par Git et lisible seulement par son propriétaire, contient la clé Django et le mot de passe de développement.
+Le secret Django est requis au chargement des paramètres. Hors DEBUG, `DJANGO_ALLOWED_HOSTS` doit être renseigné et ne peut pas contenir `*`. Cette validation lève `ImproperlyConfigured` lorsqu’une configuration production est ambiguë. Elle ne restreint pas les hôtes de développement `localhost` et `127.0.0.1`.
 
-La connexion est vérifiée par la configuration Django et par l’exécution des migrations. Le projet utilise le backend `django.db.backends.postgresql`, avec des connexions persistantes contrôlées et une vérification d’état activée.
+Le contrôle `python manage.py check --deploy` produit cinq warnings attendus en développement HTTP/DEBUG : HSTS, redirection HTTPS, cookies secure et DEBUG. Ces warnings ne sont pas masqués. Un profil production simulé avec hôte explicite, HTTPS, cookies secure, redirection SSL, HSTS et preload activés ne produit aucun warning.
 
-## Exigences avant production
+## PostgreSQL
 
-| Contrôle | Valeur attendue | Justification |
-|---|---|---|
-| Clé Django | Valeur unique, longue et stockée dans un gestionnaire de secrets ou une variable protégée | Protège les mécanismes cryptographiques de Django |
-| Débogage | `DJANGO_DEBUG=False` | Évite l’exposition de détails techniques dans les erreurs |
-| Hôtes | `DJANGO_ALLOWED_HOSTS` non vide et limité aux domaines C-Tech | Réduit les requêtes Host non prévues |
-| HTTPS | Certificat TLS valide et `DJANGO_SECURE_SSL_REDIRECT=True` | Protège les sessions et les échanges réseau |
-| Cookies | `DJANGO_SESSION_COOKIE_SECURE=True` et `DJANGO_CSRF_COOKIE_SECURE=True` | Empêche l’envoi des cookies sur HTTP |
-| HSTS | Activer après vérification HTTPS ; commencer sans préchargement | Évite d’imposer HTTPS de manière irréversible avant validation |
-| Proxy | `DJANGO_USE_X_FORWARDED_PROTO=True` seulement pour un proxy de confiance documenté | Empêche la confiance abusive dans un en-tête HTTP forgé |
-| PostgreSQL | Instance sauvegardée, accès réseau restreint et compte applicatif sans privilèges superutilisateur | Préserve confidentialité et disponibilité des données |
+Le MVP utilise `django.db.backends.postgresql`. Le compte applicatif doit être distinct d’un superutilisateur PostgreSQL, et la base de production doit être sauvegardée et protégée par les procédures de l’infrastructure C-Tech. Dans le sandbox local de test, le compte de développement peut nécessiter `CREATEDB` uniquement pour que Django crée et détruise sa base temporaire. Cette exception ne doit pas être transposée à la production.
 
-## Limites du ticket
+## Stockage privé
 
-T-002 prépare la configuration. Il n’implémente pas encore la politique de sauvegarde de production, le chiffrement au repos, le déploiement HTTPS, le modèle `User` personnalisé ou les modèles métier. Ces sujets restent dépendants des informations à valider avec C-Tech et des tickets ultérieurs.
+Les documents ne sont pas conservés dans PostgreSQL et ne sont jamais publiés par `MEDIA_URL`. PostgreSQL conserve les métadonnées et le chemin relatif du `FileField`, tandis que le contenu est écrit dans `PRIVATE_MEDIA_ROOT`. Le serveur web ne doit pas mapper ce répertoire vers une URL publique. Le téléchargement passe par `/archives/<pk>/download/`, avec authentification et autorisation applicatives.
 
-## Particularité du compte local de test
+Les fichiers, comptes et référentiels de démonstration sont synthétiques. Aucun document réel C-Tech, identifiant personnel, mot de passe, clé Django ou artefact de production ne doit être ajouté au dépôt.
 
-Le compte `c_tech_app` de cet environnement de développement possède le privilège PostgreSQL `CREATEDB`, uniquement pour permettre à `python manage.py test` de créer puis détruire sa base temporaire `test_c_tech_archives`. Il reste non superutilisateur et ne dispose ni de `CREATEROLE` ni de privilèges d’administration du serveur.
+## Limites d’infrastructure
 
-Ce compromis est spécifique au sandbox de développement. En production, le compte exécutant l’application ne doit pas recevoir `CREATEDB`. Les migrations et les opérations d’administration de base doivent y être exécutées par un compte de déploiement distinct, soumis aux procédures C-Tech de sauvegarde et de changement.
-
-
-## Stockage privé des archives — T-010
-
-Les documents d’archives ne sont pas stockés dans PostgreSQL et ne sont pas diffusés par `MEDIA_URL`. Le contenu est écrit par Django Storage dans un répertoire privé configuré, tandis que PostgreSQL conserve uniquement le chemin relatif du `FileField` et les métadonnées associées.
-
-| Variable | Valeur de développement | Rôle | Exigence de production |
-|---|---|---|---|
-| `PRIVATE_MEDIA_ROOT` | `private_media` résolu sous la racine du projet | Répertoire de contenu privé des archives | Chemin absolu ou montage privé, accessible au processus applicatif mais non publié par le serveur web |
-| `ARCHIVE_MAX_UPLOAD_SIZE` | `10485760` (10 MiB) | Plafond applicatif de taille en octets | Valeur à confirmer avec C-Tech et cohérente avec les limites du proxy/web server |
-| `ARCHIVE_ALLOWED_EXTENSIONS` | `.pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png` | Allowlist provisoire de formats documentaires | Liste métier validée par C-Tech, revue à chaque extension ajoutée |
-
-`private_media/` est ignoré par Git. Aucun fichier C-Tech, document réel, image personnelle ou artefact de test ne doit être ajouté au dépôt. Les tests redéfinissent `PRIVATE_MEDIA_ROOT` avec un répertoire temporaire, supprimé après leur exécution.
-
-En production, le serveur web ne doit pas mapper le répertoire privé vers une URL. Le téléchargement doit rester routé par `/archives/<pk>/download/`, où Django applique l’authentification et la garde temporaire `StaffRequiredMixin` avant de retourner une réponse en pièce jointe. Le backend local est adapté au MVP ; il pourra être remplacé par un stockage objet privé ou réseau sans changer le modèle métier qui dépend de l’abstraction Django Storage.
+Le projet n’implémente pas de sauvegarde/restauration, gestion de secrets externe, antivirus, chiffrement applicatif au repos, monitoring centralisé, SIEM/WORM ou configuration de reverse proxy. Ces éléments restent des prérequis ou perspectives de production, à valider avec C-Tech.

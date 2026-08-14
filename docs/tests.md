@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Les tests démontrent que les fonctionnalités attendues et les contrôles de sécurité réellement annoncés fonctionnent. Les tests automatisés utilisent le framework de tests Django. Ils seront exécutés à la clôture de chaque ticket et avant toute intégration vers `develop` ou `main`.
+Les tests démontrent que les fonctionnalités et contrôles de sécurité réellement annoncés fonctionnent. Les tests automatisés utilisent le framework de tests Django. Ils sont exécutés à la clôture de chaque ticket et avant toute intégration vers `develop` ou `main`. La suite finale contient 255 scénarios ; sa synthèse est disponible dans [`final-test-matrix.md`](final-test-matrix.md).
 
 ## Niveaux de test
 
@@ -28,13 +28,13 @@ Les tests démontrent que les fonctionnalités attendues et les contrôles de s�
 | TS-09 | Téléchargement autorisé | Réponse fichier et événement d’audit | T-010/T-012 |
 | TS-10 | Téléchargement via accès non autorisé | Refus ; fichier non servi | T-010/T-011 |
 | TS-11 | Fichier interdit ou trop grand | Validation en erreur ; aucun stockage persistant | T-010 |
-| TS-12 | Audit | Les actions `LOGIN`, `LOGOUT`, création, modification, consultation, téléchargement et suppression sont tracées | T-012 |
+| TS-12 | Audit | Les actions `LOGIN`, `LOGOUT`, création, modification, consultation, téléchargement et vérification d’intégrité sont tracées ; aucune suppression d’archive n’est implémentée | T-012/T-013 |
 | TS-13 | Checksum intègre | Empreinte recalculée identique à la valeur stockée | T-013 |
 | TS-14 | Checksum altéré | Écart détecté et signalé sans remplacer la valeur enregistrée | T-013 |
 
 ## Commandes prévues
 
-Après T-001, les commandes de validation de base seront les suivantes :
+Les commandes de validation de la baseline finale sont les suivantes :
 
 ```bash
 python manage.py test
@@ -100,7 +100,7 @@ Ces tests distinguent volontairement la validation applicative lancée par `full
 4. Envoyer le formulaire de déconnexion.
 5. Revenir sur `/` et constater que la redirection vers la connexion est de nouveau appliquée.
 
-Ce scénario ne démontre pas encore les droits métier sur les archives : il prouve seulement l’identité, la session, le contrôle de la vue protégée et la déconnexion sécurisée.
+Ce scénario démontre l’identité, la session, le contrôle de la vue protégée et la déconnexion sécurisée. Les droits métier sur les archives sont désormais couverts par la matrice RBAC introduite au T-011 et récapitulée dans [`final-rbac-matrix.md`](final-rbac-matrix.md).
 
 ## Couverture ajoutée par T-007
 
@@ -121,15 +121,15 @@ Ce scénario ne démontre pas encore les droits métier sur les archives : il pr
 
 Un **dashboard** est une vue synthétique qui présente les informations importantes du système. Les nombres affichés proviennent de requêtes ORM exécutées sur PostgreSQL ; ils ne sont donc jamais inscrits en dur dans le HTML. Un **QuerySet** représente une requête Django vers la base de données. Dans le périmètre corrigé de T-007, la vue ne retourne que des agrégats : elle n’a donc pas besoin de `select_related` ni de relations documentaires individuelles.
 
-Il n’existe pas encore de section « activité récente » car `AuditLog` n’est pas implémenté. La liste des dernières archives est elle aussi volontairement absente : l’authentification existe, mais la politique RBAC et de confidentialité documentaire n’est pas encore définie au ticket T-011.
+Lors de T-007, aucune activité récente n’était affichée car `AuditLog` et le RBAC documentaire n’étaient pas encore intégrés. Dans l’état final, l’audit existe et le dashboard conserve volontairement une synthèse de six métriques calculées dans le périmètre RBAC ; il n’expose pas une liste de documents individuels.
 
 ### Scénario de démonstration
 
-Après connexion, ouvrir le dashboard et montrer les compteurs d’archives, de services et de catégories. Expliquer que les valeurs proviennent directement de PostgreSQL et qu’aucune archive individuelle n’est affichée avant T-011. Cette démonstration doit durer entre 30 et 45 secondes et ne doit pas être confondue avec les futurs CRUD, recherche, audit ou RBAC.
+Après connexion, ouvrir le dashboard et montrer les compteurs d’archives, de services et de catégories. Expliquer que les valeurs proviennent directement de PostgreSQL et sont limitées au périmètre RBAC actuel. Aucune archive individuelle n’est affichée dans cette synthèse ; les parcours CRUD, recherche, audit et RBAC sont démontrés séparément.
 
 ### Question jury — Pourquoi les derniers documents ne sont-ils pas affichés ?
 
-> Parce que l’authentification existe déjà, mais la politique d’autorisation détaillée des archives n’est pas encore implémentée. Afficher les dernières archives à tous les utilisateurs authentifiés pourrait révéler des métadonnées confidentielles. Nous avons donc préféré attendre le contrôle d’accès du ticket RBAC plutôt que d’implémenter une règle de sécurité partielle.
+> Le dashboard reste volontairement synthétique même après l’intégration du RBAC. Afficher des dernières archives individuelles n’est pas nécessaire pour la décision de conception et pourrait compliquer inutilement la protection des métadonnées. Les listes et détails appliquent le QuerySet RBAC ; le dashboard n’expose que des agrégats déjà limités au périmètre visible.
 
 ## Couverture ajoutée par T-008
 
@@ -151,7 +151,7 @@ Après connexion, ouvrir le dashboard et montrer les compteurs d’archives, de 
 
 **CRUD** signifie *Create, Read, Update, Delete*. Dans cette version, la création, la consultation et la modification sont fournies, mais la suppression physique est volontairement reportée : une archive possède une valeur historique et C-Tech doit d’abord valider une politique de conservation. Un **ModelForm** est un formulaire Django lié à un modèle. Il n’utilise pas `fields="__all__"` ici afin que l’utilisateur ne puisse pas contrôler des champs techniques.
 
-`uploaded_by` est attribué côté serveur à l’utilisateur connecté. La validation HTML améliore l’expérience, mais la validation Django et les contraintes PostgreSQL restent l’autorité finale. Les écrans sont temporairement limités à `is_staff` car le RBAC métier complet n’est pas encore défini ; cette stratégie restrictive évite d’exposer les archives avant T-011.
+`uploaded_by` est attribué côté serveur à l’utilisateur connecté. La validation HTML améliore l’expérience, mais la validation Django et les contraintes PostgreSQL restent l’autorité finale. À l’étape historique T-008, les écrans étaient limités à `is_staff` avant la définition du RBAC. Dans l’état final, T-011 applique la politique métier centralisée par rôle et confidentialité ; cette politique est documentée dans [`final-rbac-matrix.md`](final-rbac-matrix.md).
 
 ### Question jury — Pourquoi appeler T-008 CRUD sans DELETE ?
 

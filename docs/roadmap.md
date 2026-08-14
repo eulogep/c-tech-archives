@@ -4,24 +4,24 @@
 
 Les tickets sont exécutés **un par un**, sur une branche dédiée. À la fin de chaque ticket, les tests concernés doivent réussir. Le compte rendu de ticket respectera le format imposé : `TICKET`, `STATUS`, `FILES_CHANGED`, `TESTS`, `RESULT`, `SECURITY_IMPACT`, `NEXT_TICKET`, `GIT_COMMIT`.
 
-| Ordre | Ticket | Objectif | Critère de sortie | Commit proposé |
+| Ordre | Ticket | Objectif | État actuel | Critère de sortie principal |
 |---:|---|---|---|---|
-| 1 | T-001 | Initialisation Django | Projet initial, applications vides et configuration de base démarrent | `chore(project): initialize django structure` |
-| 2 | T-002 | PostgreSQL et configuration environnement | Connexion PostgreSQL configurée par variables d’environnement ; secrets ignorés | `chore(config): add environment-based database settings` |
-| 3 | T-003 | Utilisateur personnalisé et rôles | Modèle `User` et rôles migrés avant la première migration métier | `feat(accounts): add custom user roles` |
-| 4 | T-004 | Modèles de référentiel et archive | Modèles `Service`, `Category`, `DocumentType`, `Archive` validés | `feat(archives): add core archive models` |
-| 5 | T-005 | Migrations et administration | **ABSORBED_BY_T004** — migrations initiales appliquées et modèles administrables pendant T-004 ; aucun développement supplémentaire requis | Aucun commit dédié |
-| 6 | T-006 | Authentification | Connexion, déconnexion, protection des vues et tests associés | `feat(auth): add secure authentication flow` |
-| 7 | T-007 | Tableau de bord | Indicateurs agrégés sans métadonnée documentaire individuelle avant RBAC T-011 | `feat(dashboard): add archive overview` puis `fix(dashboard): avoid exposing archive metadata before RBAC` |
-| 8 | T-008 | CRUD des métadonnées d’archives | Création, liste, détail et modification sous garde staff provisoire ; aucune suppression physique | `feat(archives): add controlled archive metadata management` |
-| 9 | T-009 | Recherche et filtres | Recherche par référence, titre, catégorie, type, service et date | `feat(search): add archive filters` |
-| 10 | T-010 | Téléversement sécurisé | Validation des fichiers, stockage privé et téléchargement protégé | `feat(files): secure archive uploads and downloads` |
-| 11 | T-011 | RBAC et confidentialité | Contrôles serveur complets et refus testés pour chaque rôle | `feat(authz): enforce role-based archive access` |
-| 12 | T-012 | Journal d’audit | Événements sensibles conservés et accessibles à l’administrateur | `feat(audit): log sensitive archive actions` |
-| 13 | T-013 | Empreinte et vérification | SHA-256 calculé au dépôt et vérifiable ultérieurement | `feat(integrity): add archive checksum verification` |
-| 14 | T-014 | Tests consolidés | Couverture des parcours critiques, droits, fichiers, audit et intégrité | `test: cover core archive security scenarios` |
-| 15 | T-015 | Interface finale | Interface Bootstrap cohérente, responsive et accessible | `feat(ui): refine administrative interface` |
-| 16 | T-016 | Documentation de démonstration | Documentation, décisions et éléments UML synchronisés avec le code | `docs: finalize technical and academic documentation` |
+| 1 | T-001 | Initialisation Django | **INTEGRATED** | Projet Django modulaire initialisé |
+| 2 | T-002 | PostgreSQL et configuration environnement | **INTEGRATED** | Connexion PostgreSQL et secrets par environnement |
+| 3 | T-003 | Utilisateur personnalisé et rôles | **INTEGRATED** | Modèle `User` et rôles métier |
+| 4 | T-004 | Modèles de référentiel et archive | **INTEGRATED** | `Service`, `Category`, `DocumentType` et `Archive` validés |
+| 5 | T-005 | Migrations et administration | **ABSORBED_BY_T004** | Migrations initiales et administration réalisées pendant T-004 |
+| 6 | T-006 | Authentification | **INTEGRATED** | Connexion, déconnexion, sessions et tests associés |
+| 7 | T-007 | Tableau de bord | **INTEGRATED** | Six indicateurs agrégés limités au périmètre RBAC final |
+| 8 | T-008 | CRUD des métadonnées d’archives | **INTEGRATED** | Création, liste, détail et modification ; aucune suppression physique |
+| 9 | T-009 | Recherche et filtres | **INTEGRATED** | Recherche GET, filtres et pagination |
+| 10 | T-010 | Téléversement sécurisé | **INTEGRATED** | Validation, stockage privé et téléchargement protégé |
+| 11 | T-011 | RBAC et confidentialité | **INTEGRATED** | Contrôles serveur centralisés par rôle et confidentialité |
+| 12 | T-012 | Journal d’audit | **INTEGRATED** | Événements métier minimaux et consultation administrateur |
+| 13 | T-013 | Empreinte et vérification | **INTEGRATED** | SHA-256 calculé au dépôt et vérifiable par POST |
+| 14 | T-014 | Tests consolidés | **INTEGRATED** | Durcissement, `HARD-001` à `HARD-026` et revue sécurité |
+| 15 | T-015 | Interface finale | **INTEGRATED** | Interface responsive Django Templates et accessibilité légère |
+| 16 | T-016 | Démonstration et documentation académique finale | **IN_REVIEW** | Documentation, preuves et parcours de soutenance synchronisés avec le code |
 
 ## Statut exceptionnel — T-005
 
