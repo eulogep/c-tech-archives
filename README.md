@@ -16,8 +16,8 @@ C-Tech Archives centralise les métadonnées et documents d’archives dans un M
 | Audit | Journal métier append-only applicatif, lecture réservée à l’Administrateur/superuser |
 | Intégrité | SHA-256 calculé après stockage et vérifié sur demande POST |
 | Sécurité | Revue transverse T-014, profil de déploiement simulé et interface T-015 responsive |
-| T-001 à T-015 | Intégrés dans `develop` ; T-005 reste `ABSORBED_BY_T004` |
-| T-016 | **IN_REVIEW** sur `feature/final-academic-delivery` ; PR #16 ouverte pour la livraison académique et la préparation de démonstration |
+| T-001 à T-016 | **INTEGRATED** dans `develop` ; T-005 reste `ABSORBED_BY_T004` |
+| MVP académique | **FINALIZED** : MVP fonctionnel, 255 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
 
 ## Objectif
 
