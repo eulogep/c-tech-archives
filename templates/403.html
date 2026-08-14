@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Accès refusé | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel error-page" aria-labelledby="error-title">
+    <p class="error-code" aria-hidden="true">403</p>
+    <h1 id="error-title">Accès refusé</h1>
+    <p class="page-description">Vous ne disposez pas des autorisations nécessaires pour effectuer cette action.</p>
+    <p class="form-actions"><a class="button" href="{% url 'home' %}">Retour au tableau de bord</a></p>
+  </section>
+{% endblock %}

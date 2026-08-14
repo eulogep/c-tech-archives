@@ -4,40 +4,66 @@
 
 {% block content %}
   <section class="panel" aria-labelledby="archive-title">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+    <header class="page-header">
       <div>
+        <p class="page-kicker">Fiche documentaire</p>
+        <div class="action-group" aria-label="Statut de l’archive">
+          <span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span>
+          <span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span>
+        </div>
         <h1 id="archive-title">{{ archive.reference }}</h1>
-        <p class="muted">Fiche de métadonnées documentaires</p>
+        <p class="page-description">{{ archive.title }}</p>
       </div>
       {% if archive_policy.can_update %}
         <a class="button" href="{% url 'archives:update' archive.pk %}">Modifier</a>
       {% endif %}
+    </header>
+
+    <div class="detail-layout">
+      <section class="detail-section" aria-labelledby="general-title">
+        <h2 id="general-title">Informations générales</h2>
+        <dl class="detail-list">
+          <dt>Service</dt><dd>{{ archive.service.name }}</dd>
+          <dt>Catégorie</dt><dd>{{ archive.category.name }}</dd>
+          <dt>Type documentaire</dt><dd>{{ archive.document_type.name }}</dd>
+          <dt>Date du document</dt><dd>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</dd>
+          <dt>Description</dt><dd class="detail-description">{{ archive.description|default:"Non renseignée"|linebreaksbr }}</dd>
+        </dl>
+      </section>
+
+      <section class="detail-section" aria-labelledby="security-title">
+        <h2 id="security-title">Sécurité documentaire</h2>
+        <dl class="detail-list">
+          <dt>Confidentialité</dt><dd><span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span></dd>
+          <dt>Statut</dt><dd><span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span></dd>
+          <dt>Taille</dt><dd>{% if archive.file %}{{ archive.file_size }} octet{{ archive.file_size|pluralize:"s" }}{% else %}Non renseignée{% endif %}</dd>
+          <dt>Ajoutée par</dt><dd>{{ archive.uploaded_by.username }}</dd>
+          <dt>Date d’archivage</dt><dd>{% if archive.archived_at %}{{ archive.archived_at|date:"d/m/Y H:i" }}{% else %}Non renseignée{% endif %}</dd>
+        </dl>
+      </section>
+
+      <section class="detail-section" aria-labelledby="file-title">
+        <h2 id="file-title">Fichier</h2>
+        {% if archive.file %}
+          <p class="page-description">Le document est stocké dans un espace privé et son accès reste contrôlé par le serveur.</p>
+          <div class="action-group">
+            <a class="button" href="{% url 'archives:download' archive.pk %}">Télécharger le fichier</a>
+            <form class="logout-form" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
+              {% csrf_token %}
+              <button class="button button-secondary" type="submit">Vérifier l’intégrité</button>
+            </form>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <h2>Aucun fichier associé</h2>
+            <p>Cette archive ne contient pas de document téléchargeable.</p>
+          </div>
+        {% endif %}
+      </section>
     </div>
 
-    <dl style="display:grid; grid-template-columns:minmax(160px, 1fr) 2fr; gap:.75rem 1rem; margin-top:1.5rem;">
-      <dt>Titre</dt><dd>{{ archive.title }}</dd>
-      <dt>Description</dt><dd>{{ archive.description|default:"Non renseignée"|linebreaksbr }}</dd>
-      <dt>Catégorie</dt><dd>{{ archive.category.name }}</dd>
-      <dt>Type documentaire</dt><dd>{{ archive.document_type.name }}</dd>
-      <dt>Service</dt><dd>{{ archive.service.name }}</dd>
-      <dt>Ajoutée par</dt><dd>{{ archive.uploaded_by.username }}</dd>
-      <dt>Date du document</dt><dd>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</dd>
-      <dt>Date d’archivage</dt><dd>{% if archive.archived_at %}{{ archive.archived_at|date:"d/m/Y H:i" }}{% else %}Non renseignée{% endif %}</dd>
-      <dt>Statut</dt><dd>{{ archive.get_status_display }}</dd>
-      <dt>Confidentialité</dt><dd>{{ archive.get_confidentiality_level_display }}</dd>
-      <dt>Fichier</dt><dd>{% if archive.file %}<a href="{% url 'archives:download' archive.pk %}">Télécharger le fichier</a>{% else %}Aucun fichier associé.{% endif %}</dd>
-      <dt>Taille</dt><dd>{% if archive.file %}{{ archive.file_size }} octet{{ archive.file_size|pluralize:"s" }}{% else %}Non renseignée{% endif %}</dd>
-      <dt>Créée le</dt><dd>{{ archive.created_at|date:"d/m/Y H:i" }}</dd>
-      <dt>Modifiée le</dt><dd>{{ archive.updated_at|date:"d/m/Y H:i" }}</dd>
-    </dl>
-
-    {% if archive.file %}
-      <form method="post" action="{% url 'archives:verify_integrity' archive.pk %}" style="margin-top:1.25rem;">
-        {% csrf_token %}
-        <button class="button button-secondary" type="submit">Vérifier l’intégrité</button>
-      </form>
-    {% endif %}
-
-    <p style="margin-top:1.5rem;"><a class="button button-secondary" href="{% url 'archives:list' %}">Retour à la liste</a></p>
+    <div class="form-actions">
+      <a class="button button-secondary" href="{% url 'archives:list' %}">Retour à la liste</a>
+    </div>
   </section>
 {% endblock %}

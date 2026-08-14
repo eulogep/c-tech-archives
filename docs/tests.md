@@ -344,8 +344,28 @@ SHA-256 n’est pas du chiffrement réversible : on ne peut pas retrouver pratiq
 | HARD-015 à HARD-018 | ID malformé, fichier manquant, mismatch conservant la référence et deny-by-default |
 | HARD-019 à HARD-020 | Refus d’un compte inactif et neutralisation de `next` externe |
 | HARD-021 à HARD-024 | CSRF create/update/intégrité et logout uniquement par POST CSRF |
-| HARD-025 | Secret d’environnement requis et absence de fixture secrète ou `ALLOWED_HOSTS=*` dans le modèle d’environnement |
+| HARD-025 | Secret d’environnement requis et absence de fixture secrète dans le modèle d’environnement |
+| HARD-026 | Sous-processus de production : hôtes explicites acceptés et wildcard `ALLOWED_HOSTS=*` refusé |
 
 T-014 complète les tests existants au lieu de les dupliquer. Les scénarios d’authentification détaillés restent dans `accounts.tests`, les matrices RBAC dans `archives.tests`, les contrôles fichiers dans `ArchiveFileHandlingTests`, l’audit dans `audit.tests` et l’intégrité dans `ArchiveIntegrityTests`. La nouvelle suite concentre les croisements entre ces mécanismes, avec des données et fichiers strictement synthétiques.
 
 Le contrôle `check --deploy` est exécuté en développement et dans un profil production simulé. Ses avertissements de développement sont conservés et classifiés dans [`security-review.md`](security-review.md) ; aucun warning n’est masqué.
+
+
+## Couverture ajoutée par T-015
+
+| Références | Contrôle d’interface et de non-régression |
+|---|---|
+| UI-001 | Page de connexion avec formulaire Django, labels et CSRF |
+| UI-002 à UI-006 | Navigation principale affichée selon les indicateurs RBAC existants : Consultant, Agent et Administrateur |
+| UI-007 | Déconnexion conservée sous forme de formulaire POST avec CSRF |
+| UI-008 | Six métriques du dashboard, limitées au périmètre déjà fourni par le serveur |
+| UI-009 | Badges textuels de statut et confidentialité dans la liste d’archives |
+| UI-010 à UI-011 | Formulaire de recherche GET et conservation de la query string dans la pagination |
+| UI-012 à UI-015 | Actions de fiche, visibilité du bouton Modifier et vérification d’intégrité POST/CSRF |
+| UI-016 | Journal d’audit toujours refusé au Consultant et autorisé à l’Administrateur |
+| UI-017 à UI-018 | États vides de liste et de recherche |
+| UI-019 à UI-020 | Absence de `archive.file.url` dans les templates et de checksum dans la fiche normale |
+| UI-021 | Landmarks, titre de page et focus visible dans la structure UI |
+
+Les scénarios `UI-001` à `UI-021` vérifient les comportements et éléments essentiels, sans test pixel-perfect ni promesse de certification WCAG. La revue d’accessibilité est légère : elle couvre les labels, landmarks, titres, focus visible, composants sémantiques et messages, mais ne remplace pas un audit d’accessibilité complet. La suite T-015 doit être exécutée avec les régressions métier et de sécurité déjà établies par les tickets précédents.

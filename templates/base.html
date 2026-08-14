@@ -4,50 +4,76 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#163b62">
   <title>{% block title %}C-Tech Archives{% endblock %}</title>
-  <style>
-    :root { color-scheme: light; font-family: Arial, sans-serif; }
-    body { margin: 0; background: #f4f6f8; color: #1f2937; }
-    header { align-items: center; background: #17324d; color: #fff; display: flex; justify-content: space-between; padding: 1rem 2rem; }
-    header a { color: #fff; text-decoration: none; }
-    nav { display: flex; gap: 1rem; align-items: center; }
-    main { max-width: 960px; margin: 3rem auto; padding: 0 1.25rem; }
-    .panel { background: #fff; border-radius: 0.5rem; box-shadow: 0 2px 8px rgb(0 0 0 / 12%); padding: 2rem; }
-    .button { border: 0; border-radius: 0.25rem; background: #1f6f8b; color: #fff; cursor: pointer; display: inline-block; padding: 0.7rem 1rem; text-decoration: none; }
-    .button:hover { background: #175b73; }
-    .button-secondary { background: #52616b; }
-    .logout-form { margin: 0; }
-    .muted { color: #52616b; }
-    .errors { color: #a61b1b; }
-    .message { background: #e8f4ed; border-left: 4px solid #2d7a46; margin-bottom: 1rem; padding: 0.8rem 1rem; }
-  </style>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
-  <header>
-    <strong><a href="{% url 'home' %}">C-Tech Archives</a></strong>
-    {% if user.is_authenticated %}
-      <nav aria-label="Navigation principale">
-        <a href="{% url 'home' %}">Dashboard</a>
-        {% if archive_policy.can_access %}
-          <a href="{% url 'archives:list' %}">Archives</a>
+  <a class="skip-link" href="#main-content">Aller au contenu principal</a>
+
+  {% if user.is_authenticated %}
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="{% url 'home' %}" aria-label="C-Tech Archives, tableau de bord">
+          <span class="brand-mark" aria-hidden="true">CT</span>
+          <span class="brand-copy">
+            <span class="brand-name">C-Tech Archives</span>
+            <span class="brand-tagline">Gestion documentaire sécurisée</span>
+          </span>
+        </a>
+
+        <nav class="sidebar-nav" aria-label="Navigation principale">
+          <a href="{% url 'home' %}">Tableau de bord</a>
+          {% if archive_policy.can_access %}
+            <a href="{% url 'archives:list' %}">Archives</a>
+          {% endif %}
+          {% if archive_policy.can_create %}
+            <a href="{% url 'archives:create' %}">Nouvelle archive</a>
+          {% endif %}
+          {% if audit_policy.can_view %}
+            <a href="{% url 'audit:list' %}">Journal d’audit</a>
+          {% endif %}
+        </nav>
+
+        <p class="sidebar-note">Les droits d’accès sont vérifiés côté serveur pour chaque action.</p>
+      </aside>
+
+      <div class="app-main">
+        <header class="topbar">
+          <span class="topbar-context">Plateforme sécurisée de gestion documentaire</span>
+          <div class="user-menu">
+            <div class="user-identity">
+              <span class="user-name">{{ user.username }}</span>
+              <span class="user-role">{% if user.is_superuser %}Superutilisateur{% else %}{{ user.get_role_display }}{% endif %}</span>
+            </div>
+            <form class="logout-form" method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button class="button button-secondary button-compact" type="submit">Déconnexion</button>
+            </form>
+          </div>
+        </header>
+        <main id="main-content" class="page-container">
+  {% else %}
+    <main id="main-content" class="auth-main">
+      <div class="page-container">
+  {% endif %}
+
+        {% if messages %}
+          <div class="message-stack" aria-live="polite">
+            {% for message in messages %}
+              <p class="message {{ message.tags }}"{% if message.tags == 'error' %} role="alert"{% else %} role="status"{% endif %}>{{ message }}</p>
+            {% endfor %}
+          </div>
         {% endif %}
-        {% if audit_policy.can_view %}
-          <a href="{% url 'audit:list' %}">Audit</a>
-        {% endif %}
-        <form class="logout-form" method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button class="button" type="submit">Déconnexion</button>
-        </form>
-      </nav>
-    {% endif %}
-  </header>
-  <main>
-    {% if messages %}
-      {% for message in messages %}
-        <p class="message" role="status">{{ message }}</p>
-      {% endfor %}
-    {% endif %}
-    {% block content %}{% endblock %}
-  </main>
+        {% block content %}{% endblock %}
+
+  {% if user.is_authenticated %}
+        </main>
+      </div>
+    </div>
+  {% else %}
+      </div>
+    </main>
+  {% endif %}
 </body>
 </html>

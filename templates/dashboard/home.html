@@ -3,27 +3,45 @@
 {% block title %}Tableau de bord | C-Tech Archives{% endblock %}
 
 {% block content %}
-  <style>
-    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
-    .metric { background: #eaf2f6; border-left: 4px solid #1f6f8b; border-radius: 0.25rem; padding: 1rem; }
-    .metric-label { color: #52616b; display: block; font-size: 0.9rem; }
-    .metric-value { display: block; font-size: 1.7rem; font-weight: 700; margin-top: 0.35rem; }
-    .notice { border: 1px solid #c9d7df; border-radius: 0.25rem; color: #455a64; padding: 1rem; }
-  </style>
-
   <section class="panel" aria-labelledby="dashboard-title">
-    <h1 id="dashboard-title">Tableau de bord</h1>
-    <p class="muted">Bienvenue, <strong>{{ user.username }}</strong>. Cette synthèse reflète les données actuellement enregistrées dans la plateforme.</p>
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Espace documentaire</p>
+        <h1 id="dashboard-title">Tableau de bord</h1>
+        <p class="page-description">Bienvenue, <strong>{{ user.username }}</strong>. Cette synthèse présente uniquement les données accessibles dans votre périmètre.</p>
+      </div>
+      {% if archive_policy.can_create %}
+        <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
+      {% endif %}
+    </header>
 
-    <div class="metric-grid" aria-label="Indicateurs des archives">
-      <article class="metric"><span class="metric-label">Archives</span><strong class="metric-value">{{ archive_count }}</strong></article>
-      <article class="metric"><span class="metric-label">Archives actives</span><strong class="metric-value">{{ active_archive_count }}</strong></article>
-      <article class="metric"><span class="metric-label">Archives archivées</span><strong class="metric-value">{{ archived_archive_count }}</strong></article>
-      <article class="metric"><span class="metric-label">Services actifs</span><strong class="metric-value">{{ active_service_count }}</strong></article>
-      <article class="metric"><span class="metric-label">Catégories actives</span><strong class="metric-value">{{ active_category_count }}</strong></article>
-      <article class="metric"><span class="metric-label">Types documentaires actifs</span><strong class="metric-value">{{ active_document_type_count }}</strong></article>
+    <div class="metric-grid" aria-label="Indicateurs documentaires">
+      <article class="metric-card">
+        <span class="metric-label">Archives visibles</span>
+        <strong class="metric-value">{{ archive_count }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Archives actives</span>
+        <strong class="metric-value">{{ active_archive_count }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Archives archivées</span>
+        <strong class="metric-value">{{ archived_archive_count }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Services actifs</span>
+        <strong class="metric-value">{{ active_service_count }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Catégories actives</span>
+        <strong class="metric-value">{{ active_category_count }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Types documentaires actifs</span>
+        <strong class="metric-value">{{ active_document_type_count }}</strong>
+      </article>
     </div>
 
-    <p class="notice">La consultation détaillée des archives sera disponible dans l’espace documentaire selon les droits de l’utilisateur.</p>
+    <p class="notice">Les métadonnées et actions détaillées restent accessibles selon les droits de l’utilisateur. La navigation facilite l’usage ; les autorisations restent contrôlées côté serveur.</p>
   </section>
 {% endblock %}

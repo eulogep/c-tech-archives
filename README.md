@@ -24,14 +24,15 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-011 — RBAC et confidentialité | **INTEGRATED** dans `develop` ; droits métier centralisés et visibilité filtrée au niveau QuerySet |
 | T-012 — Journal d’audit | **INTEGRATED** dans `develop` ; événements métier structurés, append-only et consultation administrateur |
 | T-013 — Intégrité SHA-256 | **INTEGRATED** dans `develop` ; empreinte calculée à l’upload et vérification contrôlée à la demande |
-| T-014 — Tests de sécurité et durcissement final | **IN_REVIEW** sur `feature/security-hardening` ; revue transverse, matrice HARD et risques résiduels documentés |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé, RBAC, audit métier, contrôle d’intégrité SHA-256 et couverture de sécurité transverse configurés |
+| T-014 — Tests de sécurité et durcissement final | **INTEGRATED** dans `develop` ; revue transverse, matrice HARD-001 à HARD-026 et risques résiduels documentés |
+| T-015 — Interface utilisateur finale | **IN_REVIEW** sur `feature/final-ui` ; PR #15 ouverte, refonte responsive, accessibilité légère et aucune modification métier |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé, RBAC, audit métier, contrôle d’intégrité SHA-256, couverture de sécurité transverse et interface responsive configurés |
 
 ## Objectif du MVP
 
 Le MVP permettra à des utilisateurs authentifiés de gérer des archives et leurs métadonnées, selon des droits contrôlés côté serveur. Les actions sensibles seront journalisées et chaque fichier déposé recevra une empreinte SHA-256 permettant un contrôle ultérieur de son intégrité.
 
-Les rôles prévus sont **Administrateur**, **Agent d’archives** et **Consultant**. L’application s’appuiera sur Django, PostgreSQL, Django Templates et Bootstrap. Le frontend restera intégré à Django pendant le MVP.
+Les rôles prévus sont **Administrateur**, **Agent d’archives** et **Consultant**. L’application s’appuie sur Django, PostgreSQL, Django Templates et une feuille CSS locale centralisée. Le frontend reste intégré à Django pendant le MVP.
 
 ## Architecture cible
 
@@ -43,7 +44,7 @@ c-tech-archives/
 ├── audit/                  # Journal d’audit applicatif
 ├── dashboard/              # Indicateurs et vue d’accueil
 ├── templates/              # Gabarits Django partagés
-├── static/                 # Ressources statiques, dont Bootstrap
+├── static/                 # Ressources statiques locales, dont le design system CSS
 ├── media/                  # Ressources média génériques de développement — non versionnées
 ├── private_media/          # Documents d’archives privés — non versionnés, non exposés
 ├── tests/                  # Tests transversaux et de sécurité
@@ -101,7 +102,9 @@ python manage.py runserver
 | [`docs/tickets/T-013.md`](docs/tickets/T-013.md) | Compte rendu du ticket intégrité SHA-256 intégré |
 | [`docs/security-review.md`](docs/security-review.md) | Revue de sécurité transverse, modèle de menace et risques résiduels |
 | [`docs/steven-security-defense.md`](docs/steven-security-defense.md) | Fiche courte de défense sécurité pour la soutenance |
-| [`docs/tickets/T-014.md`](docs/tickets/T-014.md) | Compte rendu du ticket tests de sécurité et durcissement en revue |
+| [`docs/tickets/T-014.md`](docs/tickets/T-014.md) | Compte rendu du ticket tests de sécurité et durcissement intégré |
+| [`docs/ui-guidelines.md`](docs/ui-guidelines.md) | Design system, responsive, composants et revue d’accessibilité légère |
+| [`docs/tickets/T-015.md`](docs/tickets/T-015.md) | Compte rendu du ticket interface utilisateur finale en cours de revue |
 
 ## Convention Git
 

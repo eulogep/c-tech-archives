@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Page introuvable | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel error-page" aria-labelledby="error-title">
+    <p class="error-code" aria-hidden="true">404</p>
+    <h1 id="error-title">Page ou ressource introuvable</h1>
+    <p class="page-description">La page demandée n’existe pas ou n’est plus disponible.</p>
+    <p class="form-actions"><a class="button" href="{% url 'home' %}">Retour au tableau de bord</a></p>
+  </section>
+{% endblock %}

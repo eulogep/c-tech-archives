@@ -273,3 +273,12 @@ T-014 ne modifie pas l’architecture fonctionnelle du MVP. Il vérifie la défe
 Les routes contenant un identifiant d’archive appliquent le même périmètre visible que les listes. Ainsi, détail, édition, téléchargement et vérification SHA-256 répondent 404 lorsqu’un objet est hors périmètre ; l’édition d’un objet visible mais non modifiable répond 403. Le stockage privé n’est relié à aucune route `MEDIA_URL` et les téléchargements passent par `FileResponse` après contrôle applicatif.
 
 Les paramètres de production sont lus depuis l’environnement. Le développement conserve HTTP et `DEBUG` pour faciliter le travail local, tandis que la production exige explicitement secret, hôtes, HTTPS, cookies secure et HSTS. Cette séparation est vérifiée par `check --deploy` et documentée dans [`security-review.md`](security-review.md).
+
+
+## Interface finale responsive — T-015
+
+T-015 conserve l’architecture **server-rendered** du MVP : les vues Django continuent de préparer les données, les formulaires restent des `Form`/`ModelForm` Django, et les gabarits rendent l’interface à partir de ce contexte. La feuille `static/css/app.css` constitue la couche de présentation partagée ; elle centralise palette, typographie, espacements, composants, règles responsive et focus visible. Aucun framework frontend, aucune dépendance CDN critique et aucun backend API n’ont été ajoutés.
+
+La navigation visible exploite exclusivement les indicateurs de contexte `archive_policy` et `audit_policy`, eux-mêmes dérivés des règles existantes. Cette adaptation ergonomique ne remplace pas les contrôles de `archives.permissions`, des QuerySets, mixins et vues. Les routes, méthodes HTTP, contrôles CSRF, audit, stockage privé et intégrité SHA-256 ne sont pas modifiés par la refonte.
+
+Les gabarits couvrent le login, le dashboard, la liste et la recherche d’archives, la fiche, le formulaire, l’audit ainsi que les pages 403/404/500. Les tables deviennent défilables horizontalement sur petit écran, tandis que la sidebar est convertie en navigation compacte. Cette amélioration d’interface ne requiert aucune migration de base de données.

@@ -4,8 +4,13 @@
 
 {% block content %}
   <section class="panel" aria-labelledby="archive-form-title">
-    <h1 id="archive-form-title">{% if archive %}Modifier l’archive{% else %}Nouvelle archive{% endif %}</h1>
-    <p class="muted">Les champs techniques, l’auteur et les horodatages sont contrôlés par le serveur.</p>
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Espace documentaire</p>
+        <h1 id="archive-form-title">{% if archive %}Modifier l’archive{% else %}Nouvelle archive{% endif %}</h1>
+        <p class="page-description">Les champs techniques, l’auteur et les horodatages sont contrôlés exclusivement par le serveur.</p>
+      </div>
+    </header>
 
     {% if form.non_field_errors %}
       <div class="errors" role="alert">{{ form.non_field_errors }}</div>
@@ -13,16 +18,87 @@
 
     <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
-      {% for field in form %}
-        <p>
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
-          {{ field }}
-          {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
-          {% for error in field.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
-        </p>
-      {% endfor %}
-      <button class="button" type="submit">{% if archive %}Enregistrer les modifications{% else %}Créer l’archive{% endif %}</button>
-      <a class="button button-secondary" href="{% if archive %}{% url 'archives:detail' archive.pk %}{% else %}{% url 'archives:list' %}{% endif %}">Annuler</a>
+
+      <section class="form-section" aria-labelledby="identification-title">
+        <h2 id="identification-title">Identification</h2>
+        <div class="form-grid">
+          <p class="form-field">
+            <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
+            {{ form.reference }}
+            {% if form.reference.help_text %}<small class="help-text">{{ form.reference.help_text }}</small>{% endif %}
+            {% for error in form.reference.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+          <p class="form-field form-field-wide">
+            <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+            {{ form.title }}
+            {% if form.title.help_text %}<small class="help-text">{{ form.title.help_text }}</small>{% endif %}
+            {% for error in form.title.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+          <p class="form-field form-field-wide">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+            {% if form.description.help_text %}<small class="help-text">{{ form.description.help_text }}</small>{% endif %}
+            {% for error in form.description.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+          <p class="form-field">
+            <label for="{{ form.document_date.id_for_label }}">{{ form.document_date.label }}</label>
+            {{ form.document_date }}
+            {% if form.document_date.help_text %}<small class="help-text">{{ form.document_date.help_text }}</small>{% endif %}
+            {% for error in form.document_date.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+        </div>
+      </section>
+
+      <section class="form-section" aria-labelledby="classification-title">
+        <h2 id="classification-title">Classification</h2>
+        <div class="form-grid">
+          <p class="form-field">
+            <label for="{{ form.service.id_for_label }}">{{ form.service.label }}</label>
+            {{ form.service }}
+            {% for error in form.service.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+          <p class="form-field">
+            <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+            {{ form.category }}
+            {% for error in form.category.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+          <p class="form-field">
+            <label for="{{ form.document_type.id_for_label }}">{{ form.document_type.label }}</label>
+            {{ form.document_type }}
+            {% for error in form.document_type.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+          <p class="form-field">
+            <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+            {{ form.status }}
+            {% for error in form.status.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+          <p class="form-field">
+            <label for="{{ form.confidentiality_level.id_for_label }}">{{ form.confidentiality_level.label }}</label>
+            {{ form.confidentiality_level }}
+            {% for error in form.confidentiality_level.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+        </div>
+      </section>
+
+      {% if form.file %}
+        <section class="form-section" aria-labelledby="document-title">
+          <h2 id="document-title">Document</h2>
+          <div class="upload-hint">
+            <p>Le fichier est vérifié côté serveur avant son archivage. Les formats autorisés et la taille maximale sont appliqués par la configuration de la plateforme.</p>
+          </div>
+          <p class="form-field">
+            <label for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
+            {{ form.file }}
+            {% if form.file.help_text %}<small class="help-text">{{ form.file.help_text }}</small>{% endif %}
+            {% for error in form.file.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+        </section>
+      {% endif %}
+
+      <div class="form-actions">
+        <button class="button" type="submit">{% if archive %}Enregistrer les modifications{% else %}Créer l’archive{% endif %}</button>
+        <a class="button button-secondary" href="{% if archive %}{% url 'archives:detail' archive.pk %}{% else %}{% url 'archives:list' %}{% endif %}">Annuler</a>
+      </div>
     </form>
   </section>
 {% endblock %}
