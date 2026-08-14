@@ -83,13 +83,13 @@ Les utilisateurs `is_active=False` sont refusés par le backend Django standard.
 
 > Le dashboard T-007 n’affiche volontairement aucune métadonnée d’archive individuelle avant l’implémentation de la politique d’autorisation T-011. Une archive confidentielle peut révéler des informations sensibles par son titre, sa référence, son service ou sa catégorie même lorsque son fichier n’est pas accessible.
 
-L’authentification par session prouve uniquement l’identité de l’utilisateur. Elle ne définit pas encore les droits documentaires par rôle, par niveau de confidentialité ou par ressource. Le dashboard ne retourne donc que des métriques agrégées. Ces métriques globales sont provisoirement visibles par tous les utilisateurs authentifiés ; leur visibilité par rôle devra être réévaluée avec C-Tech au ticket T-011.
+À l’étape historique T-007, l’authentification par session prouvait uniquement l’identité et le dashboard ne retournait donc que des métriques agrégées globales. Dans l’état final, l’authentification et l’autorisation sont distinctes : les agrégats du dashboard proviennent du QuerySet déjà filtré par rôle et confidentialité. La politique demeure un MVP à valider avec C-Tech, sans ACL de service ou attribution nominative.
 
 ## Deny-by-default avant RBAC final — T-008
 
-T-008 utilise une restriction technique conservatrice pour éviter d’exposer les archives avant T-011. Les écrans de métadonnées sont accessibles uniquement aux comptes `is_staff=True` ou `is_superuser=True`. Un rôle métier tel que `ADMINISTRATEUR`, `AGENT_ARCHIVES` ou `CONSULTANT` ne confère volontairement aucun accès dans ce ticket.
+À l’étape historique T-008, une restriction technique conservatrice limitait les écrans de métadonnées aux comptes `is_staff=True` ou `is_superuser=True` avant la définition du RBAC. Dans l’état final, T-011 applique la politique métier centralisée : Administrateur pour tous les niveaux, Agent pour PUBLIC/INTERNAL et Consultant pour PUBLIC. La règle applicable est documentée dans [`final-rbac-matrix.md`](final-rbac-matrix.md).
 
-Cette règle provisoire n’est pas le RBAC métier final. Elle est centralisée dans `StaffRequiredMixin` afin que T-011 puisse introduire des permissions par rôle, action, archive et confidentialité sans dépendre d’une logique temporaire dispersée dans les vues.
+Cette règle provisoire ne doit pas être utilisée comme référence actuelle. Elle a été remplacée par `archives.permissions`, dont les règles par rôle, action, archive et confidentialité sont appliquées côté serveur dans les QuerySets, mixins, vues et formulaires.
 
 Les formulaires reposent sur une liste blanche explicite de champs. `uploaded_by` est imposé par le serveur à l’utilisateur de la requête pendant la création. Les champs `file_size`, `checksum`, `created_at` et `updated_at` ne sont jamais acceptés depuis le navigateur. Cette séparation protège contre le mass assignment et la manipulation de champs techniques. Les formulaires POST conservent la protection CSRF native et les métadonnées sont rendues par Django sans filtre `safe`.
 

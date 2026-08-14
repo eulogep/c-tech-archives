@@ -128,13 +128,13 @@ flowchart LR
 
 Les six indicateurs sont calculés à partir de requêtes ORM lisibles sur les tables d’archives et de référentiels. Aucune archive individuelle, relation documentaire ou métadonnée associée n’est renvoyée par la vue. Cette décision évite qu’un utilisateur authentifié voie une référence, un titre, un service ou une catégorie confidentiels avant que T-011 n’ait défini la politique d’autorisation complète.
 
-Le dashboard n’affiche aucune activité récente, car le modèle d’audit n’existe pas encore. Il n’expose ni checksum ni donnée de mot de passe et ne déduit aucun droit métier du rôle utilisateur avant T-011.
+À l’étape historique T-007, le dashboard n’affichait aucune activité récente car le modèle d’audit et le RBAC documentaire n’étaient pas encore intégrés. Dans l’état final, l’audit existe et le dashboard conserve volontairement six agrégats limités au périmètre visible ; il n’expose ni checksum, ni donnée de mot de passe, ni liste individuelle de documents.
 
 ## Gestion contrôlée des métadonnées — T-008
 
 L’application `archives` fournit désormais les vues de liste, création, détail et modification des métadonnées. Les routes sont regroupées sous le namespace `/archives/`. La liste est paginée à vingt éléments et ordonnée par `-created_at`; ses relations sont préchargées avec `select_related` afin d’éviter un accès relationnel N+1 pendant le rendu.
 
-Le contrôle d’accès passe temporairement par `StaffRequiredMixin`. Un utilisateur anonyme est redirigé vers la connexion, tandis qu’un utilisateur déjà authentifié mais non staff reçoit une réponse HTTP 403. Ce garde ne consulte jamais le rôle métier et reste isolé dans `archives.access` pour pouvoir être remplacé au ticket T-011.
+À l’étape historique T-008, le contrôle d’accès passait temporairement par `StaffRequiredMixin`. Dans l’état final, T-011 a remplacé cette garde par la politique métier centralisée `archives.permissions`, appliquée avant les listes, recherches, paginations, détails, téléchargements, formulaires et agrégats. La description actuelle est disponible dans [`architecture-final.md`](architecture-final.md) et [`final-rbac-matrix.md`](final-rbac-matrix.md).
 
 ```mermaid
 flowchart LR

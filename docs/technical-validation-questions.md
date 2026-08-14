@@ -31,7 +31,7 @@
 | TV-13 | Où doivent résider les fichiers : disque du serveur, NAS interne ou stockage objet ? | Adaptateur de stockage, sauvegarde et accès réseau | Stockage local privé en développement |
 | TV-14 | Les documents doivent-ils être chiffrés au repos ? Si oui, qui détient les clés et quelle solution est approuvée ? | Chiffrement, gestion de clés et récupération | Hors MVP, à analyser avant production |
 | TV-15 | Faut-il une analyse antivirus ou antimalware à l’upload ? | Chaîne de validation, infrastructure et politique de rejet | Non implémentée dans le MVP |
-| TV-16 | Les fichiers originaux doivent-ils être conservés après désactivation ou suppression d’une archive ? | Suppression logique/physique, stockage et audit | Décision différée à T-008 |
+| TV-16 | Les fichiers originaux doivent-ils être conservés après désactivation d’une archive et quelle politique de rétention doit s’appliquer ? | Conservation, stockage et audit | Aucune suppression physique ni versioning dans le MVP ; décision C-Tech requise avant évolution |
 
 ## 4. Identité, accès et sécurité réseau
 
@@ -42,7 +42,7 @@
 | TV-19 | Quelle politique de mot de passe s’applique : longueur, complexité, expiration, verrouillage et réinitialisation ? | Validateurs Django, flux de récupération et journalisation | Politique Django renforcée à définir |
 | TV-20 | L’accès sera-t-il réservé à un réseau interne, VPN ou certaines adresses IP ? | Pare-feu, proxy et contrôle réseau | Accessible seulement en local durant le MVP |
 | TV-21 | Quel mécanisme HTTPS est accepté et qui gérera les certificats TLS ? | Proxy inverse, cookies sécurisés et déploiement | HTTP local uniquement ; HTTPS requis en production |
-| TV-22 | L’accès du Consultant dépend-il uniquement de son rôle, de son service ou d’autorisations nominatives par archive ? | Modèle d’autorisation, requêtes de filtrage et contrôle de téléchargement | À confirmer avant T-011 |
+| TV-22 | L’accès doit-il rester fondé uniquement sur le rôle et la confidentialité, ou évoluer vers des règles de service et des autorisations nominatives ? | Évolution du modèle d’autorisation, requêtes et téléchargement | MVP intégré : rôle + confidentialité ; ACL service/nominative hors périmètre |
 
 ## 5. Journalisation, conformité et exploitation
 
@@ -63,6 +63,6 @@
 | TV-30 | Quels jeux de données de démonstration sont acceptables et comment seront-ils anonymisés ? | Fixtures, tests et respect de la confidentialité | Données synthétiques uniquement |
 | TV-31 | Une procédure de déploiement reproductible est-elle attendue dès le MVP ? | Documentation, scripts et choix d’outils | Documentée avant toute mise en production |
 
-## Priorités avant les prochains tickets
+## Priorités avant une mise en production
 
-Les réponses **TV-11**, **TV-12** et **TV-22** sont nécessaires avant de figer T-010 (téléversement sécurisé) et T-011 (contrôle d’accès). Les réponses **TV-17**, **TV-19** et **TV-21** sont nécessaires avant une mise en production, mais ne bloquent pas l’initialisation du projet ni l’implémentation locale de l’authentification Django. Les réponses **TV-01**, **TV-06**, **TV-08**, **TV-13**, **TV-23** et **TV-27** sont indispensables avant le déploiement réel.
+Les réponses **TV-11**, **TV-12**, **TV-13**, **TV-16** et **TV-22** guident les évolutions documentaires, de stockage, de conservation et d’autorisation qui dépassent le MVP livré. Les réponses **TV-17**, **TV-19** et **TV-21** sont nécessaires avant une mise en production, notamment pour l’identité, la politique de mot de passe et HTTPS. Les réponses **TV-01**, **TV-06**, **TV-08**, **TV-23** et **TV-27** sont indispensables avant un déploiement réel car elles couvrent hébergement, base, sauvegarde, audit et incident.
