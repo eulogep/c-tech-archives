@@ -9,7 +9,7 @@ C-Tech Archives centralise les métadonnées et documents d’archives dans un M
 | Élément | État vérifiable |
 |---|---|
 | Socle applicatif | Django 5.1.x, PostgreSQL, Django Templates et CSS local responsive |
-| Tests automatisés | **255 tests** avec `python manage.py test` |
+| Tests automatisés | **263 tests** avec `python manage.py test` |
 | Rôles métier | Administrateur, Agent d’archives, Consultant |
 | Niveaux de confidentialité | PUBLIC, INTERNAL, CONFIDENTIAL |
 | Stockage documentaire | Privé, hors `MEDIA_URL`, téléchargement contrôlé |
@@ -17,7 +17,7 @@ C-Tech Archives centralise les métadonnées et documents d’archives dans un M
 | Intégrité | SHA-256 calculé après stockage et vérifié sur demande POST |
 | Sécurité | Revue transverse T-014, profil de déploiement simulé et interface T-015 responsive |
 | T-001 à T-016 | **INTEGRATED** dans `develop` ; T-005 reste `ABSORBED_BY_T004` |
-| MVP académique | **FINALIZED** : MVP fonctionnel, 255 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
+| MVP académique | **FINALIZED** : MVP fonctionnel, 263 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
 
 ## Objectif
 
@@ -121,7 +121,7 @@ python manage.py runserver
 python manage.py test
 ```
 
-La commande de test exécute **255 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
+La commande de test exécute **263 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
 
 ```bash
 python manage.py check --deploy
@@ -168,7 +168,7 @@ Les perspectives possibles, après validation des besoins et des risques, sont l
 | [`docs/architecture-final.md`](docs/architecture-final.md) | Architecture finale et modèle de données |
 | [`docs/final-feature-matrix.md`](docs/final-feature-matrix.md) | Capacités intégrées, preuves et limites |
 | [`docs/final-rbac-matrix.md`](docs/final-rbac-matrix.md) | Matrice par rôle et confidentialité |
-| [`docs/final-test-matrix.md`](docs/final-test-matrix.md) | Couverture des 255 tests |
+| [`docs/final-test-matrix.md`](docs/final-test-matrix.md) | Couverture des 263 tests |
 | [`docs/security-review.md`](docs/security-review.md) | Revue sécurité, modèle de menace et risques résiduels |
 | [`docs/user-guide.md`](docs/user-guide.md) | Parcours Consultant, Agent et Administrateur |
 | [`docs/demo-script.md`](docs/demo-script.md) | Scripts de démonstration 2 minutes et 5–7 minutes |
