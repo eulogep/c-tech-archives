@@ -1,5 +1,8 @@
 """Revue de sécurité transverse T-014 du MVP C-Tech Archives."""
 
+import os
+import subprocess
+import sys
 from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -400,3 +403,40 @@ class SecurityHardeningTests(TestCase):
         self.assertNotIn(self.PASSWORD, env_example)
         self.assertNotIn(self.PASSWORD, readme)
         self.assertNotIn("DJANGO_ALLOWED_HOSTS=*", env_example)
+
+    def test_hard_026_production_rejects_wildcard_allowed_hosts(self):
+        """La configuration de production exige des hôtes explicites."""
+        project_root = Path(__file__).resolve().parents[1]
+        base_environment = {
+            **os.environ,
+            "DJANGO_SETTINGS_MODULE": "config.settings",
+            "DJANGO_ENV": "production",
+            "DJANGO_DEBUG": "false",
+        }
+
+        for allowed_hosts in (
+            "c-tech.example",
+            "c-tech.example,www.c-tech.example",
+        ):
+            result = subprocess.run(
+                [sys.executable, "-c", "import django; django.setup()"],
+                cwd=str(project_root),
+                env={**base_environment, "DJANGO_ALLOWED_HOSTS": allowed_hosts},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+        wildcard_result = subprocess.run(
+            [sys.executable, "-c", "import django; django.setup()"],
+            cwd=str(project_root),
+            env={**base_environment, "DJANGO_ALLOWED_HOSTS": "*"},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertNotEqual(wildcard_result.returncode, 0)
+        self.assertIn("ImproperlyConfigured", wildcard_result.stderr)
+        self.assertIn("DJANGO_ALLOWED_HOSTS ne doit pas contenir '*'", wildcard_result.stderr)

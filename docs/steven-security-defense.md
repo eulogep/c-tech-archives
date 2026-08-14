@@ -30,6 +30,10 @@ Parce qu’il détecte une différence entre le fichier actuel et la référence
 
 Pour éviter une fuite par inférence. Si une archive `INTERNAL` ou `CONFIDENTIAL` renvoyait 403 au Consultant, cela confirmerait déjà son existence. Le 404 garde cette information non divulguée.
 
+### Pourquoi ne pas utiliser `ALLOWED_HOSTS="*"` ?
+
+Parce que l’application doit accepter uniquement les noms d’hôtes réellement prévus pour le déploiement. Une wildcard élargirait inutilement les hôtes acceptés et masquerait une erreur de configuration. Hors DEBUG, le MVP refuse donc `*` au chargement des paramètres ; les hôtes explicitement déclarés restent acceptés.
+
 ### Que faut-il faire avant une vraie mise en production ?
 
 Configurer les secrets et hôtes réels hors Git, activer HTTPS, cookies secure et HSTS avec prudence, régler les limites du reverse proxy, ajouter un audit de dépendances CI, décider d’une protection anti-brute-force, puis valider sauvegardes, monitoring et gestion des incidents.

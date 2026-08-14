@@ -4,7 +4,7 @@
 
 Cette revue couvre le MVP C-Tech Archives après intégration de T-013. Elle examine les routes exposées, l’authentification par session, le RBAC métier, le stockage privé, les formulaires, l’audit append-only applicatif, l’intégrité SHA-256 et la configuration Django. Elle ne constitue ni une certification OWASP, ni un test d’intrusion externe, ni une garantie de sécurité totale.
 
-La baseline de départ est le commit de fusion T-013 `9b05c31c5437e443bfa3e50a1fd077c44c439f23`, avec 208 tests. T-014 ajoute la matrice `HARD-001` à `HARD-025`, exécutée contre une base de tests PostgreSQL et des fichiers synthétiques isolés.
+La baseline de départ est le commit de fusion T-013 `9b05c31c5437e443bfa3e50a1fd077c44c439f23`, avec 208 tests. T-014 ajoute la matrice `HARD-001` à `HARD-026`, exécutée contre une base de tests PostgreSQL et des fichiers synthétiques isolés. Le scénario `HARD-026` charge les paramètres dans des sous-processus Python isolés afin de vérifier la configuration réellement appliquée en production.
 
 ## Modèle de menace simplifié
 
@@ -57,7 +57,7 @@ La vérification SHA-256 distingue `VALID`, `MISMATCH`, `NO_FILE`, `MISSING_CHEC
 | Broken Access Control | RBAC centralisé, QuerySet filtré, 404 anti-IDOR, tests detail/edit/download/verify | Pas d’ACL métier fine |
 | Authentication Failures | Sessions Django, comptes inactifs refusés, `next` externe neutralisé, CSRF | Pas de MFA ni rate limiting |
 | Injection | ORM, tests de paramètres SQL-like, absence de SQL brut dans le domaine | Aucun pentest SQL externe |
-| Security Misconfiguration | Secrets environnement, hôtes non vides hors DEBUG, cookies/HTTPS pilotés par environnement, `check --deploy` | Déploiement reverse proxy non encore réalisé |
+| Security Misconfiguration | Secrets environnement, hôtes explicites sans wildcard hors DEBUG, cookies/HTTPS pilotés par environnement, `check --deploy` | Déploiement reverse proxy non encore réalisé |
 | Software and Data Integrity | Upload allowlist, stockage privé, checksum SHA-256, audit de vérification | Pas de signature numérique ou WORM |
 | Logging and Monitoring | Audit métier minimal, consultation administrateur, Admin read-only | Pas d’alerting ni centralisation SIEM |
 
@@ -85,9 +85,10 @@ Dans un profil de production simulé avec `DJANGO_ENV=production`, `DJANGO_DEBUG
 
 | ID | Gravité | Constat | Correction ou statut | Test de non-régression |
 |---|---|---|---|---|
-| F-014-001 | Informationnel | Les contrôles de sécurité sont déjà présents mais épars dans les tests de tickets antérieurs | Matrice transversale `HARD-001` à `HARD-025` ajoutée ; aucune faille significative reproduite | Suite T-014 |
+| F-014-001 | Informationnel | Les contrôles de sécurité sont déjà présents mais épars dans les tests de tickets antérieurs | Matrice transversale `HARD-001` à `HARD-026` ajoutée ; aucune faille significative reproduite | Suite T-014 |
 | F-014-002 | Informationnel | `check --deploy` avertit correctement en profil local HTTP/DEBUG | Aucune suppression de warning ; profil production simulé documenté et validé | `check --deploy` développement et production |
 | F-014-003 | Faible | Aucun scanner de dépendances n’est configuré dans le dépôt | Risque documenté ; commande CI/production recommandée, sans installation arbitraire de dépendance | Revue manuelle requirements |
+| F-014-004 | Faible | Le wildcard `DJANGO_ALLOWED_HOSTS=*` était accepté en production, contrairement à la règle documentée d’hôtes explicites | Validation de configuration ajoutée dans `settings.py` : le wildcard provoque `ImproperlyConfigured` hors DEBUG | `HARD-026` (sous-processus isolé) |
 
 ## Risques résiduels et prérequis de production
 
@@ -97,4 +98,4 @@ Sont hors périmètre : OAuth, JWT, API REST, MFA, S3, moteur antivirus maison, 
 
 ## Conclusion
 
-Aucune vulnérabilité critique ou importante n’a été reproduite dans le périmètre audité. Le MVP ne doit toutefois pas être présenté comme totalement sécurisé : il applique des contrôles mesurables et testés, avec des limites de production clairement documentées.
+Aucune vulnérabilité critique ou importante n’a été reproduite. Une faiblesse de configuration de faible gravité concernant `ALLOWED_HOSTS=*` a été identifiée et corrigée. Le MVP ne doit toutefois pas être présenté comme totalement sécurisé : il applique des contrôles mesurables et testés, avec des limites de production clairement documentées.
