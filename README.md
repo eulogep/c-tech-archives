@@ -9,7 +9,7 @@ C-Tech Archives centralise les métadonnées et documents d’archives dans un M
 | Élément | État vérifiable |
 |---|---|
 | Socle applicatif | Django 5.1.x, PostgreSQL, Django Templates et CSS local responsive |
-| Tests automatisés | **255 tests** avec `python manage.py test` |
+| Tests automatisés | **263 tests** avec `python manage.py test` |
 | Rôles métier | Administrateur, Agent d’archives, Consultant |
 | Niveaux de confidentialité | PUBLIC, INTERNAL, CONFIDENTIAL |
 | Stockage documentaire | Privé, hors `MEDIA_URL`, téléchargement contrôlé |
@@ -17,7 +17,9 @@ C-Tech Archives centralise les métadonnées et documents d’archives dans un M
 | Intégrité | SHA-256 calculé après stockage et vérifié sur demande POST |
 | Sécurité | Revue transverse T-014, profil de déploiement simulé et interface T-015 responsive |
 | T-001 à T-016 | **INTEGRATED** dans `develop` ; T-005 reste `ABSORBED_BY_T004` |
-| MVP académique | **FINALIZED** : MVP fonctionnel, 255 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
+| MVP académique | **FINALIZED** : MVP fonctionnel, 263 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
+
+Maintenance post-finalisation : le bootstrap sécurisé des comptes privilégiés est disponible par commande explicite et ne modifie pas le périmètre des tickets T-001 à T-016.
 
 ## Objectif
 
@@ -87,11 +89,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py bootstrap_default_admins
 python manage.py runserver
 ```
 
-Le guide détaillé Linux/macOS/Windows, les données synthétiques et les contrôles de configuration sont dans [`docs/installation.md`](docs/installation.md). **Ne commitez jamais `.env`, des mots de passe ou des données réelles C-Tech.**
+Avant d’exécuter `bootstrap_default_admins`, configurez dans `.env` les quatre variables de comptes privilégiés indiquées ci-dessous. La commande initialise explicitement les comptes requis et ne crée aucun utilisateur au démarrage de l’application. Le guide détaillé Linux/macOS/Windows, les données synthétiques et les contrôles de configuration sont dans [`docs/installation.md`](docs/installation.md). **Ne commitez jamais `.env`, des mots de passe ou des données réelles C-Tech.**
 
 ## Configuration
 
@@ -109,6 +111,10 @@ Les variables sont chargées depuis `.env` en développement et depuis l’envir
 | `PRIVATE_MEDIA_ROOT` | Répertoire des documents privés | `private_media` |
 | `ARCHIVE_MAX_UPLOAD_SIZE` | Taille maximale d’upload | `10485760` |
 | `ARCHIVE_ALLOWED_EXTENSIONS` | Extensions autorisées | `.pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png` |
+| `CTECH_STEVEN_EMAIL` | Email de connexion de l’administrateur métier | `business-administrator@example.invalid` |
+| `CTECH_STEVEN_PASSWORD` | Secret local de l’administrateur métier | `replace-with-a-strong-business-administrator-password` |
+| `CTECH_EULOGE_EMAIL` | Email de connexion du superutilisateur technique | `technical-administrator@example.invalid` |
+| `CTECH_EULOGE_PASSWORD` | Secret local du superutilisateur technique | `replace-with-a-strong-technical-administrator-password` |
 
 Les variables HTTPS, cookies et HSTS sont décrites dans [`docs/environment.md`](docs/environment.md) et [`docs/installation.md`](docs/installation.md).
 
@@ -121,7 +127,7 @@ python manage.py runserver
 python manage.py test
 ```
 
-La commande de test exécute **255 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
+La commande de test exécute **263 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
 
 ```bash
 python manage.py check --deploy
@@ -168,7 +174,7 @@ Les perspectives possibles, après validation des besoins et des risques, sont l
 | [`docs/architecture-final.md`](docs/architecture-final.md) | Architecture finale et modèle de données |
 | [`docs/final-feature-matrix.md`](docs/final-feature-matrix.md) | Capacités intégrées, preuves et limites |
 | [`docs/final-rbac-matrix.md`](docs/final-rbac-matrix.md) | Matrice par rôle et confidentialité |
-| [`docs/final-test-matrix.md`](docs/final-test-matrix.md) | Couverture des 255 tests |
+| [`docs/final-test-matrix.md`](docs/final-test-matrix.md) | Couverture automatisée et matrice de tests du MVP |
 | [`docs/security-review.md`](docs/security-review.md) | Revue sécurité, modèle de menace et risques résiduels |
 | [`docs/user-guide.md`](docs/user-guide.md) | Parcours Consultant, Agent et Administrateur |
 | [`docs/demo-script.md`](docs/demo-script.md) | Scripts de démonstration 2 minutes et 5–7 minutes |
