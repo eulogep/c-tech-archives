@@ -25,7 +25,7 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-012 — Journal d’audit | **INTEGRATED** dans `develop` ; événements métier structurés, append-only et consultation administrateur |
 | T-013 — Intégrité SHA-256 | **INTEGRATED** dans `develop` ; empreinte calculée à l’upload et vérification contrôlée à la demande |
 | T-014 — Tests de sécurité et durcissement final | **INTEGRATED** dans `develop` ; revue transverse, matrice HARD-001 à HARD-026 et risques résiduels documentés |
-| T-015 — Interface utilisateur finale | **IN_PROGRESS** sur `feature/final-ui` ; refonte responsive, accessible au niveau d’une revue légère et sans modification métier |
+| T-015 — Interface utilisateur finale | **IN_REVIEW** sur `feature/final-ui` ; PR #15 ouverte, refonte responsive, accessibilité légère et aucune modification métier |
 | Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé, RBAC, audit métier, contrôle d’intégrité SHA-256, couverture de sécurité transverse et interface responsive configurés |
 
 ## Objectif du MVP
