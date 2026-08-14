@@ -8,6 +8,11 @@ from collections.abc import Mapping
 from .models import AuditAction, AuditLog
 
 
+ALLOWED_INTEGRITY_RESULTS = frozenset(
+    {"VALID", "MISMATCH", "NO_FILE", "MISSING_CHECKSUM", "FILE_MISSING", "ERROR"}
+)
+
+
 def get_client_ip(request) -> str | None:
     """Retourne REMOTE_ADDR lorsqu’il est présent et syntaxiquement valide.
 
@@ -42,6 +47,10 @@ def _minimal_details(details: Mapping | None) -> dict:
             for field in changed_fields
             if isinstance(field, str) and len(field) <= 64
         ]
+
+    result = details.get("result")
+    if isinstance(result, str) and result in ALLOWED_INTEGRITY_RESULTS:
+        sanitized["result"] = result
     return sanitized
 
 

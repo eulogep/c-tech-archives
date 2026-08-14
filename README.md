@@ -22,8 +22,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-009 — Recherche et filtres d’archives | **INTEGRATED** dans `develop` ; recherche GET ORM et filtres de métadonnées accessibles aux comptes staff |
 | T-010 — Téléversement et téléchargement sécurisés | **INTEGRATED** dans `develop` ; stockage privé, validation serveur et téléchargement contrôlé |
 | T-011 — RBAC et confidentialité | **INTEGRATED** dans `develop` ; droits métier centralisés et visibilité filtrée au niveau QuerySet |
-| T-012 — Journal d’audit | **IN_REVIEW** sur `feature/audit-log` ; événements métier structurés, append-only et consultation administrateur |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé, RBAC et audit métier append-only configurés ; checksum automatique reste à réaliser |
+| T-012 — Journal d’audit | **INTEGRATED** dans `develop` ; événements métier structurés, append-only et consultation administrateur |
+| T-013 — Intégrité SHA-256 | **IN_REVIEW** sur `feature/archive-integrity` ; empreinte calculée à l’upload et vérification contrôlée à la demande |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé, RBAC, audit métier et contrôle d’intégrité SHA-256 configurés |
 
 ## Objectif du MVP
 
@@ -95,7 +96,8 @@ python manage.py runserver
 | [`docs/tickets/T-009.md`](docs/tickets/T-009.md) | Compte rendu du ticket recherche et filtres d’archives intégré |
 | [`docs/tickets/T-010.md`](docs/tickets/T-010.md) | Compte rendu du ticket téléversement et téléchargement sécurisés intégré |
 | [`docs/tickets/T-011.md`](docs/tickets/T-011.md) | Compte rendu du ticket RBAC et confidentialité intégré |
-| [`docs/tickets/T-012.md`](docs/tickets/T-012.md) | Compte rendu du ticket journal d’audit en revue |
+| [`docs/tickets/T-012.md`](docs/tickets/T-012.md) | Compte rendu du ticket journal d’audit intégré |
+| [`docs/tickets/T-013.md`](docs/tickets/T-013.md) | Compte rendu du ticket intégrité SHA-256 en revue |
 
 ## Convention Git
 

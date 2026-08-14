@@ -31,6 +31,13 @@
       <dt>Modifiée le</dt><dd>{{ archive.updated_at|date:"d/m/Y H:i" }}</dd>
     </dl>
 
+    {% if archive.file %}
+      <form method="post" action="{% url 'archives:verify_integrity' archive.pk %}" style="margin-top:1.25rem;">
+        {% csrf_token %}
+        <button class="button button-secondary" type="submit">Vérifier l’intégrité</button>
+      </form>
+    {% endif %}
+
     <p style="margin-top:1.5rem;"><a class="button button-secondary" href="{% url 'archives:list' %}">Retour à la liste</a></p>
   </section>
 {% endblock %}

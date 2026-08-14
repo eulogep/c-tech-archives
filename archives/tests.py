@@ -1,6 +1,9 @@
 """Tests des modèles métier fondamentaux des archives."""
 
 from datetime import date
+from hashlib import sha256
+from io import BytesIO
+from unittest.mock import patch
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -13,6 +16,8 @@ from django.test import Client, TestCase, override_settings
 from django.urls import Resolver404, resolve
 
 from accounts.models import Role
+from audit.models import AuditAction, AuditLog
+from .integrity import IntegrityStatus, calculate_sha256, verify_archive_integrity
 from .models import (
     Archive,
     ArchiveStatus,
@@ -862,7 +867,7 @@ class ArchiveFileHandlingTests(TestCase):
         self.assertTrue(archive.file.name.startswith("archives/"))
         self.assertTrue(archive.file.storage.exists(archive.file.name))
         self.assertEqual(archive.file_size, len(self.PDF_CONTENT))
-        self.assertEqual(archive.checksum, "")
+        self.assertEqual(archive.checksum, sha256(self.PDF_CONTENT).hexdigest())
 
     def test_file_002_uploaded_by_is_always_assigned_on_server(self):
         other_user = get_user_model().objects.create_user(
@@ -1496,3 +1501,320 @@ class ArchiveRbacTests(TestCase):
 
         self.assertContains(list_response, "Nouvelle archive")
         self.assertContains(detail_response, "Modifier")
+
+
+class ArchiveIntegrityTests(TestCase):
+    """Vérifie l’intégrité SHA-256 et la route contrôlée de T-013."""
+
+    PDF_CONTENT = b"%PDF-1.4\nsynthetic integrity test document\n"
+
+    def setUp(self):
+        self.private_media = TemporaryDirectory()
+        self.settings_override = override_settings(PRIVATE_MEDIA_ROOT=self.private_media.name)
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
+        self.addCleanup(self.private_media.cleanup)
+
+        user_model = get_user_model()
+        self.admin = user_model.objects.create_user(
+            username="integrity-admin",
+            email="integrity-admin@example.test",
+            password="MotDePasse-IntegrityAdmin-2026",
+            role=Role.ADMINISTRATEUR,
+        )
+        self.agent = user_model.objects.create_user(
+            username="integrity-agent",
+            email="integrity-agent@example.test",
+            password="MotDePasse-IntegrityAgent-2026",
+            role=Role.AGENT_ARCHIVES,
+        )
+        self.consultant = user_model.objects.create_user(
+            username="integrity-consultant",
+            email="integrity-consultant@example.test",
+            password="MotDePasse-IntegrityConsultant-2026",
+            role=Role.CONSULTANT,
+        )
+        self.service = Service.objects.create(name="Service intégrité")
+        self.category = Category.objects.create(name="Catégorie intégrité")
+        self.document_type = DocumentType.objects.create(name="Type intégrité")
+        self.create_url = "/archives/new/"
+
+    def payload(self, reference, confidentiality_level=ConfidentialityLevel.PUBLIC, **overrides):
+        data = {
+            "reference": reference,
+            "title": "Archive de test d’intégrité",
+            "description": "Contenu synthétique uniquement",
+            "category": str(self.category.pk),
+            "document_type": str(self.document_type.pk),
+            "service": str(self.service.pk),
+            "document_date": "2026-08-14",
+            "status": ArchiveStatus.ACTIVE,
+            "confidentiality_level": confidentiality_level,
+        }
+        data.update(overrides)
+        return data
+
+    def upload_archive(self, reference, content=None, confidentiality_level=ConfidentialityLevel.PUBLIC, **overrides):
+        self.client.force_login(self.admin)
+        content = self.PDF_CONTENT if content is None else content
+        response = self.client.post(
+            self.create_url,
+            self.payload(
+                reference,
+                confidentiality_level,
+                file=SimpleUploadedFile(
+                    "integrity-demo.pdf", content, content_type="application/pdf"
+                ),
+                **overrides,
+            ),
+        )
+        self.assertEqual(response.status_code, 302)
+        return Archive.objects.get(reference=reference)
+
+    def create_direct_archive(self, reference, confidentiality_level=ConfidentialityLevel.PUBLIC, checksum="", with_file=True):
+        data = {
+            "reference": reference,
+            "title": "Archive historique intégrité",
+            "description": "Archive synthétique",
+            "category": self.category,
+            "document_type": self.document_type,
+            "service": self.service,
+            "uploaded_by": self.admin,
+            "status": ArchiveStatus.ACTIVE,
+            "confidentiality_level": confidentiality_level,
+            "file_size": len(self.PDF_CONTENT) if with_file else 0,
+            "checksum": checksum,
+        }
+        if with_file:
+            data["file"] = SimpleUploadedFile(
+                "historique.pdf", self.PDF_CONTENT, content_type="application/pdf"
+            )
+        return Archive.objects.create(**data)
+
+    def verify_url(self, archive):
+        return f"/archives/{archive.pk}/verify-integrity/"
+
+    def test_hash_001_known_content_has_known_sha256(self):
+        self.assertEqual(
+            calculate_sha256(BytesIO(b"abc")),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        )
+
+    def test_hash_002_calculation_reads_large_content_by_chunks(self):
+        class ChunkBoundedStream(BytesIO):
+            def read(self, size=-1):
+                if size == -1 or size > 64 * 1024:
+                    raise AssertionError("Le calcul ne doit pas lire le flux en une seule fois.")
+                return super().read(size)
+
+        content = b"x" * (3 * 64 * 1024 + 17)
+        self.assertEqual(
+            calculate_sha256(ChunkBoundedStream(content)), sha256(content).hexdigest()
+        )
+
+    def test_hash_003_upload_calculates_checksum_automatically(self):
+        archive = self.upload_archive("CT-HASH-UPLOAD-003")
+
+        self.assertEqual(archive.checksum, sha256(self.PDF_CONTENT).hexdigest())
+
+    def test_hash_004_tampered_post_checksum_is_ignored(self):
+        archive = self.upload_archive(
+            "CT-HASH-TAMPER-004", checksum="0" * 64
+        )
+
+        self.assertEqual(archive.checksum, sha256(self.PDF_CONTENT).hexdigest())
+        self.assertNotEqual(archive.checksum, "0" * 64)
+
+    def test_hash_005_checksum_is_exactly_64_hexadecimal_characters(self):
+        archive = self.upload_archive("CT-HASH-FORMAT-005")
+
+        self.assertRegex(archive.checksum, r"^[0-9a-f]{64}$")
+
+    def test_hash_006_archive_without_file_returns_no_file(self):
+        archive = self.create_direct_archive("CT-HASH-NOFILE-006", with_file=False)
+
+        result = verify_archive_integrity(archive)
+
+        self.assertEqual(result.status, IntegrityStatus.NO_FILE)
+        self.assertEqual(archive.checksum, "")
+
+    def test_hash_007_file_without_checksum_returns_missing_checksum(self):
+        archive = self.create_direct_archive("CT-HASH-MISSING-007")
+
+        result = verify_archive_integrity(archive)
+
+        self.assertEqual(result.status, IntegrityStatus.MISSING_CHECKSUM)
+
+    def test_hash_008_identical_file_returns_valid(self):
+        archive = self.upload_archive("CT-HASH-VALID-008")
+
+        self.assertEqual(verify_archive_integrity(archive).status, IntegrityStatus.VALID)
+
+    def test_hash_009_physically_modified_file_returns_mismatch(self):
+        archive = self.upload_archive("CT-HASH-MISMATCH-009")
+        with archive.file.storage.open(archive.file.name, "wb") as file_obj:
+            file_obj.write(b"%PDF-1.4\nphysically modified synthetic document\n")
+
+        self.assertEqual(verify_archive_integrity(archive).status, IntegrityStatus.MISMATCH)
+
+    def test_hash_010_mismatch_never_replaces_historical_checksum(self):
+        archive = self.upload_archive("CT-HASH-REFERENCE-010")
+        original_checksum = archive.checksum
+        with archive.file.storage.open(archive.file.name, "wb") as file_obj:
+            file_obj.write(b"%PDF-1.4\nmodified but not rebaselined\n")
+
+        verify_archive_integrity(archive)
+        archive.refresh_from_db()
+
+        self.assertEqual(archive.checksum, original_checksum)
+
+    def test_hash_011_missing_storage_file_returns_file_missing(self):
+        archive = self.upload_archive("CT-HASH-MISSINGFILE-011")
+        archive.file.storage.delete(archive.file.name)
+
+        self.assertEqual(
+            verify_archive_integrity(archive).status, IntegrityStatus.FILE_MISSING
+        )
+
+    def test_hash_012_calculation_restores_initial_file_position(self):
+        file_obj = BytesIO(b"position-preserved")
+        file_obj.seek(4)
+
+        calculate_sha256(file_obj)
+
+        self.assertEqual(file_obj.tell(), 4)
+
+    def test_hash_013_anonymous_verify_redirects_to_login(self):
+        archive = self.upload_archive("CT-HASH-ANON-013")
+        self.client.logout()
+
+        response = self.client.post(self.verify_url(archive))
+
+        self.assertRedirects(
+            response, f"/accounts/login/?next={self.verify_url(archive)}"
+        )
+
+    def test_hash_014_consultant_can_verify_public_archive(self):
+        archive = self.upload_archive("CT-HASH-CONSULTANT-014")
+        self.client.force_login(self.consultant)
+
+        response = self.client.post(self.verify_url(archive))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                action=AuditAction.ARCHIVE_INTEGRITY_CHECK,
+                actor=self.consultant,
+                archive=archive,
+            ).exists()
+        )
+
+    def test_hash_015_consultant_cannot_verify_internal_archive(self):
+        archive = self.upload_archive(
+            "CT-HASH-CONSULTANT-015", confidentiality_level=ConfidentialityLevel.INTERNAL
+        )
+        self.client.force_login(self.consultant)
+
+        response = self.client.post(self.verify_url(archive))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_hash_016_agent_can_verify_internal_archive(self):
+        archive = self.upload_archive(
+            "CT-HASH-AGENT-016", confidentiality_level=ConfidentialityLevel.INTERNAL
+        )
+        self.client.force_login(self.agent)
+
+        response = self.client.post(self.verify_url(archive))
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_hash_017_agent_cannot_verify_confidential_archive(self):
+        archive = self.upload_archive(
+            "CT-HASH-AGENT-017", confidentiality_level=ConfidentialityLevel.CONFIDENTIAL
+        )
+        self.client.force_login(self.agent)
+
+        response = self.client.post(self.verify_url(archive))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_hash_018_admin_can_verify_confidential_archive(self):
+        archive = self.upload_archive(
+            "CT-HASH-ADMIN-018", confidentiality_level=ConfidentialityLevel.CONFIDENTIAL
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.post(self.verify_url(archive))
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_hash_019_verify_post_requires_csrf_token(self):
+        archive = self.upload_archive("CT-HASH-CSRF-019")
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.consultant)
+
+        response = csrf_client.post(self.verify_url(archive))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            AuditLog.objects.filter(
+                action=AuditAction.ARCHIVE_INTEGRITY_CHECK, archive=archive
+            ).exists()
+        )
+
+    def test_hash_020_valid_verify_creates_audit_event(self):
+        archive = self.upload_archive("CT-HASH-AUDIT-VALID-020")
+        self.client.force_login(self.consultant)
+
+        self.client.post(self.verify_url(archive))
+
+        event = AuditLog.objects.get(
+            action=AuditAction.ARCHIVE_INTEGRITY_CHECK, archive=archive
+        )
+        self.assertEqual(event.details, {"result": IntegrityStatus.VALID.value})
+
+    def test_hash_021_mismatch_verify_creates_audit_event(self):
+        archive = self.upload_archive("CT-HASH-AUDIT-MISMATCH-021")
+        with archive.file.storage.open(archive.file.name, "wb") as file_obj:
+            file_obj.write(b"%PDF-1.4\nmismatch audit document\n")
+        self.client.force_login(self.consultant)
+
+        self.client.post(self.verify_url(archive))
+
+        event = AuditLog.objects.get(
+            action=AuditAction.ARCHIVE_INTEGRITY_CHECK, archive=archive
+        )
+        self.assertEqual(event.details, {"result": IntegrityStatus.MISMATCH.value})
+
+    def test_hash_022_audit_details_reject_all_but_allowed_result(self):
+        archive = self.upload_archive("CT-HASH-AUDIT-DETAILS-022")
+        self.client.force_login(self.consultant)
+
+        self.client.post(self.verify_url(archive))
+
+        event = AuditLog.objects.get(
+            action=AuditAction.ARCHIVE_INTEGRITY_CHECK, archive=archive
+        )
+        self.assertEqual(set(event.details), {"result"})
+        self.assertEqual(event.details["result"], "VALID")
+
+    def test_hash_023_list_and_search_do_not_recalculate_checksums(self):
+        archive = self.upload_archive("CT-HASH-NORECALC-023")
+        self.client.force_login(self.consultant)
+
+        with patch("archives.views.verify_archive_integrity") as verify_mock:
+            self.client.get("/archives/")
+            self.client.get("/archives/", {"q": archive.reference})
+
+        verify_mock.assert_not_called()
+
+    def test_hash_024_download_works_without_automatic_recalculation(self):
+        archive = self.upload_archive("CT-HASH-DOWNLOAD-024")
+        self.client.force_login(self.consultant)
+
+        with patch("archives.views.calculate_archive_checksum") as checksum_mock:
+            response = self.client.get(f"/archives/{archive.pk}/download/")
+
+        self.assertEqual(response.status_code, 200)
+        checksum_mock.assert_not_called()

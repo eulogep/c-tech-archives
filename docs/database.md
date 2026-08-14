@@ -121,7 +121,9 @@ T-012 applique également `PROTECT` entre `AuditLog` et son acteur, ainsi qu’e
 
 `file` est un `FileField` Django ajouté par la migration `archives.0002_archive_file`. La table PostgreSQL conserve uniquement son chemin relatif généré par le serveur ; le contenu reste dans un stockage privé administré par l’abstraction Django Storage. Le champ est temporairement vide pour les archives historiques, mais la création fonctionnelle peut désormais joindre un document.
 
-`file_size` est stocké en octets et doit être supérieur ou égal à zéro. Lors d’un upload, il est fixé côté serveur à partir du fichier réel et non d’une valeur POST. `checksum` est soit vide, soit une empreinte SHA-256 hexadécimale de 64 caractères ; T-010 le laisse intentionnellement vide. Une somme de contrôle mesure l’**intégrité** future du fichier ; elle n’est ni du chiffrement ni une permission.
+`file_size` est stocké en octets et doit être supérieur ou égal à zéro. Lors d’un upload, il est fixé côté serveur à partir du fichier réel et non d’une valeur POST. `checksum` est soit vide, soit une empreinte SHA-256 hexadécimale de 64 caractères. T-013 calcule cette empreinte par blocs de 64 KiB après le stockage du fichier et l’enregistre comme référence historique ; aucune valeur cliente ne peut la fournir. Une archive historique sans fichier conserve `checksum=""` et une archive antérieure avec fichier mais sans empreinte est distinguée comme `MISSING_CHECKSUM` lors d’une vérification.
+
+La somme de contrôle sert exclusivement au contrôle d’**intégrité** : le fichier actuellement stocké est relu et comparé à l’empreinte de référence, sans jamais remplacer cette référence en cas de `MISMATCH`. Elle n’est ni du chiffrement, ni une signature électronique, ni un contrôle d’accès, ni un antivirus. Aucun champ `Archive` supplémentaire ni aucune migration du domaine archive n’est requis pour T-013.
 
 ## Index et contraintes
 

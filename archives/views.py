@@ -2,10 +2,12 @@
 
 from pathlib import Path
 
+from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Q
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponseNotAllowed
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
@@ -18,6 +20,11 @@ from .access import (
     ArchiveVisibleQuerysetMixin,
 )
 from .forms import ArchiveForm, ArchiveSearchForm
+from .integrity import (
+    IntegrityStatus,
+    calculate_archive_checksum,
+    verify_archive_integrity,
+)
 from .models import Archive
 
 
@@ -101,6 +108,9 @@ class ArchiveCreateView(ArchiveCreatePermissionMixin, SuccessMessageMixin, Creat
         form.instance.checksum = ""
         with transaction.atomic():
             response = super().form_valid(form)
+            if self.object.file:
+                self.object.checksum = calculate_archive_checksum(self.object)
+                self.object.save(update_fields=["checksum"])
             record_audit_event(
                 actor=self.request.user,
                 action=AuditAction.ARCHIVE_CREATE,
@@ -138,6 +148,58 @@ class ArchiveDetailView(ArchiveVisibleQuerysetMixin, DetailView):
             details={"source": "web"},
         )
         return response
+
+
+class ArchiveIntegrityVerifyView(ArchiveVisibleQuerysetMixin, DetailView):
+    """Vérifie un fichier visible à la demande sans modifier son checksum."""
+
+    model = Archive
+
+    def get_queryset(self):
+        return self.visible_archive_queryset(Archive.objects.all())
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponseNotAllowed(["POST"])
+
+    def post(self, request, *args, **kwargs):
+        archive = self.get_object()
+        result = verify_archive_integrity(archive)
+        record_audit_event(
+            actor=request.user,
+            action=AuditAction.ARCHIVE_INTEGRITY_CHECK,
+            request=request,
+            archive=archive,
+            details={"result": result.status.value},
+        )
+        message_by_status = {
+            IntegrityStatus.VALID: (
+                messages.SUCCESS,
+                "Intégrité vérifiée : fichier conforme.",
+            ),
+            IntegrityStatus.MISMATCH: (
+                messages.ERROR,
+                "ALERTE : le fichier stocké ne correspond plus à son empreinte enregistrée.",
+            ),
+            IntegrityStatus.MISSING_CHECKSUM: (
+                messages.WARNING,
+                "Aucune empreinte de référence n’est disponible.",
+            ),
+            IntegrityStatus.NO_FILE: (
+                messages.WARNING,
+                "Aucun fichier n’est associé à cette archive.",
+            ),
+            IntegrityStatus.FILE_MISSING: (
+                messages.ERROR,
+                "ALERTE : le fichier associé est introuvable dans le stockage privé.",
+            ),
+            IntegrityStatus.ERROR: (
+                messages.ERROR,
+                "La vérification d’intégrité n’a pas pu aboutir.",
+            ),
+        }
+        level, text = message_by_status[result.status]
+        messages.add_message(request, level, text)
+        return redirect("archives:detail", pk=archive.pk)
 
 
 class ArchiveDownloadView(ArchiveVisibleQuerysetMixin, DetailView):
