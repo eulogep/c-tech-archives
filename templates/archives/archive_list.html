@@ -7,13 +7,41 @@
     <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
       <div>
         <h1 id="archives-title">Archives</h1>
-        <p class="muted">Liste documentaire simple, ordonnée par date de création décroissante.</p>
+        <p class="muted">Recherche simple et filtres de métadonnées pour les comptes autorisés.</p>
       </div>
       <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
     </div>
 
+    <form method="get" style="background:#eef3f6; margin-top:1.5rem; padding:1rem;">
+      {% if search_form.non_field_errors %}
+        <div class="errors" role="alert">{{ search_form.non_field_errors }}</div>
+      {% endif %}
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem;">
+        <p style="grid-column:1 / -1; margin:0;">
+          <label for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label><br>
+          {{ search_form.q }}
+          {% for error in search_form.q.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+        </p>
+        {% for field in search_form %}
+          {% if field.name != "q" %}
+            <p style="margin:0;">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
+              {{ field }}
+              {% for error in field.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+            </p>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <p style="margin-bottom:0; margin-top:1rem;">
+        <button class="button" type="submit">Rechercher</button>
+        <a class="button button-secondary" href="{% url 'archives:list' %}">Réinitialiser</a>
+      </p>
+    </form>
+
+    <p class="muted" style="margin-top:1.5rem;">{{ result_count }} résultat{{ result_count|pluralize:"s" }}.</p>
+
     {% if archives %}
-      <table style="border-collapse:collapse; margin-top:1.5rem; width:100%;">
+      <table style="border-collapse:collapse; margin-top:1rem; width:100%;">
         <thead>
           <tr style="background:#eef3f6;">
             <th style="padding:.65rem; text-align:left;">Référence</th>
@@ -44,13 +72,21 @@
 
       {% if is_paginated %}
         <nav aria-label="Pagination des archives" style="margin-top:1rem;">
-          {% if page_obj.has_previous %}<a class="button button-secondary" href="?page={{ page_obj.previous_page_number }}">Précédent</a>{% endif %}
+          {% if page_obj.has_previous %}
+            <a class="button button-secondary" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a>
+          {% endif %}
           <span style="margin:0 .75rem;">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
-          {% if page_obj.has_next %}<a class="button button-secondary" href="?page={{ page_obj.next_page_number }}">Suivant</a>{% endif %}
+          {% if page_obj.has_next %}
+            <a class="button button-secondary" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a>
+          {% endif %}
         </nav>
       {% endif %}
     {% else %}
-      <p class="muted">Aucune archive enregistrée.</p>
+      {% if has_active_search %}
+        <p class="muted">Aucune archive ne correspond aux critères.</p>
+      {% else %}
+        <p class="muted">Aucune archive enregistrée.</p>
+      {% endif %}
     {% endif %}
   </section>
 {% endblock %}
