@@ -151,3 +151,18 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Pourquoi elle n’est pas retenue.** Cette alternative transformerait le chemin de stockage en mécanisme d’accès. Une URL connue, partagée ou devinée pourrait contourner les contrôles applicatifs. Elle rendrait également plus difficile l’application future des règles RBAC, de confidentialité et d’audit.
 
 **Conséquence.** Le téléchargement est disponible uniquement par `/archives/<pk>/download/` après la garde temporaire `StaffRequiredMixin`. Le remplacement de fichier n’est pas permis dans l’édition de métadonnées ; il attend une politique de versioning et de conservation validée avec C-Tech. Les validations de taille et de format réduisent le risque, sans être présentées comme une protection antivirus.
+
+
+## ADR-016 — Autorisation centralisée et filtrage au niveau QuerySet
+
+**Décision.** La politique RBAC provisoire des archives est définie dans `archives.permissions`. Les fonctions de cette couche déterminent les niveaux de confidentialité visibles, les actions de création et de modification, puis filtrent les QuerySets avec `visible_archives_for` avant toute liste, recherche, pagination, vue objet ou agrégation de dashboard.
+
+**Justification.** Une source de vérité unique évite les divergences entre la liste, le détail, la recherche, le téléchargement et les formulaires. Filtrer au niveau QuerySet constitue une défense en profondeur : les archives hors périmètre ne sont pas retournées, comptées ou proposées comme référentiels, ce qui réduit les fuites par inférence. Les contrôles objet complètent le filtrage pour les URLs saisies directement.
+
+**Politique de réponse.** Une archive existante mais hors périmètre retourne HTTP 404 afin de ne pas révéler son existence. Une action interdite sur une archive déjà visible retourne HTTP 403. Les formulaires limitent les choix puis valident de nouveau les données soumises, afin d’empêcher une escalade de confidentialité par POST falsifié.
+
+**Alternative étudiée.** Conserver `StaffRequiredMixin`, ou disperser des conditions `if user.role == ...` dans chaque vue et chaque gabarit.
+
+**Pourquoi elle n’est pas retenue.** Le statut staff est un privilège technique, pas une politique métier de confidentialité. Les conditions dispersées sont difficiles à auditer, risquent de produire des règles incohérentes et ne garantissent pas le filtrage des recherches, compteurs et téléchargements.
+
+**Conséquence.** La matrice Administrateur / Agent / Consultant est centralisée mais demeure provisoire. Elle n’ajoute aucune ACL de service, partage nominatif, audit ou versioning ; ces exigences devront être confirmées avec C-Tech et traitées dans les tickets appropriés.

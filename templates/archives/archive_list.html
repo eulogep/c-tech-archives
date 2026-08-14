@@ -9,7 +9,9 @@
         <h1 id="archives-title">Archives</h1>
         <p class="muted">Recherche simple et filtres de métadonnées pour les comptes autorisés.</p>
       </div>
-      <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
+      {% if archive_policy.can_create %}
+        <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
+      {% endif %}
     </div>
 
     <form method="get" style="background:#eef3f6; margin-top:1.5rem; padding:1rem;">

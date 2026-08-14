@@ -6,6 +6,11 @@ from django import forms
 from django.conf import settings
 from django.db.models import Q
 
+from .permissions import (
+    can_assign_confidentiality,
+    visible_archives_for,
+    visible_confidentiality_levels_for,
+)
 from .models import (
     Archive,
     ArchiveStatus,
@@ -64,13 +69,31 @@ class ArchiveForm(forms.ModelForm):
         ".jpeg": b"\xff\xd8\xff",
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
         super().__init__(*args, **kwargs)
         self._limit_reference_choices("service", Service)
         self._limit_reference_choices("category", Category)
         self._limit_reference_choices("document_type", DocumentType)
+        if self.user is not None:
+            allowed_levels = visible_confidentiality_levels_for(self.user)
+            self.fields["confidentiality_level"].choices = [
+                choice
+                for choice in ConfidentialityLevel.choices
+                if choice[0] in allowed_levels
+            ]
         if self.instance and self.instance.pk:
             self.fields.pop("file", None)
+
+    def clean_confidentiality_level(self):
+        confidentiality_level = self.cleaned_data["confidentiality_level"]
+        if self.user is not None and not can_assign_confidentiality(
+            self.user, confidentiality_level
+        ):
+            raise forms.ValidationError(
+                "Vous ne pouvez pas attribuer ce niveau de confidentialité."
+            )
+        return confidentiality_level
 
     def clean_file(self):
         uploaded_file = self.cleaned_data.get("file")
@@ -154,20 +177,33 @@ class ArchiveSearchForm(forms.Form):
         widget=forms.DateInput(attrs={"type": "date"}),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
         super().__init__(*args, **kwargs)
-        self.fields["category"].queryset = self._searchable_references(Category)
-        self.fields["document_type"].queryset = self._searchable_references(
-            DocumentType
+        visible_archives = visible_archives_for(user)
+        self.fields["category"].queryset = self._searchable_references(
+            Category, visible_archives
         )
-        self.fields["service"].queryset = self._searchable_references(Service)
+        self.fields["document_type"].queryset = self._searchable_references(
+            DocumentType, visible_archives
+        )
+        self.fields["service"].queryset = self._searchable_references(
+            Service, visible_archives
+        )
+        allowed_levels = visible_confidentiality_levels_for(user)
+        self.fields["confidentiality_level"].choices = [
+            ("", "Tous les niveaux"),
+            *[
+                choice
+                for choice in ConfidentialityLevel.choices
+                if choice[0] in allowed_levels
+            ],
+        ]
 
     @staticmethod
-    def _searchable_references(model):
-        """Inclut les référentiels actifs et historiques utilisés par une archive."""
-        return model.objects.filter(
-            Q(is_active=True) | Q(archives__isnull=False)
-        ).distinct()
+    def _searchable_references(model, visible_archives):
+        """Ne propose que les référentiels des archives visibles."""
+        return model.objects.filter(archives__in=visible_archives).distinct()
 
     def clean(self):
         cleaned_data = super().clean()

@@ -20,8 +20,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-007 — Tableau de bord | **INTEGRATED** dans `develop` ; indicateurs agrégés uniquement avant RBAC T-011 |
 | T-008 — CRUD des métadonnées d’archives | **INTEGRATED** dans `develop` ; accès technique temporairement restreint aux comptes staff |
 | T-009 — Recherche et filtres d’archives | **INTEGRATED** dans `develop` ; recherche GET ORM et filtres de métadonnées accessibles aux comptes staff |
-| T-010 — Téléversement et téléchargement sécurisés | **IN_REVIEW** sur `feature/secure-file-handling` ; stockage privé, validation serveur et téléchargement contrôlé |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier, authentification par session, dashboard agrégé, CRUD et recherche de métadonnées, puis dépôt privé et téléchargement contrôlé configurés ; RBAC final, audit et checksum automatique restent à réaliser |
+| T-010 — Téléversement et téléchargement sécurisés | **INTEGRATED** dans `develop` ; stockage privé, validation serveur et téléchargement contrôlé |
+| T-011 — RBAC et confidentialité | **IN_REVIEW** sur `feature/rbac-confidentiality` ; droits métier centralisés et visibilité filtrée au niveau QuerySet |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé et RBAC provisoire de confidentialité configurés ; audit et checksum automatique restent à réaliser |
 
 ## Objectif du MVP
 
@@ -91,7 +92,8 @@ python manage.py runserver
 | [`docs/tickets/T-007.md`](docs/tickets/T-007.md) | Compte rendu du ticket tableau de bord intégré après correction de revue |
 | [`docs/tickets/T-008.md`](docs/tickets/T-008.md) | Compte rendu du ticket CRUD des métadonnées intégré |
 | [`docs/tickets/T-009.md`](docs/tickets/T-009.md) | Compte rendu du ticket recherche et filtres d’archives intégré |
-| [`docs/tickets/T-010.md`](docs/tickets/T-010.md) | Compte rendu du ticket téléversement et téléchargement sécurisés en revue |
+| [`docs/tickets/T-010.md`](docs/tickets/T-010.md) | Compte rendu du ticket téléversement et téléchargement sécurisés intégré |
+| [`docs/tickets/T-011.md`](docs/tickets/T-011.md) | Compte rendu du ticket RBAC et confidentialité en revue |
 
 ## Convention Git
 

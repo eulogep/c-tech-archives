@@ -208,6 +208,7 @@ class ArchiveCrudTests(TestCase):
             email="staff-archives@example.test",
             password="MotDePasse-Staff-2026",
             is_staff=True,
+            role=Role.ADMINISTRATEUR,
         )
         self.role_only_user = user_model.objects.create_user(
             username="role-only",
@@ -264,10 +265,10 @@ class ArchiveCrudTests(TestCase):
 
         self.assertRedirects(response, "/accounts/login/?next=/archives/")
 
-    def test_crud_002_authenticated_non_staff_is_denied_even_with_admin_role(self):
-        self.client.force_login(self.role_only_user)
+    def test_crud_002_consultant_is_denied_from_creation(self):
+        self.client.force_login(self.other_user)
 
-        response = self.client.get(self.list_url)
+        response = self.client.get(self.create_url)
 
         self.assertEqual(response.status_code, 403)
 
@@ -492,6 +493,7 @@ class ArchiveSearchTests(TestCase):
             email="staff-search@example.test",
             password="MotDePasse-Search-2026",
             is_staff=True,
+            role=Role.ADMINISTRATEUR,
         )
         self.non_staff = user_model.objects.create_user(
             username="non-staff-search",
@@ -534,12 +536,13 @@ class ArchiveSearchTests(TestCase):
 
         self.assertRedirects(response, "/accounts/login/?next=/archives/%3Fq%3Dcontrat")
 
-    def test_search_002_authenticated_non_staff_user_is_denied(self):
+    def test_search_002_authenticated_consultant_can_access_search_page(self):
         self.client.force_login(self.non_staff)
 
         response = self.client.get(self.list_url, {"q": "contrat"})
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["result_count"], 0)
 
     def test_search_003_staff_user_can_access_search_page(self):
         response = self.get_as_staff()
@@ -800,6 +803,7 @@ class ArchiveFileHandlingTests(TestCase):
             email="staff-files@example.test",
             password="MotDePasse-Files-2026",
             is_staff=True,
+            role=Role.ADMINISTRATEUR,
         )
         self.non_staff = user_model.objects.create_user(
             username="non-staff-files",
@@ -950,13 +954,13 @@ class ArchiveFileHandlingTests(TestCase):
             response, f"/accounts/login/?next=/archives/{archive.pk}/download/"
         )
 
-    def test_file_012_non_staff_download_is_denied(self):
+    def test_file_012_consultant_cannot_download_internal_archive(self):
         archive = self.create_archive_with_file()
         self.client.force_login(self.non_staff)
 
         response = self.client.get(f"/archives/{archive.pk}/download/")
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
     def test_file_013_staff_download_returns_attachment_and_content(self):
         archive = self.create_archive_with_file()
@@ -1046,3 +1050,449 @@ class ArchiveFileHandlingTests(TestCase):
 
         self.assertIsInstance(uploaded_file, SimpleUploadedFile)
         self.assertEqual(uploaded_file.read(), self.PDF_CONTENT)
+
+
+class ArchiveRbacTests(TestCase):
+    """Matrice RBAC provisoire T-011 et protections contre l’inférence."""
+
+    PDF_CONTENT = b"%PDF-1.4\nRBAC synthetic test document\n"
+
+    def setUp(self):
+        self.private_media = TemporaryDirectory()
+        self.settings_override = override_settings(
+            PRIVATE_MEDIA_ROOT=self.private_media.name,
+            ARCHIVE_MAX_UPLOAD_SIZE=10 * 1024 * 1024,
+        )
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
+        self.addCleanup(self.private_media.cleanup)
+
+        user_model = get_user_model()
+        self.admin = user_model.objects.create_user(
+            username="rbac-admin",
+            email="rbac-admin@example.test",
+            password="MotDePasse-RbacAdmin-2026",
+            role=Role.ADMINISTRATEUR,
+        )
+        self.agent = user_model.objects.create_user(
+            username="rbac-agent",
+            email="rbac-agent@example.test",
+            password="MotDePasse-RbacAgent-2026",
+            role=Role.AGENT_ARCHIVES,
+        )
+        self.consultant = user_model.objects.create_user(
+            username="rbac-consultant",
+            email="rbac-consultant@example.test",
+            password="MotDePasse-RbacConsultant-2026",
+            role=Role.CONSULTANT,
+        )
+        self.superuser = user_model.objects.create_superuser(
+            username="rbac-superuser",
+            email="rbac-superuser@example.test",
+            password="MotDePasse-RbacSuperuser-2026",
+        )
+        self.service = Service.objects.create(name="Service RBAC")
+        self.category = Category.objects.create(name="Catégorie RBAC")
+        self.document_type = DocumentType.objects.create(name="Type RBAC")
+        self.list_url = "/archives/"
+        self.create_url = "/archives/new/"
+
+    def create_archive(self, confidentiality_level, index, **overrides):
+        defaults = {
+            "reference": f"CT-RBAC-{index:05d}",
+            "title": f"Titre {confidentiality_level} RBAC {index}",
+            "description": "Archive synthétique de contrôle d’accès",
+            "category": self.category,
+            "document_type": self.document_type,
+            "service": self.service,
+            "uploaded_by": self.admin,
+            "document_date": date(2026, 8, 14),
+            "status": ArchiveStatus.ACTIVE,
+            "confidentiality_level": confidentiality_level,
+            "file": SimpleUploadedFile(
+                f"rbac-{index}.pdf", self.PDF_CONTENT, content_type="application/pdf"
+            ),
+            "file_size": len(self.PDF_CONTENT),
+        }
+        defaults.update(overrides)
+        return Archive.objects.create(**defaults)
+
+    def create_visibility_set(self):
+        return (
+            self.create_archive(ConfidentialityLevel.PUBLIC, 1),
+            self.create_archive(ConfidentialityLevel.INTERNAL, 2),
+            self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3),
+        )
+
+    def payload(self, reference, confidentiality_level, **overrides):
+        data = {
+            "reference": reference,
+            "title": "Archive créée pour RBAC",
+            "description": "Création de test RBAC",
+            "category": str(self.category.pk),
+            "document_type": str(self.document_type.pk),
+            "service": str(self.service.pk),
+            "document_date": "2026-08-14",
+            "status": ArchiveStatus.ACTIVE,
+            "confidentiality_level": confidentiality_level,
+        }
+        data.update(overrides)
+        return data
+
+    def get_as(self, user, url, parameters=None):
+        self.client.force_login(user)
+        return self.client.get(url, parameters or {})
+
+    def test_rbac_001_anonymous_list_redirects_to_login(self):
+        response = self.client.get(self.list_url)
+
+        self.assertRedirects(response, "/accounts/login/?next=/archives/")
+
+    def test_rbac_002_admin_list_returns_200(self):
+        self.assertEqual(self.get_as(self.admin, self.list_url).status_code, 200)
+
+    def test_rbac_003_agent_list_returns_200(self):
+        self.assertEqual(self.get_as(self.agent, self.list_url).status_code, 200)
+
+    def test_rbac_004_consultant_list_returns_200(self):
+        self.assertEqual(self.get_as(self.consultant, self.list_url).status_code, 200)
+
+    def test_rbac_005_consultant_list_excludes_internal(self):
+        public, internal, _ = self.create_visibility_set()
+
+        response = self.get_as(self.consultant, self.list_url)
+
+        self.assertContains(response, public.reference)
+        self.assertNotContains(response, internal.reference)
+
+    def test_rbac_006_consultant_list_excludes_confidential(self):
+        public, _, confidential = self.create_visibility_set()
+
+        response = self.get_as(self.consultant, self.list_url)
+
+        self.assertContains(response, public.reference)
+        self.assertNotContains(response, confidential.reference)
+
+    def test_rbac_007_agent_list_includes_public(self):
+        public = self.create_archive(ConfidentialityLevel.PUBLIC, 1)
+
+        response = self.get_as(self.agent, self.list_url)
+
+        self.assertContains(response, public.reference)
+
+    def test_rbac_008_agent_list_includes_internal(self):
+        internal = self.create_archive(ConfidentialityLevel.INTERNAL, 2)
+
+        response = self.get_as(self.agent, self.list_url)
+
+        self.assertContains(response, internal.reference)
+
+    def test_rbac_009_agent_list_excludes_confidential(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.agent, self.list_url)
+
+        self.assertNotContains(response, confidential.reference)
+        self.assertEqual(response.context["result_count"], 0)
+
+    def test_rbac_010_admin_list_includes_all_confidentiality_levels(self):
+        public, internal, confidential = self.create_visibility_set()
+
+        response = self.get_as(self.admin, self.list_url)
+
+        self.assertContains(response, public.reference)
+        self.assertContains(response, internal.reference)
+        self.assertContains(response, confidential.reference)
+
+    def test_rbac_011_consultant_search_exact_internal_title_returns_no_result(self):
+        internal = self.create_archive(ConfidentialityLevel.INTERNAL, 2)
+
+        response = self.get_as(self.consultant, self.list_url, {"q": internal.title})
+
+        self.assertEqual(response.context["result_count"], 0)
+        self.assertNotContains(response, internal.reference)
+
+    def test_rbac_012_consultant_search_exact_confidential_title_returns_no_result(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.consultant, self.list_url, {"q": confidential.title})
+
+        self.assertEqual(response.context["result_count"], 0)
+        self.assertNotContains(response, confidential.reference)
+
+    def test_rbac_013_agent_search_confidential_title_returns_no_result(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.agent, self.list_url, {"q": confidential.title})
+
+        self.assertEqual(response.context["result_count"], 0)
+
+    def test_rbac_014_admin_search_confidential_title_returns_result(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.admin, self.list_url, {"q": confidential.title})
+
+        self.assertEqual(response.context["result_count"], 1)
+        self.assertContains(response, confidential.reference)
+
+    def test_rbac_015_consultant_direct_internal_detail_returns_404(self):
+        internal = self.create_archive(ConfidentialityLevel.INTERNAL, 2)
+
+        response = self.get_as(self.consultant, f"/archives/{internal.pk}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_rbac_016_consultant_direct_confidential_detail_returns_404(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.consultant, f"/archives/{confidential.pk}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_rbac_017_agent_direct_confidential_detail_returns_404(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.agent, f"/archives/{confidential.pk}/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_rbac_018_admin_direct_confidential_detail_returns_200(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.admin, f"/archives/{confidential.pk}/")
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_rbac_019_consultant_creation_is_forbidden(self):
+        self.client.force_login(self.consultant)
+
+        response = self.client.post(
+            self.create_url,
+            self.payload("CT-RBAC-CREATE-019", ConfidentialityLevel.PUBLIC),
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Archive.objects.filter(reference="CT-RBAC-CREATE-019").exists())
+
+    def test_rbac_020_agent_can_create_public_archive(self):
+        self.client.force_login(self.agent)
+
+        response = self.client.post(
+            self.create_url,
+            self.payload("CT-RBAC-CREATE-020", ConfidentialityLevel.PUBLIC),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Archive.objects.filter(reference="CT-RBAC-CREATE-020").exists())
+
+    def test_rbac_021_agent_can_create_internal_archive(self):
+        self.client.force_login(self.agent)
+
+        response = self.client.post(
+            self.create_url,
+            self.payload("CT-RBAC-CREATE-021", ConfidentialityLevel.INTERNAL),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Archive.objects.filter(reference="CT-RBAC-CREATE-021").exists())
+
+    def test_rbac_022_agent_forged_confidential_creation_is_refused(self):
+        self.client.force_login(self.agent)
+
+        response = self.client.post(
+            self.create_url,
+            self.payload("CT-RBAC-CREATE-022", ConfidentialityLevel.CONFIDENTIAL),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("confidentiality_level", response.context["form"].errors)
+        self.assertFalse(Archive.objects.filter(reference="CT-RBAC-CREATE-022").exists())
+
+    def test_rbac_023_admin_can_create_confidential_archive(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            self.create_url,
+            self.payload("CT-RBAC-CREATE-023", ConfidentialityLevel.CONFIDENTIAL),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Archive.objects.filter(reference="CT-RBAC-CREATE-023").exists())
+
+    def test_rbac_024_consultant_update_public_archive_is_forbidden(self):
+        public = self.create_archive(ConfidentialityLevel.PUBLIC, 1)
+        self.client.force_login(self.consultant)
+
+        response = self.client.post(
+            f"/archives/{public.pk}/edit/",
+            self.payload(public.reference, ConfidentialityLevel.PUBLIC),
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_rbac_025_agent_can_update_public_archive(self):
+        public = self.create_archive(ConfidentialityLevel.PUBLIC, 1)
+        self.client.force_login(self.agent)
+
+        response = self.client.post(
+            f"/archives/{public.pk}/edit/",
+            self.payload(
+                public.reference,
+                ConfidentialityLevel.PUBLIC,
+                title="Titre public modifié",
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        public.refresh_from_db()
+        self.assertEqual(public.title, "Titre public modifié")
+
+    def test_rbac_026_agent_can_update_internal_archive(self):
+        internal = self.create_archive(ConfidentialityLevel.INTERNAL, 2)
+        self.client.force_login(self.agent)
+
+        response = self.client.post(
+            f"/archives/{internal.pk}/edit/",
+            self.payload(
+                internal.reference,
+                ConfidentialityLevel.INTERNAL,
+                title="Titre interne modifié",
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        internal.refresh_from_db()
+        self.assertEqual(internal.title, "Titre interne modifié")
+
+    def test_rbac_027_agent_direct_confidential_update_returns_404(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.agent, f"/archives/{confidential.pk}/edit/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_rbac_028_agent_cannot_escalate_public_to_confidential(self):
+        public = self.create_archive(ConfidentialityLevel.PUBLIC, 1)
+        self.client.force_login(self.agent)
+
+        response = self.client.post(
+            f"/archives/{public.pk}/edit/",
+            self.payload(public.reference, ConfidentialityLevel.CONFIDENTIAL),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("confidentiality_level", response.context["form"].errors)
+        public.refresh_from_db()
+        self.assertEqual(public.confidentiality_level, ConfidentialityLevel.PUBLIC)
+
+    def test_rbac_029_consultant_can_download_public_archive(self):
+        public = self.create_archive(ConfidentialityLevel.PUBLIC, 1)
+
+        response = self.get_as(self.consultant, f"/archives/{public.pk}/download/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), self.PDF_CONTENT)
+
+    def test_rbac_030_consultant_download_internal_returns_404(self):
+        internal = self.create_archive(ConfidentialityLevel.INTERNAL, 2)
+
+        response = self.get_as(self.consultant, f"/archives/{internal.pk}/download/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_rbac_031_consultant_download_confidential_returns_404(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.consultant, f"/archives/{confidential.pk}/download/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_rbac_032_agent_can_download_internal_archive(self):
+        internal = self.create_archive(ConfidentialityLevel.INTERNAL, 2)
+
+        response = self.get_as(self.agent, f"/archives/{internal.pk}/download/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), self.PDF_CONTENT)
+
+    def test_rbac_033_agent_download_confidential_returns_404(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.agent, f"/archives/{confidential.pk}/download/")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_rbac_034_admin_can_download_confidential_archive(self):
+        confidential = self.create_archive(ConfidentialityLevel.CONFIDENTIAL, 3)
+
+        response = self.get_as(self.admin, f"/archives/{confidential.pk}/download/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), self.PDF_CONTENT)
+
+    def test_rbac_035_consultant_cannot_infer_hidden_archives_from_counts_or_search(self):
+        public = self.create_archive(ConfidentialityLevel.PUBLIC, 1)
+        confidential_title = "Confidentiel impossible à inférer"
+        for index in range(2, 27):
+            self.create_archive(
+                ConfidentialityLevel.CONFIDENTIAL,
+                index,
+                title=confidential_title,
+            )
+
+        list_response = self.get_as(self.consultant, self.list_url)
+        search_response = self.get_as(
+            self.consultant, self.list_url, {"q": confidential_title}
+        )
+        dashboard_response = self.get_as(self.consultant, "/")
+
+        self.assertEqual(list_response.context["result_count"], 1)
+        self.assertEqual(list_response.context["paginator"].count, 1)
+        self.assertEqual(search_response.context["result_count"], 0)
+        self.assertEqual(dashboard_response.context["archive_count"], 1)
+        self.assertContains(list_response, public.reference)
+
+    def test_rbac_036_agent_dashboard_excludes_confidential_archives(self):
+        self.create_visibility_set()
+
+        response = self.get_as(self.agent, "/")
+
+        self.assertEqual(response.context["archive_count"], 2)
+
+    def test_rbac_037_admin_dashboard_includes_all_archives(self):
+        self.create_visibility_set()
+
+        response = self.get_as(self.admin, "/")
+
+        self.assertEqual(response.context["archive_count"], 3)
+
+    def test_rbac_038_technical_superuser_has_full_archive_access(self):
+        _, _, confidential = self.create_visibility_set()
+
+        list_response = self.get_as(self.superuser, self.list_url)
+        detail_response = self.get_as(self.superuser, f"/archives/{confidential.pk}/")
+        download_response = self.get_as(
+            self.superuser, f"/archives/{confidential.pk}/download/"
+        )
+
+        self.assertContains(list_response, confidential.reference)
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertEqual(download_response.status_code, 200)
+
+    def test_rbac_039_consultant_navigation_hides_create_and_update_actions(self):
+        public = self.create_archive(ConfidentialityLevel.PUBLIC, 1)
+
+        list_response = self.get_as(self.consultant, self.list_url)
+        detail_response = self.get_as(self.consultant, f"/archives/{public.pk}/")
+
+        self.assertNotContains(list_response, "Nouvelle archive")
+        self.assertNotContains(detail_response, "Modifier")
+
+    def test_rbac_040_agent_navigation_shows_only_authorized_actions(self):
+        public = self.create_archive(ConfidentialityLevel.PUBLIC, 1)
+
+        list_response = self.get_as(self.agent, self.list_url)
+        detail_response = self.get_as(self.agent, f"/archives/{public.pk}/")
+
+        self.assertContains(list_response, "Nouvelle archive")
+        self.assertContains(detail_response, "Modifier")

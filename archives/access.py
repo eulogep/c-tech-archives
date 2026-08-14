@@ -1,23 +1,49 @@
-"""Garde d’accès technique provisoire pour l’espace documentaire.
+"""Mixins d’intégration de la politique RBAC centralisée des archives."""
 
-Ce garde est volontairement distinct du RBAC métier qui sera défini au ticket
-T-011. Il évite toute exposition d’archives à un utilisateur seulement parce
-qu’il est authentifié ou possède un rôle métier provisoire.
-"""
-
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 
+from .permissions import (
+    can_create_archive,
+    can_update_archive,
+    has_archive_access,
+    visible_archives_for,
+)
 
-class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """Autorise temporairement les seuls comptes techniques staff/superuser."""
 
-    def test_func(self):
-        user = self.request.user
-        return user.is_staff or user.is_superuser
+class ArchiveAuthorizationMixin(LoginRequiredMixin):
+    """Exige une identité puis un rôle métier reconnu, superuser excepté."""
 
-    def handle_no_permission(self):
-        """Redirige l’anonyme, mais refuse clairement l’authentifié non staff."""
-        if self.request.user.is_authenticated:
-            raise PermissionDenied
-        return super().handle_no_permission()
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        if not has_archive_access(request.user):
+            raise PermissionDenied("Ce compte ne possède aucun accès métier aux archives.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ArchiveVisibleQuerysetMixin(ArchiveAuthorizationMixin):
+    """Expose un helper unique pour les listes et les vues ciblant une archive."""
+
+    def visible_archive_queryset(self, queryset):
+        return visible_archives_for(self.request.user, queryset)
+
+
+class ArchiveCreatePermissionMixin(ArchiveAuthorizationMixin):
+    """Refuse la création aux rôles qui n’ont qu’un droit de consultation."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not can_create_archive(request.user):
+            raise PermissionDenied("La création d’archives n’est pas autorisée.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ArchiveUpdatePermissionMixin(ArchiveVisibleQuerysetMixin):
+    """Réserve la modification aux archives visibles et modifiables."""
+
+    def get_object(self, queryset=None):
+        queryset = self.visible_archive_queryset(queryset or super().get_queryset())
+        archive = super().get_object(queryset)
+        if not can_update_archive(self.request.user, archive):
+            raise PermissionDenied("La modification de cette archive n’est pas autorisée.")
+        return archive

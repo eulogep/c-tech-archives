@@ -30,3 +30,18 @@ Les six métriques globales du dashboard sont provisoirement visibles par tout u
 | A-010 | Le remplacement d’un fichier ne doit pas être autorisé sans politique de versioning, de conservation et de traçabilité. | Provisoire | Le champ `file` est retiré du formulaire de modification des métadonnées. | Requis avant toute fonctionnalité de remplacement ou de versionnage. |
 
 Une archive historique peut temporairement ne pas avoir de fichier associé. Le chemin fonctionnel normal à partir de T-010 permet toutefois de joindre un document à la création. La validation de format et de taille réduit les risques mais ne constitue ni un antivirus ni une garantie que le contenu est sûr.
+
+
+## RBAC et confidentialité — T-011
+
+| ID | Description | Statut | Impact technique | Validation C-Tech |
+|---|---|---|---|---|
+| A-011 | La politique MVP provisoire autorise l’Administrateur à lire et écrire tous les niveaux, l’Agent d’archives à lire et écrire PUBLIC/INTERNAL, et le Consultant à lire PUBLIC uniquement. | Provisoire | `archives.permissions`, QuerySets filtrés, contrôles objet, formulaires et dashboard cohérents ; superuser technique avec accès complet. | Requis avant toute mise en production ou extension par service, attribution nominative, exception documentaire ou partage externe. |
+
+| Rôle | PUBLIC | INTERNAL | CONFIDENTIAL |
+|---|---|---|---|
+| Administrateur | Lecture / écriture | Lecture / écriture | Lecture / écriture |
+| Agent d’archives | Lecture / écriture | Lecture / écriture | Aucun accès |
+| Consultant | Lecture | Aucun accès | Aucun accès |
+
+Cette matrice ne suppose aucune relation entre un utilisateur et un service. Elle ne couvre ni les délégations temporaires, ni les exceptions nominatives, ni les règles de conservation, ni l’audit des décisions. Les besoins réels de C-Tech pourront imposer un modèle plus fin après validation métier.

@@ -5,6 +5,7 @@ from datetime import date
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from accounts.models import Role
 from archives.models import (
     Archive,
     ArchiveStatus,
@@ -24,6 +25,7 @@ class DashboardTests(TestCase):
             username="dashboard-user",
             email="dashboard-user@example.test",
             password="MotDePasse-Dashboard-2026",
+            role=Role.ADMINISTRATEUR,
         )
         self.dashboard_url = "/"
 
@@ -103,6 +105,7 @@ class DashboardTests(TestCase):
         Category.objects.create(name="Catégorie inactive", is_active=False)
         DocumentType.objects.create(name="Type actif", is_active=True)
         DocumentType.objects.create(name="Type inactif", is_active=False)
+        self.create_archive(1)
         self.client.force_login(self.user)
 
         response = self.client.get(self.dashboard_url)

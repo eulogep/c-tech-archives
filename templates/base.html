@@ -28,7 +28,7 @@
     {% if user.is_authenticated %}
       <nav aria-label="Navigation principale">
         <a href="{% url 'home' %}">Dashboard</a>
-        {% if user.is_staff or user.is_superuser %}
+        {% if archive_policy.can_access %}
           <a href="{% url 'archives:list' %}">Archives</a>
         {% endif %}
         <form class="logout-form" method="post" action="{% url 'logout' %}">
