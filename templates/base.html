@@ -31,6 +31,9 @@
         {% if archive_policy.can_access %}
           <a href="{% url 'archives:list' %}">Archives</a>
         {% endif %}
+        {% if audit_policy.can_view %}
+          <a href="{% url 'audit:list' %}">Audit</a>
+        {% endif %}
         <form class="logout-form" method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button class="button" type="submit">Déconnexion</button>

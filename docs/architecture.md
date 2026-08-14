@@ -227,3 +227,29 @@ La liste construit d’abord le QuerySet autorisé, puis applique la recherche t
 Les vues de détail et de téléchargement réutilisent le même filtrage ; une archive existante mais invisible retourne HTTP 404 afin de ne pas confirmer son existence. À l’inverse, une archive PUBLIC visible mais qu’un Consultant tente de modifier retourne HTTP 403 : son existence est déjà connue, mais l’action est interdite. Le dashboard calcule ses agrégats et ses référentiels actifs à partir du même périmètre visible.
 
 La matrice reste provisoire : aucune ACL par service, attribution nominative, règle de partage ou logique d’audit n’est introduite dans cette étape. Ces axes restent à valider avec C-Tech.
+
+
+## Journal d’audit métier append-only — T-012
+
+L’application transverse `audit` porte le modèle `AuditLog`, afin que la traçabilité ne soit pas confondue avec le domaine documentaire. Chaque événement contient l’acteur et son identifiant de lecture, une action centralisée, une archive optionnelle et sa référence, un horodatage serveur, une adresse IP nullable et des détails JSON minimaux. Les relations vers l’utilisateur et l’archive utilisent `PROTECT` afin qu’une suppression future ne détruise pas l’historique.
+
+```mermaid
+sequenceDiagram
+    participant U as Utilisateur autorisé
+    participant V as Vue ou signal Django
+    participant S as audit.services
+    participant A as AuditLog
+    participant D as PostgreSQL
+
+    U->>V: Connexion, action archive ou déconnexion
+    V->>S: record_audit_event(...)
+    S->>S: REMOTE_ADDR et détails minimaux
+    S->>A: Événement structuré
+    A->>D: INSERT append-only
+```
+
+`record_audit_event` est l’unique API d’écriture applicative. Elle accepte seulement les actions réellement disponibles : `LOGIN`, `LOGOUT`, `ARCHIVE_CREATE`, `ARCHIVE_UPDATE`, `ARCHIVE_VIEW` et `ARCHIVE_DOWNLOAD`. Les détails sont réduits à `source` et `changed_fields` ; les valeurs de formulaire, mots de passe, hashes, sessions, contenus de fichier et chemins de stockage ne sont jamais recopiés.
+
+Les événements de connexion et déconnexion utilisent les signaux Django `user_logged_in` et `user_logged_out`. Les actions d’archive sont intégrées explicitement après la réussite des vues : création et modification dans une transaction avec l’archive, consultation après obtention d’un objet autorisé, téléchargement après validation de l’accès et ouverture effective du fichier. Les listes et recherches ne génèrent aucun événement de consultation afin d’éviter le bruit.
+
+La consultation métier `/audit/` est paginée, triée par `-timestamp, -pk` et réservée à l’Administrateur métier ou au superuser technique. L’administration Django est également en lecture seule. Cette append-only policy est applicative : elle ne prétend pas fournir une immutabilité cryptographique ou un stockage externe inviolable.

@@ -166,3 +166,18 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Pourquoi elle n’est pas retenue.** Le statut staff est un privilège technique, pas une politique métier de confidentialité. Les conditions dispersées sont difficiles à auditer, risquent de produire des règles incohérentes et ne garantissent pas le filtrage des recherches, compteurs et téléchargements.
 
 **Conséquence.** La matrice Administrateur / Agent / Consultant est centralisée mais demeure provisoire. Elle n’ajoute aucune ACL de service, partage nominatif, audit ou versioning ; ces exigences devront être confirmées avec C-Tech et traitées dans les tickets appropriés.
+
+
+## ADR-017 — Audit métier explicite et append-only
+
+**Décision.** Les opérations métier sensibles sont enregistrées dans le modèle transverse `AuditLog` par le service central `record_audit_event`. Les événements d’authentification utilisent les signaux Django ; les actions d’archive sont intégrées explicitement dans les vues après réussite et contrôles RBAC. Le journal est append-only au niveau applicatif, et son administration Django est en lecture seule.
+
+**Justification.** Un modèle structuré permet de répondre de manière cohérente à « qui a fait quoi, sur quelle archive, quand et depuis quelle IP si disponible ». Une API d’écriture unique évite les structures divergentes dans les vues. Les actions d’archive ne reposent pas sur `post_save`, car ce signal ne permettrait pas de distinguer proprement une action web, un import, une opération d’administration ou une création technique.
+
+**Données minimales.** Le journal garde l’acteur, son identifiant lisible, l’action, l’archive et sa référence, l’horodatage serveur, l’IP nullable et des détails limités à `source` ou `changed_fields`. Il ne stocke aucun mot de passe, hash, session, formulaire POST intégral, contenu de fichier ou chemin privé. `REMOTE_ADDR` est retenu ; `X-Forwarded-For` est ignoré sans proxy de confiance documenté.
+
+**Cohérence et échec.** Les écritures de création et modification d’archive sont réalisées dans la même transaction que l’événement d’audit. Une erreur de journalisation est propagée : l’application ne doit pas prétendre qu’une opération sensible a été tracée lorsque ce n’est pas le cas. Les vues de consultation et téléchargement ne journalisent qu’après accès autorisé et ressource disponible.
+
+**Alternative étudiée.** Journaliser tous les GET, utiliser un `post_save` général ou mélanger les événements métier avec les logs techniques du serveur.
+
+**Pourquoi elle n’est pas retenue.** Ces alternatives génèrent du bruit, ne possèdent pas assez de contexte métier ou risquent de collecter des données sensibles. L’append-only applicatif ne prétend pas assurer une immutabilité absolue : un SIEM, une externalisation ou une chaîne cryptographique sont des évolutions de production hors périmètre.

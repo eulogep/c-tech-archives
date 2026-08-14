@@ -96,6 +96,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "archives.context_processors.archive_policy",
+                "audit.context_processors.audit_policy",
             ],
         },
     },
