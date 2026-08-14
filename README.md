@@ -19,8 +19,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-006 — Authentification sécurisée | **INTEGRATED** dans `develop` |
 | T-007 — Tableau de bord | **INTEGRATED** dans `develop` ; indicateurs agrégés uniquement avant RBAC T-011 |
 | T-008 — CRUD des métadonnées d’archives | **INTEGRATED** dans `develop` ; accès technique temporairement restreint aux comptes staff |
-| T-009 — Recherche et filtres d’archives | **IN_REVIEW** sur `feature/archive-search` ; recherche GET ORM et filtres de métadonnées accessibles aux comptes staff |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier, authentification par session, dashboard agrégé, CRUD contrôlé des métadonnées et recherche ORM paginée configurés ; upload et RBAC final non implémentés |
+| T-009 — Recherche et filtres d’archives | **INTEGRATED** dans `develop` ; recherche GET ORM et filtres de métadonnées accessibles aux comptes staff |
+| T-010 — Téléversement et téléchargement sécurisés | **IN_REVIEW** sur `feature/secure-file-handling` ; stockage privé, validation serveur et téléchargement contrôlé |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, modèles métier, authentification par session, dashboard agrégé, CRUD et recherche de métadonnées, puis dépôt privé et téléchargement contrôlé configurés ; RBAC final, audit et checksum automatique restent à réaliser |
 
 ## Objectif du MVP
 
@@ -39,7 +40,8 @@ c-tech-archives/
 ├── dashboard/              # Indicateurs et vue d’accueil
 ├── templates/              # Gabarits Django partagés
 ├── static/                 # Ressources statiques, dont Bootstrap
-├── media/                  # Fichiers locaux de développement — non versionnés
+├── media/                  # Ressources média génériques de développement — non versionnées
+├── private_media/          # Documents d’archives privés — non versionnés, non exposés
 ├── tests/                  # Tests transversaux et de sécurité
 ├── docs/                   # Documentation pour le mémoire
 ├── requirements.txt
@@ -88,7 +90,8 @@ python manage.py runserver
 | [`docs/tickets/T-006.md`](docs/tickets/T-006.md) | Compte rendu de clôture du ticket authentification sécurisée |
 | [`docs/tickets/T-007.md`](docs/tickets/T-007.md) | Compte rendu du ticket tableau de bord intégré après correction de revue |
 | [`docs/tickets/T-008.md`](docs/tickets/T-008.md) | Compte rendu du ticket CRUD des métadonnées intégré |
-| [`docs/tickets/T-009.md`](docs/tickets/T-009.md) | Compte rendu du ticket recherche et filtres d’archives en revue |
+| [`docs/tickets/T-009.md`](docs/tickets/T-009.md) | Compte rendu du ticket recherche et filtres d’archives intégré |
+| [`docs/tickets/T-010.md`](docs/tickets/T-010.md) | Compte rendu du ticket téléversement et téléchargement sécurisés en revue |
 
 ## Convention Git
 

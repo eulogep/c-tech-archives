@@ -105,3 +105,14 @@ Les critères sont soumis par GET, ce qui rend une recherche partageable et comp
 Le gabarit repose sur l’échappement automatique de Django et ne marque aucun terme de recherche comme sûr. Une valeur telle que `<script>alert(1)</script>` reste encodée dans le HTML, ce que couvre SEARCH-021. Les résultats ne rendent pas `checksum`, le hash du mot de passe de l’utilisateur ni les champs techniques de stockage. SEARCH-022 vérifie cette absence de divulgation.
 
 La recherche conserve la garde temporaire deny-by-default de T-008 : anonyme vers la connexion et compte authentifié non staff vers HTTP 403. Le filtre `confidentiality_level` restreint uniquement les métadonnées déjà accessibles à ce garde technique ; il ne constitue pas une autorisation fondée sur la confidentialité. Les permissions métier détaillées seront définies et appliquées lors de T-011.
+
+
+## Téléversement et téléchargement privés — T-010
+
+Les fichiers sont écrits dans `PRIVATE_MEDIA_ROOT`, répertoire ignoré par Git et distinct de `MEDIA_URL`. Le chemin physique est généré côté serveur à partir d’un UUID et d’une extension contrôlée. Le nom envoyé par le navigateur ne détermine donc ni le répertoire de stockage ni le nom final sur disque, ce qui empêche les collisions et les tentatives de traversal telles que `../../secret.pdf`.
+
+Avant stockage, `ArchiveForm` rejette les extensions hors allowlist, les fichiers vides et les fichiers qui dépassent `ARCHIVE_MAX_UPLOAD_SIZE`. Le type MIME déclaré est confronté aux formats attendus lorsqu’il est fourni, et une signature minimale est contrôlée pour PDF (`%PDF-`), PNG et JPEG. Le type MIME transmis par le client peut être falsifié ; l’extension, le MIME et les signatures réduisent le risque sans prouver qu’un fichier est inoffensif. Le MVP ne fournit ni antivirus, ni analyse anti-malware, ni inspection exhaustive des formats Office.
+
+`file_size` est calculé depuis le fichier réellement reçu et `uploaded_by` reste imposé par le serveur. `checksum` demeure vide : aucun calcul SHA-256 n’est anticipé avant T-013. Le formulaire d’édition retire le champ de fichier, interdisant tout remplacement silencieux avant une politique de versioning validée.
+
+Le document privé n’est jamais lié par `archive.file.url`. La route `/archives/<pk>/download/` est protégée par `StaffRequiredMixin`; une requête anonyme est redirigée vers la connexion et un compte authentifié non staff reçoit HTTP 403. La vue utilise `FileResponse` avec une pièce jointe, traite une archive sans fichier ou un fichier manquant par HTTP 404, et ne supprime pas la métadonnée dans ce dernier cas. La restriction staff reste une mesure temporaire deny-by-default qui sera remplacée par le RBAC métier au T-011.

@@ -5,6 +5,8 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
 
+from .storage import archive_private_upload_to, private_archive_storage
+
 
 class ActiveNamedModel(models.Model):
     """Référentiel simple conservant son historique lorsqu’il devient inactif."""
@@ -65,8 +67,8 @@ class ConfidentialityLevel(models.TextChoices):
 class Archive(models.Model):
     """Entité centrale regroupant les métadonnées d’un document archivé.
 
-    Le champ de fichier et l’empreinte calculée seront intégrés dans les tickets
-    dédiés au téléversement ; T-004 conserve uniquement les métadonnées utiles.
+    Le fichier est conservé dans un stockage privé à partir de T-010. L’empreinte
+    calculée reste reportée au ticket dédié à l’intégrité.
     """
 
     reference = models.CharField("référence", max_length=32, unique=True)
@@ -109,6 +111,13 @@ class Archive(models.Model):
         max_length=16,
         choices=ConfidentialityLevel.choices,
         default=ConfidentialityLevel.INTERNAL,
+    )
+    file = models.FileField(
+        "fichier privé",
+        storage=private_archive_storage,
+        upload_to=archive_private_upload_to,
+        blank=True,
+        help_text="Document stocké hors de toute exposition publique.",
     )
     file_size = models.PositiveBigIntegerField(
         "taille du fichier (octets)",

@@ -136,6 +136,18 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Les documents d’archives sont stockés hors de toute exposition MEDIA_URL.
+PRIVATE_MEDIA_ROOT = Path(
+    os.getenv("PRIVATE_MEDIA_ROOT", "private_media")
+).expanduser()
+if not PRIVATE_MEDIA_ROOT.is_absolute():
+    PRIVATE_MEDIA_ROOT = BASE_DIR / PRIVATE_MEDIA_ROOT
+ARCHIVE_MAX_UPLOAD_SIZE = env_int("ARCHIVE_MAX_UPLOAD_SIZE", 10 * 1024 * 1024)
+ARCHIVE_ALLOWED_EXTENSIONS = env_list(
+    "ARCHIVE_ALLOWED_EXTENSIONS",
+    default=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png",
+)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 

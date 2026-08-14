@@ -29,6 +29,7 @@ db.sqlite3
 /staticfiles/
 /media/*
 !/media/.gitkeep
+/private_media/
 
 # IDE and OS
 .vscode/

@@ -138,3 +138,16 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Pourquoi elle n’est pas retenue.** Aucun volume, exigence de pertinence, besoin linguistique ou contrainte de recherche non structurée n’a été validé pour justifier ces technologies. Elles exigeraient des index, un paramétrage, une stratégie de synchronisation et des tests d’exploitation supplémentaires. Elles restent des évolutions possibles après mesure des besoins réels, sans être anticipées dans le modèle ni dans les migrations de T-009.
 
 **Conséquence.** La recherche textuelle reste volontairement simple et ne prétend pas offrir un classement par pertinence. Les règles RBAC de confidentialité ne sont pas introduites : le filtre de confidentialité s’applique uniquement aux archives déjà accessibles via la garde technique temporaire `StaffRequiredMixin`.
+
+
+## ADR-015 — Stockage privé des fichiers avec accès applicatif contrôlé
+
+**Décision.** Le contenu des archives est conservé hors exposition publique dans un `FileField` Django utilisant `PrivateArchiveStorage`, configuré par `PRIVATE_MEDIA_ROOT`. PostgreSQL conserve les métadonnées et le chemin relatif généré ; la diffusion passe exclusivement par une vue Django protégée qui retourne `FileResponse` en pièce jointe.
+
+**Justification.** Connaître ou deviner une URL ne doit pas permettre de contourner une autorisation documentaire. Un nom physique généré avec UUID évite les collisions, supprime toute dépendance au chemin fourni par le client et maintient une séparation claire entre les données relationnelles et le contenu binaire. L’abstraction Django Storage permet de remplacer le backend local du MVP par un stockage objet privé ou réseau sans modifier le modèle métier.
+
+**Alternative étudiée.** Exposer les fichiers par `MEDIA_URL` et construire des liens directs avec `archive.file.url`.
+
+**Pourquoi elle n’est pas retenue.** Cette alternative transformerait le chemin de stockage en mécanisme d’accès. Une URL connue, partagée ou devinée pourrait contourner les contrôles applicatifs. Elle rendrait également plus difficile l’application future des règles RBAC, de confidentialité et d’audit.
+
+**Conséquence.** Le téléchargement est disponible uniquement par `/archives/<pk>/download/` après la garde temporaire `StaffRequiredMixin`. Le remplacement de fichier n’est pas permis dans l’édition de métadonnées ; il attend une politique de versioning et de conservation validée avec C-Tech. Les validations de taille et de format réduisent le risque, sans être présentées comme une protection antivirus.
