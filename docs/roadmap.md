@@ -21,7 +21,7 @@ Les tickets sont exécutés **un par un**, sur une branche dédiée. À la fin d
 | 13 | T-013 | Empreinte et vérification | **INTEGRATED** | SHA-256 calculé au dépôt et vérifiable par POST |
 | 14 | T-014 | Tests consolidés | **INTEGRATED** | Durcissement, `HARD-001` à `HARD-026` et revue sécurité |
 | 15 | T-015 | Interface finale | **INTEGRATED** | Interface responsive Django Templates et accessibilité légère |
-| 16 | T-016 | Démonstration et documentation académique finale | **IN_REVIEW** | Documentation, preuves et parcours de soutenance synchronisés avec le code |
+| 16 | T-016 | Démonstration et documentation académique finale | **INTEGRATED** | Documentation, preuves et parcours de soutenance synchronisés avec le code |
 
 ## Statut exceptionnel — T-005
 
@@ -45,3 +45,7 @@ GIT_COMMIT: [message proposé ou hash du commit]
 ```
 
 Un statut `BLOCKED` doit identifier l’erreur, son impact et l’information ou l’action nécessaire avant de poursuivre. Aucun ticket suivant ne doit être traité silencieusement en cas d’échec de test du ticket courant.
+
+## État final du périmètre académique
+
+Les tickets T-001 à T-016 sont intégrés dans `develop`, à l’exception structurelle de T-005 qui reste **ABSORBED_BY_T004**. Aucun T-017 ni ticket obligatoire futur n’est créé par cette roadmap. Les évolutions telles que MFA, antivirus, versioning, ACL fine, stockage objet, SIEM/WORM ou monitoring demeurent des **perspectives produit** et non des livraisons réalisées.
