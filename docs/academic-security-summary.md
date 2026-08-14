@@ -23,7 +23,7 @@ Cette synthèse réutilise les constats et le modèle de menace de T-014. Elle n
 | CSRF | POST avec jeton pour mutations, logout et intégrité | `HARD-021` à `HARD-024` |
 | Traversal et exposition de fichiers | UUID, stockage privé et absence d’URL publique | `HARD-009` à `HARD-011`, `FILE-*` |
 | Accès audit non autorisé | Vue audit réservée à l’Administrateur/superuser | `AUDIT-020` à `AUDIT-030`, `HARD-012` à `HARD-014` |
-| Altération de fichier | SHA-256 et conservation de la référence historique | `HASH-*`, `HARD-018` |
+| Altération de fichier | SHA-256 et conservation de la référence historique | `HASH-*`, `HARD-017` |
 | Configuration production trop permissive | Secret requis, DEBUG interdit, hôtes explicites et `*` refusé | `HARD-025`, `HARD-026` |
 
 ## Risques résiduels
