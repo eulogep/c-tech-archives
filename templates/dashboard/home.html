@@ -42,6 +42,23 @@
       </article>
     </div>
 
+    <div class="section-block">
+      <div class="section-header">
+        <h2>Accès rapides</h2>
+      </div>
+      <div class="action-group">
+        {% if archive_policy.can_access %}
+          <a class="button button-secondary" href="{% url 'archives:list' %}">Consulter les archives</a>
+        {% endif %}
+        {% if archive_policy.can_create %}
+          <a class="button button-secondary" href="{% url 'archives:create' %}">Créer une archive</a>
+        {% endif %}
+        {% if audit_policy.can_view %}
+          <a class="button button-secondary" href="{% url 'audit:list' %}">Consulter le journal d’audit</a>
+        {% endif %}
+      </div>
+    </div>
+
     <p class="notice">Les métadonnées et actions détaillées restent accessibles selon les droits de l’utilisateur. La navigation facilite l’usage ; les autorisations restent contrôlées côté serveur.</p>
   </section>
 {% endblock %}

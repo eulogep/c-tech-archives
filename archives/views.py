@@ -25,7 +25,8 @@ from .integrity import (
     calculate_archive_checksum,
     verify_archive_integrity,
 )
-from .models import Archive
+from .models import Archive, ConfidentialityLevel
+from .permissions import visible_confidentiality_levels_for
 
 
 class ArchiveListView(ArchiveVisibleQuerysetMixin, ListView):
@@ -85,7 +86,24 @@ class ArchiveListView(ArchiveVisibleQuerysetMixin, ListView):
         context["query_string"] = parameters.urlencode()
         context["result_count"] = context["paginator"].count
         context["has_active_search"] = bool(parameters)
+
+        visible_base = self.visible_archive_queryset(Archive.objects.all())
+        visible_levels = visible_confidentiality_levels_for(self.request.user)
+        context["total_visible_count"] = visible_base.count()
+        context["public_count"] = visible_base.filter(
+            confidentiality_level=ConfidentialityLevel.PUBLIC
+        ).count()
+        if ConfidentialityLevel.INTERNAL in visible_levels:
+            context["internal_count"] = visible_base.filter(
+                confidentiality_level=ConfidentialityLevel.INTERNAL
+            ).count()
+        if ConfidentialityLevel.CONFIDENTIAL in visible_levels:
+            context["confidential_count"] = visible_base.filter(
+                confidentiality_level=ConfidentialityLevel.CONFIDENTIAL
+            ).count()
+        context["visible_levels"] = visible_levels
         return context
+
 
 
 class ArchiveCreateView(ArchiveCreatePermissionMixin, SuccessMessageMixin, CreateView):

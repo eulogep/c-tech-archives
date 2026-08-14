@@ -25,7 +25,7 @@
           <p class="form-field">
             <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
             {{ form.reference }}
-            {% if form.reference.help_text %}<small class="help-text">{{ form.reference.help_text }}</small>{% endif %}
+            <small class="help-text">{% if form.reference.help_text %}{{ form.reference.help_text }}{% else %}Identifiant documentaire unique.{% endif %}</small>
             {% for error in form.reference.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
           </p>
           <p class="form-field form-field-wide">
@@ -75,6 +75,7 @@
           <p class="form-field">
             <label for="{{ form.confidentiality_level.id_for_label }}">{{ form.confidentiality_level.label }}</label>
             {{ form.confidentiality_level }}
+            <small class="help-text">Détermine quels rôles peuvent consulter cette archive.</small>
             {% for error in form.confidentiality_level.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
           </p>
         </div>
@@ -84,9 +85,9 @@
         <section class="form-section" aria-labelledby="document-title">
           <h2 id="document-title">Document</h2>
           <div class="upload-hint">
-            <p>Le fichier est vérifié côté serveur avant son archivage. Les formats autorisés et la taille maximale sont appliqués par la configuration de la plateforme.</p>
+            <p>Le fichier est validé côté serveur avant stockage. Formats autorisés : PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, JPEG, PNG (taille max 10 Mo).</p>
           </div>
-          <p class="form-field">
+          <p class="form-field" style="margin-top: 0.75rem;">
             <label for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
             {{ form.file }}
             {% if form.file.help_text %}<small class="help-text">{{ form.file.help_text }}</small>{% endif %}

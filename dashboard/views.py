@@ -11,7 +11,7 @@ from archives.permissions import visible_archives_for
 def home(request):
     """Affiche des indicateurs agrégés limités au périmètre visible du rôle.
 
-    Le RBAC T-011 filtre déjà les archives avant tout compteur. Le dashboard
+    Le RBAC filtre déjà les archives avant tout compteur. Le dashboard
     ne retourne aucune métadonnée individuelle et n’infère aucun niveau masqué.
     """
     visible_archives = visible_archives_for(request.user)
