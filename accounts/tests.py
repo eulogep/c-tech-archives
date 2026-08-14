@@ -229,3 +229,130 @@ class AuthenticationFlowTests(TestCase):
         )
 
         self.assertRedirects(response, self.home_url)
+
+
+class BootstrapDefaultAdminsCommandTests(TestCase):
+    """Vérifie le bootstrap explicite, sécurisé et idempotent des comptes privilégiés."""
+
+    steven_email = "steven.bootstrap@example.test"
+    steven_password = "Steven-Synthetic-Password-2026"
+    euloge_email = "euloge.bootstrap@example.test"
+    euloge_password = "Euloge-Synthetic-Password-2026"
+
+    @property
+    def environment(self):
+        return {
+            "CTECH_STEVEN_EMAIL": self.steven_email,
+            "CTECH_STEVEN_PASSWORD": self.steven_password,
+            "CTECH_EULOGE_EMAIL": self.euloge_email,
+            "CTECH_EULOGE_PASSWORD": self.euloge_password,
+        }
+
+    def run_command(self, environment=None):
+        from io import StringIO
+
+        stdout = StringIO()
+        stderr = StringIO()
+        with patch.dict(os.environ, environment or self.environment, clear=True):
+            call_command("bootstrap_default_admins", stdout=stdout, stderr=stderr)
+        return stdout.getvalue(), stderr.getvalue()
+
+    def test_missing_required_variable_fails_without_exposing_values(self):
+        for missing_variable in self.environment:
+            environment = self.environment.copy()
+            missing_value = environment.pop(missing_variable)
+
+            with patch.dict(os.environ, environment, clear=True):
+                with self.assertRaisesMessage(Exception, missing_variable) as context:
+                    call_command("bootstrap_default_admins")
+
+            self.assertNotIn(missing_value, str(context.exception))
+            self.assertEqual(User.objects.count(), 0)
+
+    def test_bootstrap_configures_business_and_technical_administrators(self):
+        self.run_command()
+
+        steven = User.objects.get(email=self.steven_email)
+        euloge = User.objects.get(email=self.euloge_email)
+
+        self.assertEqual(steven.role, Role.ADMINISTRATEUR)
+        self.assertTrue(steven.is_active)
+        self.assertFalse(steven.is_staff)
+        self.assertFalse(steven.is_superuser)
+        self.assertNotEqual(steven.password, self.steven_password)
+        self.assertTrue(steven.check_password(self.steven_password))
+
+        self.assertEqual(euloge.role, Role.ADMINISTRATEUR)
+        self.assertTrue(euloge.is_active)
+        self.assertTrue(euloge.is_staff)
+        self.assertTrue(euloge.is_superuser)
+        self.assertNotEqual(euloge.password, self.euloge_password)
+        self.assertTrue(euloge.check_password(self.euloge_password))
+
+    def test_bootstrap_is_idempotent_and_does_not_create_duplicates(self):
+        first_stdout, first_stderr = self.run_command()
+        steven = User.objects.get(email=self.steven_email)
+        euloge = User.objects.get(email=self.euloge_email)
+        initial_ids = {steven.pk, euloge.pk}
+        initial_hashes = {steven.pk: steven.password, euloge.pk: euloge.password}
+
+        second_stdout, second_stderr = self.run_command()
+        users = User.objects.filter(email__in=[self.steven_email, self.euloge_email])
+
+        self.assertEqual(users.count(), 2)
+        self.assertEqual({user.pk for user in users}, initial_ids)
+        self.assertEqual(
+            {user.pk: user.password for user in users},
+            initial_hashes,
+        )
+        self.assertIn("2 created", first_stdout)
+        self.assertIn("2 reconciled", second_stdout)
+        self.assertEqual(first_stderr, "")
+        self.assertEqual(second_stderr, "")
+
+    def test_existing_account_is_reconciled_in_place(self):
+        existing = User.objects.create_user(
+            username="legacy-steven",
+            email=self.steven_email,
+            password="Old-Synthetic-Password-2026",
+            role=Role.CONSULTANT,
+            is_active=False,
+            is_staff=True,
+            is_superuser=True,
+        )
+
+        self.run_command()
+
+        reconciled = User.objects.get(email=self.steven_email)
+        self.assertEqual(reconciled.pk, existing.pk)
+        self.assertEqual(reconciled.role, Role.ADMINISTRATEUR)
+        self.assertTrue(reconciled.is_active)
+        self.assertFalse(reconciled.is_staff)
+        self.assertFalse(reconciled.is_superuser)
+        self.assertTrue(reconciled.check_password(self.steven_password))
+        self.assertNotEqual(reconciled.username, "legacy-steven")
+
+    def test_command_output_never_leaks_synthetic_passwords(self):
+        stdout, stderr = self.run_command()
+        output = f"{stdout}\n{stderr}"
+
+        self.assertNotIn(self.steven_password, output)
+        self.assertNotIn(self.euloge_password, output)
+        self.assertNotIn(self.steven_email, output)
+        self.assertNotIn(self.euloge_email, output)
+
+    def test_synthetic_credentials_authenticate_after_bootstrap(self):
+        self.run_command()
+
+        steven = self.client.login(
+            username=User.objects.get(email=self.steven_email).username,
+            password=self.steven_password,
+        )
+        self.assertTrue(steven)
+        self.client.logout()
+
+        euloge = self.client.login(
+            username=User.objects.get(email=self.euloge_email).username,
+            password=self.euloge_password,
+        )
+        self.assertTrue(euloge)
