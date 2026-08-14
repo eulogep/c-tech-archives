@@ -153,3 +153,14 @@ La route de vérification utilise POST avec CSRF et le QuerySet RBAC déjà appl
 > SHA-256 dans ce MVP n’est **ni un chiffrement, ni une signature électronique, ni un contrôle d’accès, ni un antivirus, ni une preuve absolue de non-répudiation**. Il permet de détecter une différence entre le fichier actuel et l’empreinte de référence conservée.
 
 Un acteur ayant simultanément le contrôle complet du stockage et de la base pourrait modifier le fichier et son checksum. Une signature numérique, un stockage immuable ou une infrastructure de confiance séparée serait nécessaire pour une garantie plus forte. De même, une modification concurrente du fichier pendant sa lecture (TOCTOU) peut théoriquement influencer le résultat ; ce risque et la vérification automatique à chaque téléchargement restent hors périmètre MVP.
+
+
+## Revue transverse et durcissement — T-014
+
+La revue T-014 confirme la présence conjointe des contrôles suivants : authentification Django, refus des comptes inactifs, neutralisation des redirections `next` externes, cookies HTTPOnly/SameSite, CSRF sur les opérations mutables, RBAC côté serveur, 404 anti-inférence, échappement Django, ORM sans SQL brut applicatif, stockage privé et audit minimal append-only applicatif. La matrice `HARD-001` à `HARD-026` vérifie les accès directs par identifiant, le mass assignment, le XSS, les recherches injection-like, les traversals, le fichier absent, l’audit, le checksum et la configuration d’hôtes de production.
+
+Hors DEBUG, `DJANGO_ALLOWED_HOSTS` doit contenir des noms d’hôtes explicitement prévus pour le déploiement. Une valeur vide comme le wildcard `*` provoque `ImproperlyConfigured` au chargement des paramètres. Cette règle n’affecte pas le développement local, qui conserve les hôtes `localhost` et `127.0.0.1`. Le test `HARD-026` emploie des sous-processus Python isolés et confirme que `c-tech.example` ainsi que `c-tech.example,www.c-tech.example` sont acceptés en production, tandis que `*` est refusé.
+
+Le contrôle `python manage.py check --deploy` signale volontairement en développement les paramètres propres à HTTPS et `DEBUG`. Ces avertissements ne sont pas masqués. Dans un profil production simulé avec HTTPS, cookies secure, redirection SSL et HSTS activés, le contrôle est sans warning seulement lorsque le preload HSTS est explicitement activé. Le preload reste une décision d’infrastructure à valider une fois le domaine et ses sous-domaines entièrement HTTPS.
+
+La sécurité de production requiert encore une configuration reverse proxy/web server : limites de taille et de durée de requête, HTTPS final, redirection, sauvegardes, monitoring et réponse à incident. Une protection contre le brute-force/credential stuffing, un antivirus, une gestion centralisée des vulnérabilités de dépendances, une signature numérique et une immutabilité externe des logs ne sont pas fournis par le MVP et ne doivent pas être présentés comme tels.

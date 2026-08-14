@@ -330,3 +330,22 @@ SHA-256 n’est pas du chiffrement réversible : on ne peut pas retrouver pratiq
 ### Question jury — Si quelqu’un modifie le fichier et le checksum dans la base en même temps ?
 
 > Le mécanisme actuel détecte une différence entre le fichier et l’empreinte de référence conservée. Un acteur ayant un contrôle complet simultané du stockage et de la base pourrait modifier les deux. Une protection plus forte demanderait une signature numérique, un stockage immuable ou une infrastructure de confiance séparée, ce qui dépasse le périmètre du MVP.
+
+
+## Couverture ajoutée par T-014
+
+| Références | Contrôle transverse |
+|---|---|
+| HARD-001 à HARD-004 | IDOR sur détail, édition, téléchargement et vérification d’intégrité |
+| HARD-005 | Mass assignment des champs serveur et indicateurs de privilège |
+| HARD-006 à HARD-008 | Échappement XSS et traitement ORM des recherches injection-like |
+| HARD-009 à HARD-011 | Path traversal Unix/Windows et absence d’exposition publique du stockage privé |
+| HARD-012 à HARD-014 | Absence de données sensibles dans l’audit et administration AuditLog read-only |
+| HARD-015 à HARD-018 | ID malformé, fichier manquant, mismatch conservant la référence et deny-by-default |
+| HARD-019 à HARD-020 | Refus d’un compte inactif et neutralisation de `next` externe |
+| HARD-021 à HARD-024 | CSRF create/update/intégrité et logout uniquement par POST CSRF |
+| HARD-025 | Secret d’environnement requis et absence de fixture secrète ou `ALLOWED_HOSTS=*` dans le modèle d’environnement |
+
+T-014 complète les tests existants au lieu de les dupliquer. Les scénarios d’authentification détaillés restent dans `accounts.tests`, les matrices RBAC dans `archives.tests`, les contrôles fichiers dans `ArchiveFileHandlingTests`, l’audit dans `audit.tests` et l’intégrité dans `ArchiveIntegrityTests`. La nouvelle suite concentre les croisements entre ces mécanismes, avec des données et fichiers strictement synthétiques.
+
+Le contrôle `check --deploy` est exécuté en développement et dans un profil production simulé. Ses avertissements de développement sont conservés et classifiés dans [`security-review.md`](security-review.md) ; aucun warning n’est masqué.

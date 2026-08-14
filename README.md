@@ -23,8 +23,9 @@ Le dépôt est initialisé avec la **conception fonctionnelle et technique préa
 | T-010 — Téléversement et téléchargement sécurisés | **INTEGRATED** dans `develop` ; stockage privé, validation serveur et téléchargement contrôlé |
 | T-011 — RBAC et confidentialité | **INTEGRATED** dans `develop` ; droits métier centralisés et visibilité filtrée au niveau QuerySet |
 | T-012 — Journal d’audit | **INTEGRATED** dans `develop` ; événements métier structurés, append-only et consultation administrateur |
-| T-013 — Intégrité SHA-256 | **IN_REVIEW** sur `feature/archive-integrity` ; empreinte calculée à l’upload et vérification contrôlée à la demande |
-| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé, RBAC, audit métier et contrôle d’intégrité SHA-256 configurés |
+| T-013 — Intégrité SHA-256 | **INTEGRATED** dans `develop` ; empreinte calculée à l’upload et vérification contrôlée à la demande |
+| T-014 — Tests de sécurité et durcissement final | **IN_REVIEW** sur `feature/security-hardening` ; revue transverse, matrice HARD et risques résiduels documentés |
+| Application Django | Socle modulaire, PostgreSQL, modèle utilisateur, authentification par session, CRUD, recherche, stockage privé, RBAC, audit métier, contrôle d’intégrité SHA-256 et couverture de sécurité transverse configurés |
 
 ## Objectif du MVP
 
@@ -97,7 +98,10 @@ python manage.py runserver
 | [`docs/tickets/T-010.md`](docs/tickets/T-010.md) | Compte rendu du ticket téléversement et téléchargement sécurisés intégré |
 | [`docs/tickets/T-011.md`](docs/tickets/T-011.md) | Compte rendu du ticket RBAC et confidentialité intégré |
 | [`docs/tickets/T-012.md`](docs/tickets/T-012.md) | Compte rendu du ticket journal d’audit intégré |
-| [`docs/tickets/T-013.md`](docs/tickets/T-013.md) | Compte rendu du ticket intégrité SHA-256 en revue |
+| [`docs/tickets/T-013.md`](docs/tickets/T-013.md) | Compte rendu du ticket intégrité SHA-256 intégré |
+| [`docs/security-review.md`](docs/security-review.md) | Revue de sécurité transverse, modèle de menace et risques résiduels |
+| [`docs/steven-security-defense.md`](docs/steven-security-defense.md) | Fiche courte de défense sécurité pour la soutenance |
+| [`docs/tickets/T-014.md`](docs/tickets/T-014.md) | Compte rendu du ticket tests de sécurité et durcissement en revue |
 
 ## Convention Git
 

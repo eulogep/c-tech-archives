@@ -264,3 +264,12 @@ Après une création d’archive avec fichier, la vue persiste d’abord le docu
 `verify_archive_integrity` ne modifie jamais le checksum historique et retourne un état explicite : `VALID`, `MISMATCH`, `NO_FILE`, `MISSING_CHECKSUM`, `FILE_MISSING` ou `ERROR`. La vérification est déclenchée seulement par `POST /archives/<pk>/verify-integrity/`, avec CSRF et le même QuerySet visible que les vues de détail et téléchargement. Elle est disponible à tout rôle pouvant consulter l’archive ; un objet hors périmètre reste HTTP 404.
 
 La vérification crée l’événement d’audit `ARCHIVE_INTEGRITY_CHECK` avec le seul détail `result`. Les empreintes attendue ou calculée ne sont pas dupliquées dans l’audit. Aucun recalcul n’est effectué automatiquement lors des listes, recherches, dashboards ou téléchargements, car cette opération est proportionnelle à la taille du fichier et doit rester explicite dans le MVP.
+
+
+## Revue de sécurité et durcissement — T-014
+
+T-014 ne modifie pas l’architecture fonctionnelle du MVP. Il vérifie la défense en profondeur déjà en place : authentification par session, politique RBAC centralisée, filtrage du QuerySet avant les objets, formulaires à liste blanche, stockage privé, audit applicatif minimal et contrôle d’intégrité à la demande. La matrice `tests/test_security_hardening.py` exerce ces contrôles de manière transversale plutôt que d’ajouter un nouveau mécanisme métier.
+
+Les routes contenant un identifiant d’archive appliquent le même périmètre visible que les listes. Ainsi, détail, édition, téléchargement et vérification SHA-256 répondent 404 lorsqu’un objet est hors périmètre ; l’édition d’un objet visible mais non modifiable répond 403. Le stockage privé n’est relié à aucune route `MEDIA_URL` et les téléchargements passent par `FileResponse` après contrôle applicatif.
+
+Les paramètres de production sont lus depuis l’environnement. Le développement conserve HTTP et `DEBUG` pour faciliter le travail local, tandis que la production exige explicitement secret, hôtes, HTTPS, cookies secure et HSTS. Cette séparation est vérifiée par `check --deploy` et documentée dans [`security-review.md`](security-review.md).
