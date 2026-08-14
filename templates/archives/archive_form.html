@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{% if archive %}Modifier l’archive{% else %}Nouvelle archive{% endif %} | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="archive-form-title">
+    <h1 id="archive-form-title">{% if archive %}Modifier l’archive{% else %}Nouvelle archive{% endif %}</h1>
+    <p class="muted">Les champs techniques, l’auteur et les horodatages sont contrôlés par le serveur.</p>
+
+    {% if form.non_field_errors %}
+      <div class="errors" role="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <p>
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
+          {{ field }}
+          {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+          {% for error in field.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+        </p>
+      {% endfor %}
+      <button class="button" type="submit">{% if archive %}Enregistrer les modifications{% else %}Créer l’archive{% endif %}</button>
+      <a class="button button-secondary" href="{% if archive %}{% url 'archives:detail' archive.pk %}{% else %}{% url 'archives:list' %}{% endif %}">Annuler</a>
+    </form>
+  </section>
+{% endblock %}

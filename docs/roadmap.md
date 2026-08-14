@@ -13,7 +13,7 @@ Les tickets sont exécutés **un par un**, sur une branche dédiée. À la fin d
 | 5 | T-005 | Migrations et administration | **ABSORBED_BY_T004** — migrations initiales appliquées et modèles administrables pendant T-004 ; aucun développement supplémentaire requis | Aucun commit dédié |
 | 6 | T-006 | Authentification | Connexion, déconnexion, protection des vues et tests associés | `feat(auth): add secure authentication flow` |
 | 7 | T-007 | Tableau de bord | Indicateurs agrégés sans métadonnée documentaire individuelle avant RBAC T-011 | `feat(dashboard): add archive overview` puis `fix(dashboard): avoid exposing archive metadata before RBAC` |
-| 8 | T-008 | CRUD des archives | Création, liste, détail, modification et suppression/désactivation contrôlées | `feat(archives): add archive management` |
+| 8 | T-008 | CRUD des métadonnées d’archives | Création, liste, détail et modification sous garde staff provisoire ; aucune suppression physique | `feat(archives): add controlled archive metadata management` |
 | 9 | T-009 | Recherche et filtres | Recherche par référence, titre, catégorie, type, service et date | `feat(search): add archive filters` |
 | 10 | T-010 | Téléversement sécurisé | Validation des fichiers, stockage privé et téléchargement protégé | `feat(files): secure archive uploads and downloads` |
 | 11 | T-011 | RBAC et confidentialité | Contrôles serveur complets et refus testés pour chaque rôle | `feat(authz): enforce role-based archive access` |

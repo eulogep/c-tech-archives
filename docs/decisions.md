@@ -117,3 +117,11 @@ Ce document consigne les choix structurants du projet afin qu’ils puissent êt
 **Alternative étudiée.** JWT ou un système d’authentification personnalisé.
 
 **Pourquoi elle n’est pas retenue.** JWT répond davantage aux API sans état ou à des clients séparés et ajouterait une gestion de token inutile à cette architecture. Un système personnalisé risquerait de réimplémenter de manière moins sûre le hachage, les sessions ou les contrôles de redirection déjà fournis par Django.
+
+## ADR-013 — Deny-by-default avant RBAC métier
+
+**Décision.** Jusqu’au ticket T-011, l’espace de gestion des métadonnées d’archives est limité aux comptes techniques `is_staff` ou `is_superuser` par un `StaffRequiredMixin` centralisé.
+
+**Justification.** Les rôles métier existent dans le modèle utilisateur mais les règles d’autorisation par action, archive et niveau de confidentialité ne sont pas encore validées. Ouvrir l’espace CRUD à tous les comptes authentifiés, ou assimiler le rôle `ADMINISTRATEUR` à `is_staff`, créerait une politique partielle, incohérente et difficile à remplacer. Une restriction temporaire explicite limite l’exposition jusqu’à ce que le RBAC final soit défini.
+
+**Conséquence.** Les utilisateurs métier non staff reçoivent un refus HTTP 403 malgré leur authentification. Cette limitation est documentée et doit être remplacée, non étendue, au ticket T-011.

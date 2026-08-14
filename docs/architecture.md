@@ -129,3 +129,21 @@ flowchart LR
 Les six indicateurs sont calculés à partir de requêtes ORM lisibles sur les tables d’archives et de référentiels. Aucune archive individuelle, relation documentaire ou métadonnée associée n’est renvoyée par la vue. Cette décision évite qu’un utilisateur authentifié voie une référence, un titre, un service ou une catégorie confidentiels avant que T-011 n’ait défini la politique d’autorisation complète.
 
 Le dashboard n’affiche aucune activité récente, car le modèle d’audit n’existe pas encore. Il n’expose ni checksum ni donnée de mot de passe et ne déduit aucun droit métier du rôle utilisateur avant T-011.
+
+## Gestion contrôlée des métadonnées — T-008
+
+L’application `archives` fournit désormais les vues de liste, création, détail et modification des métadonnées. Les routes sont regroupées sous le namespace `/archives/`. La liste est paginée à vingt éléments et ordonnée par `-created_at`; ses relations sont préchargées avec `select_related` afin d’éviter un accès relationnel N+1 pendant le rendu.
+
+Le contrôle d’accès passe temporairement par `StaffRequiredMixin`. Un utilisateur anonyme est redirigé vers la connexion, tandis qu’un utilisateur déjà authentifié mais non staff reçoit une réponse HTTP 403. Ce garde ne consulte jamais le rôle métier et reste isolé dans `archives.access` pour pouvoir être remplacé au ticket T-011.
+
+```mermaid
+flowchart LR
+    Request[Requête /archives/] --> Gate{StaffRequiredMixin}
+    Gate -->|Anonyme| Login[Connexion Django]
+    Gate -->|Authentifié non staff| Deny[HTTP 403]
+    Gate -->|Staff ou superuser| Views[Liste / création / détail / modification]
+    Views --> Form[ArchiveForm à liste blanche]
+    Form --> Archive[(Archive PostgreSQL)]
+```
+
+`ArchiveForm` n’expose que les métadonnées métier modifiables. Le champ `uploaded_by` est fixé côté serveur lors de la création et les champs `file_size`, `checksum`, `created_at` et `updated_at` restent hors formulaire. La suppression physique, le téléversement, la recherche et le contrôle métier de confidentialité ne sont pas introduits dans cette étape.

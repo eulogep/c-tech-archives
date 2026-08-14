@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Archives | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="archives-title">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+      <div>
+        <h1 id="archives-title">Archives</h1>
+        <p class="muted">Liste documentaire simple, ordonnée par date de création décroissante.</p>
+      </div>
+      <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
+    </div>
+
+    {% if archives %}
+      <table style="border-collapse:collapse; margin-top:1.5rem; width:100%;">
+        <thead>
+          <tr style="background:#eef3f6;">
+            <th style="padding:.65rem; text-align:left;">Référence</th>
+            <th style="padding:.65rem; text-align:left;">Titre</th>
+            <th style="padding:.65rem; text-align:left;">Catégorie</th>
+            <th style="padding:.65rem; text-align:left;">Type</th>
+            <th style="padding:.65rem; text-align:left;">Service</th>
+            <th style="padding:.65rem; text-align:left;">Statut</th>
+            <th style="padding:.65rem; text-align:left;">Confidentialité</th>
+            <th style="padding:.65rem; text-align:left;">Date du document</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for archive in archives %}
+            <tr>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;"><a href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a></td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.title }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.category.name }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.document_type.name }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.service.name }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.get_status_display }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{{ archive.get_confidentiality_level_display }}</td>
+              <td style="border-bottom:1px solid #d8e0e6; padding:.65rem;">{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if is_paginated %}
+        <nav aria-label="Pagination des archives" style="margin-top:1rem;">
+          {% if page_obj.has_previous %}<a class="button button-secondary" href="?page={{ page_obj.previous_page_number }}">Précédent</a>{% endif %}
+          <span style="margin:0 .75rem;">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}<a class="button button-secondary" href="?page={{ page_obj.next_page_number }}">Suivant</a>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <p class="muted">Aucune archive enregistrée.</p>
+    {% endif %}
+  </section>
+{% endblock %}
