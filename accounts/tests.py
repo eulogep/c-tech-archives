@@ -6,6 +6,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
 
@@ -263,7 +264,7 @@ class BootstrapDefaultAdminsCommandTests(TestCase):
             missing_value = environment.pop(missing_variable)
 
             with patch.dict(os.environ, environment, clear=True):
-                with self.assertRaisesMessage(Exception, missing_variable) as context:
+                with self.assertRaisesMessage(CommandError, missing_variable) as context:
                     call_command("bootstrap_default_admins")
 
             self.assertNotIn(missing_value, str(context.exception))
@@ -275,6 +276,10 @@ class BootstrapDefaultAdminsCommandTests(TestCase):
         steven = User.objects.get(email=self.steven_email)
         euloge = User.objects.get(email=self.euloge_email)
 
+        self.assertEqual(steven.username, self.steven_email)
+        self.assertEqual(steven.email, self.steven_email)
+        self.assertEqual(steven.first_name, "Steven")
+        self.assertEqual(steven.last_name, "Parker")
         self.assertEqual(steven.role, Role.ADMINISTRATEUR)
         self.assertTrue(steven.is_active)
         self.assertFalse(steven.is_staff)
@@ -282,6 +287,10 @@ class BootstrapDefaultAdminsCommandTests(TestCase):
         self.assertNotEqual(steven.password, self.steven_password)
         self.assertTrue(steven.check_password(self.steven_password))
 
+        self.assertEqual(euloge.username, self.euloge_email)
+        self.assertEqual(euloge.email, self.euloge_email)
+        self.assertEqual(euloge.first_name, "Euloge Junior")
+        self.assertEqual(euloge.last_name, "Mabiala")
         self.assertEqual(euloge.role, Role.ADMINISTRATEUR)
         self.assertTrue(euloge.is_active)
         self.assertTrue(euloge.is_staff)
@@ -310,27 +319,76 @@ class BootstrapDefaultAdminsCommandTests(TestCase):
         self.assertEqual(first_stderr, "")
         self.assertEqual(second_stderr, "")
 
-    def test_existing_account_is_reconciled_in_place(self):
-        existing = User.objects.create_user(
+    def test_existing_accounts_are_reconciled_in_place(self):
+        steven_existing = User.objects.create_user(
             username="legacy-steven",
             email=self.steven_email,
             password="Old-Synthetic-Password-2026",
+            first_name="Legacy",
+            last_name="Account",
             role=Role.CONSULTANT,
             is_active=False,
             is_staff=True,
             is_superuser=True,
         )
+        euloge_existing = User.objects.create_user(
+            username="legacy-euloge",
+            email=self.euloge_email,
+            password="Old-Synthetic-Password-2026",
+            first_name="Legacy",
+            last_name="Technical",
+            role=Role.CONSULTANT,
+            is_active=False,
+            is_staff=False,
+            is_superuser=False,
+        )
 
         self.run_command()
 
-        reconciled = User.objects.get(email=self.steven_email)
-        self.assertEqual(reconciled.pk, existing.pk)
-        self.assertEqual(reconciled.role, Role.ADMINISTRATEUR)
-        self.assertTrue(reconciled.is_active)
-        self.assertFalse(reconciled.is_staff)
-        self.assertFalse(reconciled.is_superuser)
-        self.assertTrue(reconciled.check_password(self.steven_password))
-        self.assertNotEqual(reconciled.username, "legacy-steven")
+        steven = User.objects.get(email=self.steven_email)
+        euloge = User.objects.get(email=self.euloge_email)
+        self.assertEqual(steven.pk, steven_existing.pk)
+        self.assertEqual(steven.username, self.steven_email)
+        self.assertEqual(steven.first_name, "Steven")
+        self.assertEqual(steven.last_name, "Parker")
+        self.assertEqual(steven.role, Role.ADMINISTRATEUR)
+        self.assertTrue(steven.is_active)
+        self.assertFalse(steven.is_staff)
+        self.assertFalse(steven.is_superuser)
+        self.assertTrue(steven.check_password(self.steven_password))
+
+        self.assertEqual(euloge.pk, euloge_existing.pk)
+        self.assertEqual(euloge.username, self.euloge_email)
+        self.assertEqual(euloge.first_name, "Euloge Junior")
+        self.assertEqual(euloge.last_name, "Mabiala")
+        self.assertEqual(euloge.role, Role.ADMINISTRATEUR)
+        self.assertTrue(euloge.is_active)
+        self.assertTrue(euloge.is_staff)
+        self.assertTrue(euloge.is_superuser)
+        self.assertTrue(euloge.check_password(self.euloge_password))
+
+    def test_command_rejects_email_too_long_for_username_without_leaking_value(self):
+        username_max_length = User._meta.get_field("username").max_length
+        excessive_email = f"{'a' * username_max_length}@example.test"
+        environment = self.environment.copy()
+        environment["CTECH_STEVEN_EMAIL"] = excessive_email
+
+        with self.assertRaisesMessage(CommandError, "CTECH_STEVEN_EMAIL") as context:
+            self.run_command(environment)
+
+        self.assertNotIn(excessive_email, str(context.exception))
+        self.assertEqual(User.objects.count(), 0)
+
+    def test_password_whitespace_is_preserved_exactly(self):
+        password_with_whitespace = "  Steven-Synthetic-Password-2026  "
+        environment = self.environment.copy()
+        environment["CTECH_STEVEN_PASSWORD"] = password_with_whitespace
+
+        self.run_command(environment)
+
+        steven = User.objects.get(email=self.steven_email)
+        self.assertTrue(steven.check_password(password_with_whitespace))
+        self.assertFalse(steven.check_password(password_with_whitespace.strip()))
 
     def test_command_output_never_leaks_synthetic_passwords(self):
         stdout, stderr = self.run_command()
@@ -341,18 +399,13 @@ class BootstrapDefaultAdminsCommandTests(TestCase):
         self.assertNotIn(self.steven_email, output)
         self.assertNotIn(self.euloge_email, output)
 
-    def test_synthetic_credentials_authenticate_after_bootstrap(self):
+    def test_synthetic_credentials_authenticate_using_configured_emails(self):
         self.run_command()
 
-        steven = self.client.login(
-            username=User.objects.get(email=self.steven_email).username,
-            password=self.steven_password,
+        self.assertTrue(
+            self.client.login(username=self.steven_email, password=self.steven_password)
         )
-        self.assertTrue(steven)
         self.client.logout()
-
-        euloge = self.client.login(
-            username=User.objects.get(email=self.euloge_email).username,
-            password=self.euloge_password,
+        self.assertTrue(
+            self.client.login(username=self.euloge_email, password=self.euloge_password)
         )
-        self.assertTrue(euloge)

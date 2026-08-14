@@ -6,9 +6,7 @@ mots de passe sont fournis uniquement par les variables d’environnement requis
 
 from __future__ import annotations
 
-import hashlib
 import os
-import re
 from dataclasses import dataclass
 
 from django.contrib.auth import get_user_model
@@ -26,6 +24,8 @@ class AccountSpec:
 
     email_variable: str
     password_variable: str
+    first_name: str
+    last_name: str
     is_staff: bool
     is_superuser: bool
 
@@ -34,44 +34,52 @@ ACCOUNT_SPECS = (
     AccountSpec(
         email_variable="CTECH_STEVEN_EMAIL",
         password_variable="CTECH_STEVEN_PASSWORD",
+        first_name="Steven",
+        last_name="Parker",
         is_staff=False,
         is_superuser=False,
     ),
     AccountSpec(
         email_variable="CTECH_EULOGE_EMAIL",
         password_variable="CTECH_EULOGE_PASSWORD",
+        first_name="Euloge Junior",
+        last_name="Mabiala",
         is_staff=True,
         is_superuser=True,
     ),
 )
 
 
-def _required_environment_value(variable_name: str) -> str:
+def _required_environment_value(variable_name: str, *, strip: bool) -> str:
     """Retourne une variable requise sans jamais exposer sa valeur en erreur."""
 
     value = os.environ.get(variable_name)
-    if not value:
+    if value is None:
         raise CommandError(f"Missing required environment variable: {variable_name}")
-    return value.strip()
 
-
-def _username_from_email(email: str) -> str:
-    """Construit un identifiant technique stable, dérivé de l’adresse configurée."""
-
-    local_part = email.partition("@")[0].lower()
-    normalized = re.sub(r"[^a-z0-9]+", "-", local_part).strip("-")
-    digest = hashlib.sha256(email.lower().encode("utf-8")).hexdigest()[:12]
-    prefix = normalized[:130] or "privileged-user"
-    return f"{prefix}-{digest}"
+    normalized_value = value.strip() if strip else value
+    if not normalized_value:
+        raise CommandError(f"Missing required environment variable: {variable_name}")
+    return normalized_value
 
 
 def _validate_email(email: str, variable_name: str) -> None:
-    """Valide l’adresse sans inclure la valeur sensible dans la sortie d’erreur."""
+    """Valide l’adresse sans inclure sa valeur dans la sortie d’erreur."""
 
     try:
         validate_email(email)
     except ValidationError as error:
         raise CommandError(f"Invalid value for environment variable: {variable_name}") from error
+
+
+def _validate_username_length(email: str, variable_name: str, user_model) -> None:
+    """Vérifie que l’email peut être utilisé tel quel comme username Django."""
+
+    username_max_length = user_model._meta.get_field("username").max_length
+    if len(email) > username_max_length:
+        raise CommandError(
+            f"Value for environment variable exceeds username max length: {variable_name}"
+        )
 
 
 class Command(BaseCommand):
@@ -86,11 +94,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Applique de manière atomique la configuration attendue aux deux comptes."""
 
+        user_model = get_user_model()
         configured_accounts = []
         for spec in ACCOUNT_SPECS:
-            email = _required_environment_value(spec.email_variable)
-            password = _required_environment_value(spec.password_variable)
+            email = _required_environment_value(spec.email_variable, strip=True)
+            password = _required_environment_value(spec.password_variable, strip=False)
             _validate_email(email, spec.email_variable)
+            _validate_username_length(email, spec.email_variable, user_model)
             configured_accounts.append((spec, email, password))
 
         if configured_accounts[0][1].lower() == configured_accounts[1][1].lower():
@@ -98,20 +108,20 @@ class Command(BaseCommand):
                 "Environment variables CTECH_STEVEN_EMAIL and CTECH_EULOGE_EMAIL must differ."
             )
 
-        user_model = get_user_model()
         created_count = 0
         updated_count = 0
 
         for spec, email, password in configured_accounts:
-            username = _username_from_email(email)
+            username = email
             user = user_model.objects.filter(email__iexact=email).first()
 
+            username_owner = user_model.objects.filter(username=username).first()
+            if username_owner is not None and (user is None or username_owner.pk != user.pk):
+                raise CommandError(
+                    f"Username conflict for environment variable: {spec.email_variable}"
+                )
+
             if user is None:
-                username_owner = user_model.objects.filter(username=username).first()
-                if username_owner is not None:
-                    raise CommandError(
-                        f"Derived username conflict for environment variable: {spec.email_variable}"
-                    )
                 user = user_model(email=email, username=username)
                 created_count += 1
             else:
@@ -121,6 +131,8 @@ class Command(BaseCommand):
             expected_values = {
                 "username": username,
                 "email": email,
+                "first_name": spec.first_name,
+                "last_name": spec.last_name,
                 "role": Role.ADMINISTRATEUR,
                 "is_active": True,
                 "is_staff": spec.is_staff,
