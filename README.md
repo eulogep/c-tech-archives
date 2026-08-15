@@ -14,7 +14,7 @@ L’application est déployée en production simulée à l’adresse suivante :
 | Élément | État vérifiable |
 |---|---|
 | Socle applicatif | Django 5.1.x, PostgreSQL, Django Templates et CSS local responsive |
-| Tests automatisés | **263 tests** avec `python manage.py test` |
+| Tests automatisés | **280 tests** avec `python manage.py test` |
 | Rôles métier | Administrateur, Agent d’archives, Consultant |
 | Niveaux de confidentialité | PUBLIC, INTERNAL, CONFIDENTIAL |
 | Stockage documentaire | Privé, hors `MEDIA_URL`, téléchargement contrôlé |
@@ -22,7 +22,7 @@ L’application est déployée en production simulée à l’adresse suivante :
 | Intégrité | SHA-256 calculé après stockage et vérifié sur demande POST |
 | Sécurité | Revue transverse T-014, profil de déploiement simulé et interface T-015 responsive |
 | T-001 à T-016 | **INTEGRATED** dans `develop` ; T-005 reste `ABSORBED_BY_T004` |
-| MVP académique | **FINALIZED** : MVP fonctionnel, 263 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
+| MVP académique | **FINALIZED** : MVP fonctionnel, 280 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
 
 Maintenance post-finalisation : le bootstrap sécurisé des comptes privilégiés est disponible par commande explicite et ne modifie pas le périmètre des tickets T-001 à T-016.
 
@@ -132,7 +132,7 @@ python manage.py runserver
 python manage.py test
 ```
 
-La commande de test exécute **263 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
+La commande de test exécute **280 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
 
 ```bash
 python manage.py check --deploy
