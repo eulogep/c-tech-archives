@@ -1310,3 +1310,24 @@ a:hover {
     gap: var(--space-2);
   }
 }
+
+
+.auth-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.auth-actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-width: 540px) {
+  .auth-actions {
+    grid-template-columns: 1fr;
+  }
+}
