@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Erreur temporaire | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel error-page" aria-labelledby="error-title">
+    <p class="error-code" aria-hidden="true">500</p>
+    <h1 id="error-title">Une erreur temporaire est survenue</h1>
+    <p class="page-description">Nous ne pouvons pas traiter votre demande pour le moment. Vous pouvez réessayer ultérieurement.</p>
+    <p class="form-actions"><a class="button" href="{% url 'home' %}">Retour au tableau de bord</a></p>
+  </section>
+{% endblock %}

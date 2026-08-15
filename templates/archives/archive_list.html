@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Archives | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="archives-title">
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Espace documentaire</p>
+        <h1 id="archives-title">Archives</h1>
+        <p class="page-description">Recherchez et consultez les métadonnées documentaires accessibles dans votre périmètre.</p>
+      </div>
+      {% if archive_policy.can_create %}
+        <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
+      {% endif %}
+    </header>
+
+    <form class="filter-panel" method="get" aria-label="Recherche et filtres d’archives">
+      <h2 class="filter-heading">Recherche et filtres</h2>
+      {% if search_form.non_field_errors %}
+        <div class="errors" role="alert">{{ search_form.non_field_errors }}</div>
+      {% endif %}
+      <div class="form-grid">
+        <p class="form-field form-field-wide">
+          <label for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label>
+          {{ search_form.q }}
+          {% for error in search_form.q.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+        </p>
+        {% for field in search_form %}
+          {% if field.name != "q" %}
+            <p class="form-field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% for error in field.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+            </p>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <button class="button" type="submit">Rechercher</button>
+        <a class="button button-secondary" href="{% url 'archives:list' %}">Réinitialiser</a>
+      </div>
+    </form>
+
+    <!-- Synthèse du périmètre visible -->
+    <div class="summary-bar" aria-label="Synthèse documentaire">
+      <span class="summary-bar-title">Périmètre visible :</span>
+      <span class="summary-chip">Total : <strong>{{ total_visible_count }}</strong></span>
+      <span class="summary-chip">Public : <strong>{{ public_count }}</strong></span>
+      {% if internal_count is not None %}
+        <span class="summary-chip">Interne : <strong>{{ internal_count }}</strong></span>
+      {% endif %}
+      {% if confidential_count is not None %}
+        <span class="summary-chip">Confidentiel : <strong>{{ confidential_count }}</strong></span>
+      {% endif %}
+    </div>
+
+    <p class="result-meta">{{ result_count }} résultat{{ result_count|pluralize:"s" }}.</p>
+
+    {% if archives %}
+      <div class="table-responsive" tabindex="0" aria-label="Tableau des archives, défilement horizontal disponible sur petit écran">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Référence</th>
+              <th scope="col">Titre</th>
+              <th scope="col">Service</th>
+              <th scope="col">Type</th>
+              <th scope="col">Statut</th>
+              <th scope="col">Confidentialité</th>
+              <th scope="col">Date</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for archive in archives %}
+              <tr>
+                <td><a class="table-link" href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a></td>
+                <td>{{ archive.title }}</td>
+                <td>{{ archive.service.name }}</td>
+                <td>{{ archive.document_type.name }}</td>
+                <td><span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span></td>
+                <td><span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span></td>
+                <td>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</td>
+                <td class="table-actions">
+                  <a class="button button-secondary button-compact" href="{% url 'archives:detail' archive.pk %}">Consulter<span class="visually-hidden"> {{ archive.reference }}</span></a>
+                  {% if archive.file %}
+                    <a class="button button-secondary button-compact" href="{% url 'archives:download' archive.pk %}" title="Télécharger le fichier">
+                      Télécharger<span class="visually-hidden"> {{ archive.reference }}</span>
+                    </a>
+                    <form class="inline-action-form" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
+                      {% csrf_token %}
+                      <button class="button button-secondary button-compact" type="submit">Vérifier l’intégrité<span class="visually-hidden"> de {{ archive.reference }}</span></button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if is_paginated %}
+        <nav class="pagination" aria-label="Pagination des archives">
+          {% if page_obj.has_previous %}
+            <a class="button button-secondary button-compact" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">← Précédent</a>
+          {% endif %}
+          <span class="pagination-status">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a class="button button-secondary button-compact" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant →</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state">
+        {% if has_active_search %}
+          <h2>Aucun résultat</h2>
+          <p>Aucune archive ne correspond aux critères.</p>
+        {% else %}
+          <h2>Aucune archive disponible</h2>
+          <p>Aucune archive enregistrée n’est accessible dans votre périmètre.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Journal d’audit | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="audit-title">
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Traçabilité métier</p>
+        <h1 id="audit-title">Journal d’audit</h1>
+        <p class="page-description">Historique append-only des opérations sensibles, réservé aux administrateurs autorisés.</p>
+      </div>
+    </header>
+
+    <!-- Filtres d’audit -->
+    <form class="filter-panel" method="get" aria-label="Filtres du journal d’audit">
+      <h2 class="filter-heading">Filtrer les événements</h2>
+      <div class="form-grid">
+        <p class="form-field">
+          <label for="id_action">Action</label>
+          <select id="id_action" name="action">
+            <option value="">Toutes les actions</option>
+            {% for code, label in available_actions %}
+              <option value="{{ code }}" {% if action_filter == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </p>
+        <p class="form-field form-field-wide">
+          <label for="id_q">Recherche (utilisateur, archive, IP)</label>
+          <input id="id_q" type="text" name="q" value="{{ q_filter }}" placeholder="Ex : steven, CT-001, 127.0.0.1">
+        </p>
+      </div>
+      <div class="form-actions">
+        <button class="button" type="submit">Filtrer</button>
+        <a class="button button-secondary" href="{% url 'audit:list' %}">Réinitialiser</a>
+      </div>
+    </form>
+
+    {% if events %}
+      <div class="table-responsive" tabindex="0" aria-label="Tableau du journal d’audit, défilement horizontal disponible sur petit écran">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Utilisateur</th>
+              <th scope="col">Action</th>
+              <th scope="col">Archive</th>
+              <th scope="col">Adresse IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in events %}
+              <tr>
+                <td>{{ event.timestamp|date:"d/m/Y H:i:s" }}</td>
+                <td><strong>{{ event.actor_identifier }}</strong></td>
+                <td>
+                  <span class="audit-badge audit-badge-{{ event.action|lower }}">
+                    {% if event.action == 'LOGIN' %}Connexion
+                    {% elif event.action == 'LOGOUT' %}Déconnexion
+                    {% elif event.action == 'ARCHIVE_CREATE' %}Création d’archive
+                    {% elif event.action == 'ARCHIVE_UPDATE' %}Modification d’archive
+                    {% elif event.action == 'ARCHIVE_VIEW' %}Consultation d’archive
+                    {% elif event.action == 'ARCHIVE_DOWNLOAD' %}Téléchargement d’archive
+                    {% elif event.action == 'ARCHIVE_INTEGRITY_CHECK' %}Vérification d’intégrité
+                    {% else %}{{ event.get_action_display }}{% endif %}
+                  </span>
+                </td>
+                <td>{{ event.archive_reference|default:"—" }}</td>
+                <td><code>{{ event.ip_address|default:"Non disponible" }}</code></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if is_paginated %}
+        <nav class="pagination" aria-label="Pagination du journal d’audit">
+          {% if page_obj.has_previous %}
+            <a class="button button-secondary button-compact" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">← Précédent</a>
+          {% endif %}
+          <span class="pagination-status">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a class="button button-secondary button-compact" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant →</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state">
+        {% if has_active_search %}
+          <h2>Aucun événement trouvé</h2>
+          <p>Aucun événement d’audit ne correspond aux filtres demandés.</p>
+        {% else %}
+          <h2>Aucun événement d’audit</h2>
+          <p>Aucun événement d’audit n’est encore enregistré.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

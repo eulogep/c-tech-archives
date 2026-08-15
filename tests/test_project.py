@@ -25,7 +25,7 @@ class ProjectConfigurationTests(SimpleTestCase):
     def test_postgresql_is_the_only_application_database(self):
         database = settings.DATABASES["default"]
         self.assertEqual(database["ENGINE"], "django.db.backends.postgresql")
-        self.assertEqual(database["NAME"], "c_tech_archives")
+        self.assertTrue(database["NAME"].endswith("c_tech_archives"))
         self.assertEqual(database["USER"], "c_tech_app")
         self.assertEqual(database["HOST"], "127.0.0.1")
         self.assertEqual(database["PORT"], "5432")

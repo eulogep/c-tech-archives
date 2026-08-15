@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ archive.reference }} | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="panel" aria-labelledby="archive-title">
+    <header class="page-header">
+      <div>
+        <p class="page-kicker">Fiche documentaire</p>
+        <div class="action-group" aria-label="Statut de l’archive">
+          <span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span>
+          <span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span>
+        </div>
+        <h1 id="archive-title">{{ archive.reference }}</h1>
+        <p class="page-description">{{ archive.title }}</p>
+      </div>
+      {% if archive_policy.can_update %}
+        <a class="button" href="{% url 'archives:update' archive.pk %}">Modifier</a>
+      {% endif %}
+    </header>
+
+    <div class="detail-layout">
+      <!-- Section A : Identification -->
+      <section class="detail-section" aria-labelledby="general-title">
+        <h2 id="general-title">A. Identification</h2>
+        <dl class="detail-list">
+          <dt>Référence</dt><dd><strong>{{ archive.reference }}</strong></dd>
+          <dt>Titre</dt><dd>{{ archive.title }}</dd>
+          <dt>Date du document</dt><dd>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</dd>
+          <dt>Description</dt><dd class="detail-description">{{ archive.description|default:"Non renseignée"|linebreaksbr }}</dd>
+        </dl>
+      </section>
+
+      <!-- Section B : Classification -->
+      <section class="detail-section" aria-labelledby="classification-title">
+        <h2 id="classification-title">B. Classification & Sécurité</h2>
+        <dl class="detail-list">
+          <dt>Service</dt><dd>{{ archive.service.name }}</dd>
+          <dt>Catégorie</dt><dd>{{ archive.category.name }}</dd>
+          <dt>Type documentaire</dt><dd>{{ archive.document_type.name }}</dd>
+          <dt>Confidentialité</dt><dd><span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span></dd>
+          <dt>Statut</dt><dd><span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span></dd>
+        </dl>
+      </section>
+
+      <!-- Section C : Document -->
+      <section class="detail-section" aria-labelledby="file-title">
+        <h2 id="file-title">C. Document & Fichier</h2>
+        {% if archive.file %}
+          <dl class="detail-list">
+            <dt>Taille</dt><dd>{{ archive.file_size }} octet{{ archive.file_size|pluralize:"s" }}</dd>
+            <dt>Ajoutée par</dt><dd>{{ archive.uploaded_by.username }}</dd>
+            <dt>Date d’archivage</dt><dd>{% if archive.archived_at %}{{ archive.archived_at|date:"d/m/Y H:i" }}{% else %}Non renseignée{% endif %}</dd>
+          </dl>
+          <p class="upload-hint">Le document est conservé dans un espace privé hors de toute exposition directe et son accès reste validé côté serveur.</p>
+          <div class="action-group">
+            <a class="button" href="{% url 'archives:download' archive.pk %}">Télécharger le fichier</a>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <h2>Aucun fichier associé</h2>
+            <p>Cette archive ne contient pas de document téléchargeable.</p>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Section D : Intégrité -->
+      <section class="detail-section" aria-labelledby="integrity-title">
+        <h2 id="integrity-title">D. Intégrité documentaire</h2>
+        {% if archive.file %}
+          <div class="integrity-box">
+            <p><strong>Contrôle d’intégrité SHA-256</strong></p>
+            <p class="integrity-note">La vérification par empreinte cryptographique SHA-256 garantit que le document n’a pas été altéré depuis son enregistrement. (Il s'agit d'un contrôle d'intégrité, non d'un chiffrement).</p>
+            <div class="action-group" style="margin-top: 0.5rem;">
+              <form class="logout-form" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
+                {% csrf_token %}
+                <button class="button button-secondary" type="submit">Vérifier l’intégrité</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <p class="page-description">L’intégrité ne peut être vérifiée qu'en présence d'un fichier associé.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <div class="form-actions">
+      <a class="button button-secondary" href="{% url 'archives:list' %}">Retour à la liste</a>
+    </div>
+  </section>
+{% endblock %}

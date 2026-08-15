@@ -1,51 +1,90 @@
-# Plateforme web sécurisée de gestion des archives — C-Tech
+# C-Tech Archives
 
-> **Projet académique de Génie Informatique (3e année).** Cette plateforme vise à centraliser, sécuriser et tracer la gestion des archives de C-Tech, sans présumer de processus métier non encore validés par l’organisation.
+> **Plateforme sécurisée de gestion documentaire** — projet académique de Génie Informatique.
 
-## État du projet
+C-Tech Archives centralise les métadonnées et documents d’archives dans un MVP Django modulaire. Le projet privilégie une gestion documentaire explicable et vérifiable : les accès sont contrôlés côté serveur, les fichiers sont privés, les actions sensibles sont journalisées et l’intégrité du contenu peut être vérifiée par SHA-256.
 
-Le dépôt est initialisé avec la **conception fonctionnelle et technique préalable au code**. Cette approche permet de conserver un lien démontrable entre les besoins, les choix de conception, les tests et les futures itérations Git.
+## Accès en ligne
 
-| Élément | État |
+L’application est déployée en production simulée à l’adresse suivante :
+**[https://c-tech-archives.onrender.com](https://c-tech-archives.onrender.com)**
+
+## État du MVP
+
+| Élément | État vérifiable |
 |---|---|
-| Analyse du besoin et périmètre MVP | Préparé |
-| Architecture, données, sécurité et tests | Documentés |
-| Roadmap par tickets | Préparée |
-| T-001 — Initialisation Django | Terminé et intégré à `develop` |
-| T-002 — PostgreSQL et environnement | Terminé sur `feature/postgresql-environment` |
-| Application Django | Socle modulaire et PostgreSQL configurés ; fonctionnalités MVP non implémentées |
+| Socle applicatif | Django 5.1.x, PostgreSQL, Django Templates et CSS local responsive |
+| Tests automatisés | **280 tests** avec `python manage.py test` |
+| Rôles métier | Administrateur, Agent d’archives, Consultant |
+| Niveaux de confidentialité | PUBLIC, INTERNAL, CONFIDENTIAL |
+| Stockage documentaire | Privé, hors `MEDIA_URL`, téléchargement contrôlé |
+| Audit | Journal métier append-only applicatif, lecture réservée à l’Administrateur/superuser |
+| Intégrité | SHA-256 calculé après stockage et vérifié sur demande POST |
+| Sécurité | Revue transverse T-014, profil de déploiement simulé et interface T-015 responsive |
+| T-001 à T-016 | **INTEGRATED** dans `develop` ; T-005 reste `ABSORBED_BY_T004` |
+| MVP académique | **FINALIZED** : MVP fonctionnel, 280 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
 
-## Objectif du MVP
+Maintenance post-finalisation : le bootstrap sécurisé des comptes privilégiés est disponible par commande explicite et ne modifie pas le périmètre des tickets T-001 à T-016.
 
-Le MVP permettra à des utilisateurs authentifiés de gérer des archives et leurs métadonnées, selon des droits contrôlés côté serveur. Les actions sensibles seront journalisées et chaque fichier déposé recevra une empreinte SHA-256 permettant un contrôle ultérieur de son intégrité.
+## Objectif
 
-Les rôles prévus sont **Administrateur**, **Agent d’archives** et **Consultant**. L’application s’appuiera sur Django, PostgreSQL, Django Templates et Bootstrap. Le frontend restera intégré à Django pendant le MVP.
+Le MVP permet à des utilisateurs authentifiés de consulter, rechercher, créer ou modifier des archives selon leur rôle et la confidentialité du document. Il ne prétend pas couvrir une gestion documentaire réglementaire complète ni remplacer une infrastructure de production spécialisée.
 
-## Architecture cible
+## Stack technique
+
+| Couche | Technologie réellement utilisée |
+|---|---|
+| Framework web | Django 5.1.x |
+| Base de données | PostgreSQL, via `psycopg[binary]` |
+| Configuration | `python-dotenv` et variables d’environnement |
+| Images de validation de fichiers | Pillow |
+| Présentation | Django Templates et `static/css/app.css` |
+| Tests | Django TestCase, Client de test et fichiers synthétiques |
+
+Aucun framework frontend séparé, CDN critique, API REST, Docker, S3 ou architecture microservices n’est requis par le dépôt actuel.
+
+## Fonctionnalités intégrées
+
+| Capacité | Description courte |
+|---|---|
+| Authentification | Connexion par session Django, compte inactif refusé, redirection locale contrôlée et logout POST/CSRF |
+| Rôles et RBAC | Politique centralisée de visibilité et d’actions par rôle, avec deny-by-default |
+| Dashboard | Six métriques limitées au périmètre visible de l’utilisateur |
+| Archives | Création et modification des métadonnées autorisées, sans suppression physique |
+| Recherche | Recherche GET, filtres combinables et pagination avec query string conservée |
+| Fichiers | Upload validé, stockage privé UUID et téléchargement par vue protégée |
+| Confidentialité | PUBLIC, INTERNAL et CONFIDENTIAL appliqués avant liste, recherche, pagination et détail |
+| Audit | Événements métier minimaux après opérations réussies ; interface Administrateur uniquement |
+| Intégrité | Empreinte SHA-256 de référence et vérification explicite POST |
+| Interface | Sidebar guidée par le rôle, tables responsive, formulaires structurés et états vides |
+
+La matrice détaillée des fonctionnalités et preuves est disponible dans [`docs/final-feature-matrix.md`](docs/final-feature-matrix.md).
+
+## Architecture
+
+Le navigateur appelle les routes Django. Les vues appliquent l’authentification, le RBAC, les formulaires et les services, puis accèdent à PostgreSQL via l’ORM. Les fichiers sont conservés dans un stockage privé et ne sont renvoyés qu’après un contrôle d’accès ; l’audit et l’intégrité sont des services applicatifs séparés.
 
 ```text
-c-tech-archives/
-├── config/                 # Configuration Django, réglages par environnement
-├── accounts/               # Utilisateur personnalisé, rôles et gestion des comptes
-├── archives/               # Archives, catégories, services, types de document
-├── audit/                  # Journal d’audit applicatif
-├── dashboard/              # Indicateurs et vue d’accueil
-├── templates/              # Gabarits Django partagés
-├── static/                 # Ressources statiques, dont Bootstrap
-├── media/                  # Fichiers locaux de développement — non versionnés
-├── tests/                  # Tests transversaux et de sécurité
-├── docs/                   # Documentation pour le mémoire
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── README.md
+Navigateur → URLs Django → Vues → Authentification / autorisation
+                                 → Formulaires / services → ORM → PostgreSQL
+                                 → Stockage privé
+                                 → AuditLog
+                                 → Service SHA-256
 ```
 
-La logique métier ne devra pas être concentrée dans une seule application. Les frontières fonctionnelles sont décrites dans [`docs/architecture.md`](docs/architecture.md).
+La description complète et le modèle de données sont dans [`docs/architecture-final.md`](docs/architecture-final.md).
 
-## Démarrage local après T-001
+## Sécurité
 
-Le socle Django est initialisé. Les commandes suivantes permettent de l’exécuter localement ; PostgreSQL et les modèles métier seront ajoutés dans les tickets suivants. Pendant T-001, SQLite reste une solution temporaire de démarrage.
+Les contrôles principaux sont l’authentification par session, CSRF, RBAC avec QuerySets filtrés, réponse 404 anti-inférence, formulaires à liste blanche, stockage privé, validation de fichiers, audit applicatif minimal et vérification SHA-256. En production, `DEBUG` doit être désactivé, les hôtes doivent être explicites et le wildcard `DJANGO_ALLOWED_HOSTS=*` est refusé.
+
+> Le projet ne doit pas être présenté comme « totalement sécurisé ». Il ne fournit pas de MFA, rate limiting intégré, antivirus, chiffrement applicatif au repos, signature numérique, SIEM/WORM, pentest externe ni certification OWASP.
+
+La revue, le modèle de menace et les risques résiduels sont documentés dans [`docs/security-review.md`](docs/security-review.md).
+
+## Installation locale
+
+Depuis un clone propre, créez un environnement virtuel, installez les dépendances, copiez `.env.example`, configurez PostgreSQL puis appliquez les migrations :
 
 ```bash
 git clone https://github.com/eulogep/c-tech-archives.git
@@ -55,40 +94,100 @@ source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 python manage.py migrate
+python manage.py bootstrap_default_admins
 python manage.py runserver
 ```
+
+Avant d’exécuter `bootstrap_default_admins`, configurez dans `.env` les quatre variables de comptes privilégiés indiquées ci-dessous. La commande initialise explicitement les comptes requis et ne crée aucun utilisateur au démarrage de l’application. Le guide détaillé Linux/macOS/Windows, les données synthétiques et les contrôles de configuration sont dans [`docs/installation.md`](docs/installation.md). **Ne commitez jamais `.env`, des mots de passe ou des données réelles C-Tech.**
+
+## Configuration
+
+Les variables sont chargées depuis `.env` en développement et depuis l’environnement en production.
+
+| Variable | Rôle | Exemple non sensible |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | Secret Django obligatoire | `replace-with-a-unique-long-random-secret` |
+| `DJANGO_ENV` | Profil d’environnement | `development` ou `production` |
+| `DJANGO_DEBUG` | Debug Django | `True` local, `False` en production |
+| `DJANGO_ALLOWED_HOSTS` | Hôtes acceptés | `localhost,127.0.0.1` ou `archives.example` |
+| `POSTGRES_DB` / `POSTGRES_USER` | Base et rôle applicatif | `c_tech_archives` / `c_tech_app` |
+| `POSTGRES_PASSWORD` | Secret PostgreSQL | valeur locale non versionnée |
+| `POSTGRES_HOST` / `POSTGRES_PORT` | Connexion PostgreSQL | `127.0.0.1` / `5432` |
+| `PRIVATE_MEDIA_ROOT` | Répertoire des documents privés | `private_media` |
+| `ARCHIVE_MAX_UPLOAD_SIZE` | Taille maximale d’upload | `10485760` |
+| `ARCHIVE_ALLOWED_EXTENSIONS` | Extensions autorisées | `.pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png` |
+| `CTECH_STEVEN_EMAIL` | Email de connexion de l’administrateur métier | `business-administrator@example.invalid` |
+| `CTECH_STEVEN_PASSWORD` | Secret local de l’administrateur métier | `replace-with-a-strong-business-administrator-password` |
+| `CTECH_EULOGE_EMAIL` | Email de connexion du superutilisateur technique | `technical-administrator@example.invalid` |
+| `CTECH_EULOGE_PASSWORD` | Secret local du superutilisateur technique | `replace-with-a-strong-technical-administrator-password` |
+
+Les variables HTTPS, cookies et HSTS sont décrites dans [`docs/environment.md`](docs/environment.md) et [`docs/installation.md`](docs/installation.md).
+
+## Migrations, lancement et tests
+
+```bash
+python manage.py makemigrations --check --dry-run
+python manage.py migrate --noinput
+python manage.py runserver
+python manage.py test
+```
+
+La commande de test exécute **280 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
+
+```bash
+python manage.py check --deploy
+```
+
+Un profil de production simulé avec hôte explicite, HTTPS, cookies secure et HSTS est documenté dans la revue sécurité. Aucun résultat `pip-audit` n’est revendiqué localement lorsque cet outil n’est pas installé.
+
+## Comptes et rôles conceptuels
+
+| Rôle | Périmètre documentaire | Actions principales |
+|---|---|---|
+| Consultant | PUBLIC | Consulter, rechercher, télécharger et vérifier l’intégrité d’une archive PUBLIC visible |
+| Agent d’archives | PUBLIC, INTERNAL | Ajouter et modifier PUBLIC/INTERNAL, consulter, télécharger et vérifier les archives visibles |
+| Administrateur | PUBLIC, INTERNAL, CONFIDENTIAL | Gestion documentaire complète dans le périmètre MVP et consultation de l’audit |
+| Superuser technique | Accès technique complet | Administration Django selon les attributs Django explicites |
+
+La matrice exhaustive se trouve dans [`docs/final-rbac-matrix.md`](docs/final-rbac-matrix.md). Les comptes de démonstration sont créés localement avec des données synthétiques ; aucun mot de passe de démonstration n’est versionné.
+
+## Structure du dépôt
+
+```text
+accounts/       identité, rôles et authentification
+archives/       domaine documentaire, RBAC, fichiers et intégrité
+audit/          journal métier
+dashboard/      métriques visibles
+config/         paramètres et routes racines
+templates/      gabarits Django
+static/         CSS local de l’interface
+tests/          tests transverses, sécurité et interface
+docs/           documentation académique, technique et de démonstration
+```
+
+## Limites et perspectives
+
+Les limites finales incluent l’absence de MFA, rate limiting intégré, antivirus, suppression physique, versioning documentaire, chiffrement applicatif au repos, signature numérique, SIEM/WORM, ACL de service/individu, pentest externe et certification OWASP.
+
+Les perspectives possibles, après validation des besoins et des risques, sont le MFA, une protection anti-brute-force, un antivirus, du stockage objet privé, la rétention/versioning, les ACL fines, SIEM/WORM, signature numérique, monitoring, sauvegarde/restauration et un audit de dépendances en CI.
 
 ## Documentation
 
 | Document | Contenu |
 |---|---|
-| [`docs/architecture.md`](docs/architecture.md) | Architecture modulaire, composants et flux principaux |
-| [`docs/database.md`](docs/database.md) | Modèles Django, MCD et MLD initiaux |
-| [`docs/security.md`](docs/security.md) | Exigences et mesures de sécurité du MVP |
-| [`docs/use-cases.md`](docs/use-cases.md) | Cas d’utilisation et acteurs |
-| [`docs/roadmap.md`](docs/roadmap.md) | Tickets séquentiels et conditions de passage |
-| [`docs/tests.md`](docs/tests.md) | Stratégie de test et matrice de couverture |
-| [`docs/decisions.md`](docs/decisions.md) | Journal des décisions techniques pour le mémoire |
-| [`docs/open-questions.md`](docs/open-questions.md) | Informations métier et organisationnelles à valider avec C-Tech |
-| [`docs/technical-validation-questions.md`](docs/technical-validation-questions.md) | Décisions techniques à valider avant intégration et déploiement |
-| [`docs/environment.md`](docs/environment.md) | Configuration PostgreSQL et exigences d’environnement de production |
-| [`docs/tickets/T-001.md`](docs/tickets/T-001.md) | Compte rendu de clôture du ticket d’initialisation |
-| [`docs/tickets/T-002.md`](docs/tickets/T-002.md) | Compte rendu de clôture du ticket PostgreSQL et environnement |
-
-## Convention Git
-
-Le dépôt suivra une organisation simple : `main`, `develop`, `feature/*` et `fix/*`. Un ticket correspond à une branche de fonctionnalité, à des tests associés et à un commit explicite. Aucun ticket ne doit être considéré terminé si ses tests échouent.
-
-Exemple de commit :
-
-```text
-feat(auth): add role-based authentication
-```
-
-## Hors périmètre du MVP
-
-La blockchain, l’intelligence artificielle, l’OCR avancé, les applications mobiles, la signature électronique, les microservices, Kubernetes et l’architecture distribuée constituent des **perspectives** et ne seront pas implémentés dans le MVP.
+| [`docs/installation.md`](docs/installation.md) | Installation reproductible et lancement local |
+| [`docs/architecture-final.md`](docs/architecture-final.md) | Architecture finale et modèle de données |
+| [`docs/final-feature-matrix.md`](docs/final-feature-matrix.md) | Capacités intégrées, preuves et limites |
+| [`docs/final-rbac-matrix.md`](docs/final-rbac-matrix.md) | Matrice par rôle et confidentialité |
+| [`docs/final-test-matrix.md`](docs/final-test-matrix.md) | Couverture automatisée et matrice de tests du MVP |
+| [`docs/security-review.md`](docs/security-review.md) | Revue sécurité, modèle de menace et risques résiduels |
+| [`docs/user-guide.md`](docs/user-guide.md) | Parcours Consultant, Agent et Administrateur |
+| [`docs/demo-script.md`](docs/demo-script.md) | Scripts de démonstration 2 minutes et 5–7 minutes |
+| [`docs/demo-evidence.md`](docs/demo-evidence.md) | Preuves et replis de démonstration |
+| [`docs/presentation-outline.md`](docs/presentation-outline.md) | Plan de soutenance |
+| [`docs/jury-questions.md`](docs/jury-questions.md) | Questions et réponses de jury |
+| [`docs/steven-final-defense.md`](docs/steven-final-defense.md) | Fiche de révision finale |
 
 ## Licence
 
-Les modalités de licence et de propriété intellectuelle restent à définir avec C-Tech et l’établissement académique. Aucune licence publique n’est déclarée à ce stade.
+Les modalités de licence et de propriété intellectuelle restent à définir avec C-Tech et l’établissement académique.

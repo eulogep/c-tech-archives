@@ -56,6 +56,10 @@ ALLOWED_HOSTS = env_list(
 )
 if not DEBUG and not ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS doit être défini hors développement.")
+if not DEBUG and "*" in ALLOWED_HOSTS:
+    raise ImproperlyConfigured(
+        "DJANGO_ALLOWED_HOSTS ne doit pas contenir '*' hors développement."
+    )
 
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
@@ -74,6 +78,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -95,6 +100,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "archives.context_processors.archive_policy",
+                "audit.context_processors.audit_policy",
             ],
         },
     },
@@ -132,11 +139,31 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Les documents d’archives sont stockés hors de toute exposition MEDIA_URL.
+PRIVATE_MEDIA_ROOT = Path(
+    os.getenv("PRIVATE_MEDIA_ROOT", "private_media")
+).expanduser()
+if not PRIVATE_MEDIA_ROOT.is_absolute():
+    PRIVATE_MEDIA_ROOT = BASE_DIR / PRIVATE_MEDIA_ROOT
+ARCHIVE_MAX_UPLOAD_SIZE = env_int("ARCHIVE_MAX_UPLOAD_SIZE", 10 * 1024 * 1024)
+ARCHIVE_ALLOWED_EXTENSIONS = env_list(
+    "ARCHIVE_ALLOWED_EXTENSIONS",
+    default=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png",
+)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = "accounts.User"
+
+# Authentification par session Django du MVP.
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 # Cookies, navigateur et HTTPS : les valeurs de production doivent être explicites.
 SESSION_COOKIE_HTTPONLY = True
