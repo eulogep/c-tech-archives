@@ -1180,3 +1180,133 @@ a:hover {
     align-items: flex-start;
   }
 }
+
+
+/* Avatar privé et profil */
+.topbar-avatar-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+  border: 2px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.topbar-avatar-link:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.topbar-avatar,
+.profile-avatar-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.topbar-avatar-placeholder,
+.profile-avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.topbar-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  font-size: 0.95rem;
+}
+
+.user-name {
+  text-decoration: none;
+}
+
+.user-name:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.profile-page {
+  max-width: 58rem;
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.75fr) minmax(0, 1.25fr);
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.profile-avatar-panel,
+.profile-form-panel {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.profile-avatar-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.profile-avatar-panel h2,
+.profile-form-panel h2 {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+
+.profile-avatar-preview,
+.profile-avatar-placeholder {
+  width: 9.5rem;
+  height: 9.5rem;
+  margin: var(--space-4) 0 var(--space-3);
+  border: 3px solid var(--color-border-subtle);
+}
+
+.profile-avatar-placeholder {
+  font-size: 2.5rem;
+}
+
+.profile-identity {
+  margin: 0;
+  font-weight: 700;
+}
+
+.profile-identity-meta {
+  margin: var(--space-1) 0 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.form-field input[type="file"] {
+  max-width: 100%;
+}
+
+@media (max-width: 46rem) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-context {
+    display: none;
+  }
+
+  .user-menu {
+    gap: var(--space-2);
+  }
+}

@@ -54,8 +54,21 @@
         <header class="topbar">
           <span class="topbar-context">Plateforme sécurisée de gestion documentaire</span>
           <div class="user-menu">
+            <a class="topbar-avatar-link" href="{% url 'profile' %}" aria-label="Ouvrir mon profil">
+              {% if user.has_profile_avatar %}
+                <img
+                  class="topbar-avatar"
+                  src="{% url 'profile_avatar' user.pk %}"
+                  alt="Photo de profil de {{ user.get_full_name|default:user.username }}"
+                  width="40"
+                  height="40"
+                >
+              {% else %}
+                <span class="topbar-avatar-placeholder" aria-hidden="true">{{ user.username|slice:":1"|upper }}</span>
+              {% endif %}
+            </a>
             <div class="user-identity">
-              <span class="user-name">{{ user.username }}</span>
+              <a class="user-name" href="{% url 'profile' %}">{{ user.username }}</a>
               <div class="user-badges">
                 <span class="badge badge-role">{{ user.get_role_display }}</span>
                 {% if user.is_superuser %}
