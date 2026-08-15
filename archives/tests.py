@@ -1479,6 +1479,7 @@ class ArchiveRbacTests(TestCase):
         download_response = self.get_as(
             self.superuser, f"/archives/{confidential.pk}/download/"
         )
+        b"".join(download_response.streaming_content)
 
         self.assertContains(list_response, confidential.reference)
         self.assertEqual(detail_response.status_code, 200)
@@ -1815,6 +1816,7 @@ class ArchiveIntegrityTests(TestCase):
 
         with patch("archives.views.calculate_archive_checksum") as checksum_mock:
             response = self.client.get(f"/archives/{archive.pk}/download/")
+            b"".join(response.streaming_content)
 
         self.assertEqual(response.status_code, 200)
         checksum_mock.assert_not_called()

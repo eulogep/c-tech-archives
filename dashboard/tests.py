@@ -17,7 +17,7 @@ from archives.models import (
 
 
 class DashboardTests(TestCase):
-    """Couvre les indicateurs agrégés et la non-exposition T-007."""
+    """Couvre les indicateurs agrégés et l’aperçu documentaire filtré."""
 
     def setUp(self):
         user_model = get_user_model()
@@ -68,14 +68,15 @@ class DashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Tableau de bord")
 
-    def test_dash_003_empty_database_displays_zero_aggregates_only(self):
+    def test_dash_003_empty_database_displays_zero_aggregates_and_empty_state(self):
         self.client.force_login(self.user)
 
         response = self.client.get(self.dashboard_url)
 
         self.assertEqual(response.context["archive_count"], 0)
         self.assertEqual(response.context["active_service_count"], 0)
-        self.assertNotContains(response, "Dernières archives")
+        self.assertContains(response, "Dernières archives visibles")
+        self.assertContains(response, "Aucune archive visible")
 
     def test_dash_004_total_archive_counter_reflects_database(self):
         for index in range(1, 4):
@@ -114,7 +115,7 @@ class DashboardTests(TestCase):
         self.assertEqual(response.context["active_category_count"], 1)
         self.assertEqual(response.context["active_document_type_count"], 1)
 
-    def test_dash_007_confidential_archive_metadata_is_not_exposed(self):
+    def test_dash_007_hidden_confidential_archive_metadata_is_not_exposed(self):
         reference = "CT-2026-999999"
         title = "Document extrêmement confidentiel"
         self.create_archive(
@@ -123,11 +124,13 @@ class DashboardTests(TestCase):
             title=title,
             confidentiality_level=ConfidentialityLevel.CONFIDENTIAL,
         )
+        self.user.role = Role.CONSULTANT
+        self.user.save(update_fields=["role"])
         self.client.force_login(self.user)
 
         response = self.client.get(self.dashboard_url)
 
-        self.assertEqual(response.context["archive_count"], 1)
+        self.assertEqual(response.context["archive_count"], 0)
         self.assertNotContains(response, reference)
         self.assertNotContains(response, title)
 
@@ -144,7 +147,7 @@ class DashboardTests(TestCase):
         self.assertEqual(response.context["active_archive_count"], 3)
         self.assertEqual(response.context["archived_archive_count"], 2)
 
-    def test_dash_009_sensitive_values_are_not_exposed_in_html(self):
+    def test_dash_009_technical_sensitive_values_are_not_exposed_in_html(self):
         checksum = "a" * 64
         confidential_title = "Titre confidentiel créé pour le test"
         self.create_archive(
@@ -159,13 +162,14 @@ class DashboardTests(TestCase):
 
         self.assertNotContains(response, checksum)
         self.assertNotContains(response, self.user.password)
-        self.assertNotContains(response, confidential_title)
+        self.assertContains(response, confidential_title)
 
-    def test_dash_010_dashboard_context_exposes_aggregates_only(self):
+    def test_dash_010_dashboard_context_exposes_filtered_recent_archives(self):
         self.create_archive(1)
         self.client.force_login(self.user)
 
         response = self.client.get(self.dashboard_url)
 
         self.assertNotIn("latest_archives", response.context)
-        self.assertNotContains(response, "Dernières archives")
+        self.assertIn("recent_archives", response.context)
+        self.assertContains(response, "Dernières archives visibles")
