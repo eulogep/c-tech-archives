@@ -4,6 +4,11 @@
 
 C-Tech Archives centralise les métadonnées et documents d’archives dans un MVP Django modulaire. Le projet privilégie une gestion documentaire explicable et vérifiable : les accès sont contrôlés côté serveur, les fichiers sont privés, les actions sensibles sont journalisées et l’intégrité du contenu peut être vérifiée par SHA-256.
 
+## Accès en ligne
+
+L’application est déployée en production simulée à l’adresse suivante :
+**[https://c-tech-archives.onrender.com](https://c-tech-archives.onrender.com)**
+
 ## État du MVP
 
 | Élément | État vérifiable |
