@@ -1,0 +1,70 @@
+services:
+  - type: web
+    name: c-tech-archives
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.2
+      - key: DJANGO_ENV
+        value: production
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: DJANGO_SESSION_COOKIE_SECURE
+        value: "True"
+      - key: DJANGO_CSRF_COOKIE_SECURE
+        value: "True"
+      - key: DJANGO_SECURE_SSL_REDIRECT
+        value: "True"
+      - key: DJANGO_USE_X_FORWARDED_PROTO
+        value: "True"
+      - key: DJANGO_SECURE_HSTS_SECONDS
+        value: "0"
+      - key: DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS
+        value: "False"
+      - key: DJANGO_SECURE_HSTS_PRELOAD
+        value: "False"
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: ctech-postgres-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: ctech-postgres-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: ctech-postgres-db
+          property: password
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: ctech-postgres-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: ctech-postgres-db
+          property: port
+      - key: CTECH_STEVEN_EMAIL
+        sync: false
+      - key: CTECH_STEVEN_PASSWORD
+        sync: false
+      - key: CTECH_EULOGE_EMAIL
+        sync: false
+      - key: CTECH_EULOGE_PASSWORD
+        sync: false
+
+databases:
+  - name: ctech-postgres-db
+    databaseName: c_tech_archives
+    user: c_tech_app
+    plan: free
+    region: frankfurt
