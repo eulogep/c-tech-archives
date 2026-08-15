@@ -5,10 +5,12 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
+from django.urls import reverse
 
 from .models import Role, User
 
@@ -408,4 +410,89 @@ class BootstrapDefaultAdminsCommandTests(TestCase):
         self.client.logout()
         self.assertTrue(
             self.client.login(username=self.euloge_email, password=self.euloge_password)
+        )
+
+
+class PrivateProfileAvatarTests(TestCase):
+    """Vérifie que l’avatar reste privé, valide et accessible au seul propriétaire."""
+
+    tiny_png = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+        b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+        b"\x00\x00\x00\x0dIDATx\x9cc\xf8\xcf\xc0\xf0\x1f\x00\x05\x00"
+        b"\x01\xff\x89\x99=\x1d\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="steven-avatar",
+            email="steven.avatar@example.test",
+            password="Avatar-Synthetic-Password-2026",
+            first_name="Steven",
+            last_name="Parker",
+            role=Role.ADMINISTRATEUR,
+        )
+        self.other_user = User.objects.create_user(
+            username="other-avatar",
+            email="other.avatar@example.test",
+            password="Other-Avatar-Synthetic-Password-2026",
+        )
+        self.profile_url = reverse("profile")
+        self.avatar_url = reverse("profile_avatar", args=[self.user.pk])
+
+    def avatar_upload(self):
+        return SimpleUploadedFile(
+            "steven-profile.png",
+            self.tiny_png,
+            content_type="image/png",
+        )
+
+    def test_avatar_upload_is_stored_in_database_without_public_media_path(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.profile_url, {"avatar": self.avatar_upload()})
+
+        self.assertRedirects(response, self.profile_url)
+        self.user.refresh_from_db()
+        self.assertEqual(bytes(self.user.profile_avatar), self.tiny_png)
+        self.assertEqual(self.user.profile_avatar_content_type, "image/png")
+        self.assertTrue(self.user.has_profile_avatar)
+
+    def test_avatar_is_only_served_to_its_authenticated_owner_with_private_cache(self):
+        self.user.profile_avatar = self.tiny_png
+        self.user.profile_avatar_content_type = "image/png"
+        self.user.save(update_fields=["profile_avatar", "profile_avatar_content_type"])
+
+        self.client.force_login(self.user)
+        response = self.client.get(self.avatar_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, self.tiny_png)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+
+        self.client.force_login(self.other_user)
+        self.assertEqual(self.client.get(self.avatar_url).status_code, 404)
+
+    def test_profile_page_renders_private_avatar_route_after_upload(self):
+        self.user.profile_avatar = self.tiny_png
+        self.user.profile_avatar_content_type = "image/png"
+        self.user.save(update_fields=["profile_avatar", "profile_avatar_content_type"])
+        self.client.force_login(self.user)
+
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.avatar_url)
+        self.assertContains(response, "Photo de profil de Steven Parker")
+
+    def test_anonymous_user_cannot_access_profile_or_avatar(self):
+        self.assertRedirects(
+            self.client.get(self.profile_url),
+            f"/accounts/login/?next={self.profile_url}",
+        )
+        self.assertRedirects(
+            self.client.get(self.avatar_url),
+            f"/accounts/login/?next={self.avatar_url}",
         )

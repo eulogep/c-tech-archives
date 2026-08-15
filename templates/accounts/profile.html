@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Mon profil · C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="profile-page" aria-labelledby="profile-title">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">Espace personnel</p>
+        <h1 id="profile-title">Mon profil</h1>
+        <p class="page-description">Votre photo de profil est stockée de manière privée et n’est accessible qu’après authentification.</p>
+      </div>
+    </div>
+
+    <div class="profile-layout">
+      <section class="profile-avatar-panel" aria-labelledby="avatar-preview-title">
+        <h2 id="avatar-preview-title">Photo actuelle</h2>
+        {% if user.has_profile_avatar %}
+          <img
+            class="profile-avatar-preview"
+            src="{% url 'profile_avatar' user.pk %}"
+            alt="Photo de profil de {{ user.get_full_name|default:user.username }}"
+            width="152"
+            height="152"
+          >
+        {% else %}
+          <div class="profile-avatar-placeholder" aria-label="Aucune photo de profil configurée">
+            {{ user.username|slice:":1"|upper }}
+          </div>
+        {% endif %}
+        <p class="profile-identity">{{ user.get_full_name|default:user.username }}</p>
+        <p class="profile-identity-meta">{{ user.get_role_display }}</p>
+      </section>
+
+      <section class="profile-form-panel" aria-labelledby="avatar-form-title">
+        <h2 id="avatar-form-title">Mettre à jour ma photo</h2>
+        <form method="post" enctype="multipart/form-data" class="form-grid">
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="form-errors">{{ form.non_field_errors }}</div>
+          {% endif %}
+          <div class="form-field">
+            <label for="{{ form.avatar.id_for_label }}">{{ form.avatar.label }}</label>
+            {{ form.avatar }}
+            {% if form.avatar.help_text %}
+              <small>{{ form.avatar.help_text }}</small>
+            {% endif %}
+            {% for error in form.avatar.errors %}
+              <span class="field-error">{{ error }}</span>
+            {% endfor %}
+          </div>
+          <button class="button button-primary" type="submit">Enregistrer ma photo</button>
+        </form>
+      </section>
+    </div>
+  </section>
+{% endblock %}
