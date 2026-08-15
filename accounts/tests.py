@@ -496,3 +496,103 @@ class PrivateProfileAvatarTests(TestCase):
             self.client.get(self.avatar_url),
             f"/accounts/login/?next={self.avatar_url}",
         )
+
+
+class EmailSignupAndAuthenticationTests(TestCase):
+    """Vérifie les parcours e-mail et l’absence d’élévation lors de l’inscription."""
+
+    def setUp(self):
+        self.email = "admin.email@example.test"
+        self.password = "Secure-Admin-Password-2026!"
+        self.admin = User.objects.create_user(
+            username=self.email,
+            email=self.email,
+            password=self.password,
+            first_name="Admin",
+            last_name="Email",
+            role=Role.ADMINISTRATEUR,
+            is_staff=True,
+        )
+        self.login_url = reverse("login")
+        self.signup_url = reverse("signup")
+
+    def test_email_login_accepts_case_insensitive_email_and_redirects_on_success(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": self.email.upper(), "password": self.password},
+        )
+
+        self.assertRedirects(response, "/")
+        self.assertEqual(self.client.session["_auth_user_id"], str(self.admin.pk))
+
+    def test_login_page_labels_identifier_as_email_and_offers_signup(self):
+        response = self.client.get(self.login_url)
+
+        self.assertContains(response, "Adresse e-mail")
+        self.assertContains(response, "Créer le compte")
+        self.assertContains(response, self.signup_url)
+
+    def test_signup_creates_active_consultant_with_email_as_username(self):
+        email = "nouveau.consultant@example.test"
+        response = self.client.post(
+            self.signup_url,
+            {
+                "email": email,
+                "first_name": "Nouveau",
+                "last_name": "Consultant",
+                "password1": "Nouveau-Consultant-Password-2026!",
+                "password2": "Nouveau-Consultant-Password-2026!",
+            },
+        )
+
+        self.assertRedirects(response, "/")
+        user = User.objects.get(email=email)
+        self.assertEqual(user.username, email)
+        self.assertEqual(user.role, Role.CONSULTANT)
+        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
+
+    def test_signup_ignores_tampered_privilege_fields(self):
+        email = "tentative.admin@example.test"
+        response = self.client.post(
+            self.signup_url,
+            {
+                "email": email,
+                "first_name": "Tentative",
+                "last_name": "Admin",
+                "password1": "Tentative-Admin-Password-2026!",
+                "password2": "Tentative-Admin-Password-2026!",
+                "role": Role.ADMINISTRATEUR,
+                "is_staff": "true",
+                "is_superuser": "true",
+            },
+        )
+
+        self.assertRedirects(response, "/")
+        user = User.objects.get(email=email)
+        self.assertEqual(user.role, Role.CONSULTANT)
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+
+    def test_signup_rejects_existing_email_even_with_different_case(self):
+        response = self.client.post(
+            self.signup_url,
+            {
+                "email": self.email.upper(),
+                "password1": "Another-Valid-Password-2026!",
+                "password2": "Another-Valid-Password-2026!",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Un compte existe déjà pour cette adresse e-mail.")
+        self.assertEqual(User.objects.filter(email__iexact=self.email).count(), 1)
+
+    def test_authenticated_user_cannot_create_another_account_from_signup_page(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(self.signup_url)
+
+        self.assertRedirects(response, "/")
