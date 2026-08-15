@@ -1,6 +1,6 @@
 # Installation et exécution locale
 
-Ce guide permet de préparer C-Tech Archives depuis un clone propre avec PostgreSQL. Il ne décrit ni Docker, ni service cloud, ni procédure de déploiement qui ne sont pas présents dans le dépôt.
+Ce guide permet de préparer C-Tech Archives depuis un clone propre avec PostgreSQL. Bien que le projet soit optimisé pour une exécution locale, une instance de démonstration est maintenue en ligne pour la soutenance.
 
 ## Prérequis
 
@@ -106,6 +106,13 @@ python manage.py check --deploy
 ```
 
 Pour une simulation de production, fournissez un hôte explicite, désactivez DEBUG et activez les paramètres HTTPS/cookies/HSTS documentés dans `.env.example`. `DJANGO_ALLOWED_HOSTS=*` est refusé hors développement.
+
+## Déploiement en production
+
+L’application est déployée sur **Render** via le Blueprint `render.yaml` présent à la racine du dépôt. L’instance de production simulée est accessible à :
+**[https://c-tech-archives.onrender.com](https://c-tech-archives.onrender.com)**
+
+Le déploiement automatise l’installation des dépendances, la collecte des fichiers statiques, les migrations de base de données et le bootstrap des comptes privilégiés.
 
 ## Références utiles
 
