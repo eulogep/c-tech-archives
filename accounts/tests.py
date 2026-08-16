@@ -12,7 +12,7 @@ from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from .models import Role, User
+from .models import FutureImprovementFeature, FutureImprovementVote, Role, User
 
 
 class UserModelTests(TestCase):
@@ -647,3 +647,73 @@ class OnboardingAndFutureImprovementsTests(TestCase):
         self.assertContains(response, "Futures améliorations")
         self.assertFalse(self.user.is_staff)
         self.assertFalse(self.user.is_superuser)
+
+
+class FutureImprovementVotingTests(TestCase):
+    """Vérifie la priorisation participative sans exposition des identités de votants."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="vote.user@example.test",
+            email="vote.user@example.test",
+            password="Vote-User-Password-2026!",
+            role=Role.CONSULTANT,
+        )
+        self.other_user = User.objects.create_user(
+            username="other.vote@example.test",
+            email="other.vote@example.test",
+            password="Other-Vote-Password-2026!",
+            role=Role.CONSULTANT,
+        )
+        self.roadmap_url = reverse("future_improvements")
+        self.vote_url = reverse("toggle_future_improvement_vote")
+        self.feature = FutureImprovementFeature.SEARCH_OCR
+
+    def test_vote_endpoint_requires_authenticated_post_request(self):
+        response = self.client.post(self.vote_url, {"feature": self.feature})
+
+        self.assertRedirects(response, f"{reverse('login')}?next={self.vote_url}")
+        self.assertFalse(FutureImprovementVote.objects.exists())
+
+    def test_authenticated_user_can_add_and_remove_own_vote(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.vote_url, {"feature": self.feature})
+
+        self.assertRedirects(response, self.roadmap_url)
+        self.assertTrue(
+            FutureImprovementVote.objects.filter(user=self.user, feature=self.feature).exists()
+        )
+
+        response = self.client.post(self.vote_url, {"feature": self.feature})
+
+        self.assertRedirects(response, self.roadmap_url)
+        self.assertFalse(
+            FutureImprovementVote.objects.filter(user=self.user, feature=self.feature).exists()
+        )
+
+    def test_vote_constraint_prevents_duplicate_vote_for_same_user_and_feature(self):
+        FutureImprovementVote.objects.create(user=self.user, feature=self.feature)
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                FutureImprovementVote.objects.create(user=self.user, feature=self.feature)
+
+    def test_invalid_feature_is_not_accepted(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.vote_url, {"feature": "FORGED_FEATURE"})
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(FutureImprovementVote.objects.exists())
+
+    def test_roadmap_shows_aggregate_count_and_current_user_vote_state_without_voter_identity(self):
+        FutureImprovementVote.objects.create(user=self.user, feature=self.feature)
+        FutureImprovementVote.objects.create(user=self.other_user, feature=self.feature)
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.roadmap_url)
+
+        self.assertContains(response, "2 votes")
+        self.assertContains(response, "Retirer mon vote")
+        self.assertNotContains(response, self.other_user.email)

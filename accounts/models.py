@@ -13,6 +13,17 @@ class Role(models.TextChoices):
     CONSULTANT = "CONSULTANT", "Consultant"
 
 
+class FutureImprovementFeature(models.TextChoices):
+    """Fonctionnalités affichées dans la feuille de route participative."""
+
+    SEARCH_OCR = "SEARCH_OCR", "Recherche enrichie et OCR"
+    SIGNATURE = "SIGNATURE", "Validation et signature électronique"
+    RETENTION = "RETENTION", "Calendrier de conservation"
+    ANALYTICS = "ANALYTICS", "Indicateurs et rapports"
+    SECURITY = "SECURITY", "Sécurité renforcée"
+    CONNECTORS = "CONNECTORS", "Connecteurs métier"
+
+
 class User(AbstractUser):
     """Utilisateur C-Tech utilisant le système d’authentification natif de Django.
 
@@ -65,3 +76,29 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return self.get_full_name() or self.username
+
+
+class FutureImprovementVote(models.Model):
+    """Vote d’un utilisateur authentifié pour une amélioration identifiée."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="future_improvement_votes",
+    )
+    feature = models.CharField(max_length=32, choices=FutureImprovementFeature.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "feature"),
+                name="accounts_unique_future_improvement_vote",
+            )
+        ]
+        ordering = ("-created_at",)
+        verbose_name = "vote pour une amélioration future"
+        verbose_name_plural = "votes pour les améliorations futures"
+
+    def __str__(self) -> str:
+        return f"{self.user} → {self.get_feature_display()}"
