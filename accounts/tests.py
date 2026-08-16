@@ -596,3 +596,54 @@ class EmailSignupAndAuthenticationTests(TestCase):
         response = self.client.get(self.signup_url)
 
         self.assertRedirects(response, "/")
+
+
+class OnboardingAndFutureImprovementsTests(TestCase):
+    """Vérifie les parcours de découverte, sans contourner l’authentification."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="guide.user@example.test",
+            email="guide.user@example.test",
+            password="Guide-User-Password-2026!",
+            role=Role.CONSULTANT,
+        )
+        self.home_url = reverse("home")
+        self.roadmap_url = reverse("future_improvements")
+
+    def test_home_exposes_welcome_guide_and_roadmap_entry_for_authenticated_user(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.home_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Bienvenue, guide.user@example.test")
+        self.assertContains(response, "Découvrir l’interface")
+        self.assertContains(response, "Guide d’utilisation · étape 1 sur 4")
+        self.assertContains(response, self.roadmap_url)
+        self.assertContains(response, "onboarding.js")
+
+    def test_future_improvements_is_protected(self):
+        response = self.client.get(self.roadmap_url)
+
+        self.assertRedirects(response, f"{reverse('login')}?next={self.roadmap_url}")
+
+    def test_future_improvements_lists_roadmap_for_authenticated_user(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.roadmap_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Futures améliorations")
+        self.assertContains(response, "Recherche enrichie et OCR")
+        self.assertContains(response, "Sécurité renforcée")
+        self.assertContains(response, "Guide d’utilisation")
+
+    def test_roadmap_navigation_is_available_to_consultant_without_privilege_escalation(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.home_url)
+
+        self.assertContains(response, "Futures améliorations")
+        self.assertFalse(self.user.is_staff)
+        self.assertFalse(self.user.is_superuser)

@@ -40,6 +40,49 @@ def signup(request):
 
 
 @login_required
+def future_improvements(request):
+    """Présente la feuille de route fonctionnelle aux utilisateurs authentifiés."""
+
+    improvements = [
+        {
+            "title": "Recherche enrichie et OCR",
+            "description": "Indexation du contenu numérisé et filtres avancés pour retrouver plus vite un document.",
+            "status": "À l’étude",
+        },
+        {
+            "title": "Validation et signature électronique",
+            "description": "Circuits de validation traçables pour formaliser les approbations documentaires.",
+            "status": "Prévu",
+        },
+        {
+            "title": "Calendrier de conservation",
+            "description": "Alertes sur les échéances d’archivage, de révision et de conservation des dossiers.",
+            "status": "Prévu",
+        },
+        {
+            "title": "Indicateurs et rapports",
+            "description": "Tableaux de bord exportables pour suivre l’activité, les accès et le cycle de vie des archives.",
+            "status": "À l’étude",
+        },
+        {
+            "title": "Sécurité renforcée",
+            "description": "Double authentification et revue périodique des droits pour protéger davantage les accès.",
+            "status": "À l’étude",
+        },
+        {
+            "title": "Connecteurs métier",
+            "description": "Intégrations contrôlées avec les outils internes de C-Tech et les espaces documentaires autorisés.",
+            "status": "Vision",
+        },
+    ]
+    return render(
+        request,
+        "accounts/future_improvements.html",
+        {"improvements": improvements},
+    )
+
+
+@login_required
 def profile(request):
     """Permet à l’utilisateur connecté de gérer son unique avatar privé."""
 
