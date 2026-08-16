@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Futures améliorations | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="roadmap-hero" aria-labelledby="roadmap-title">
+    <p class="page-kicker">Feuille de route</p>
+    <h1 id="roadmap-title">Futures améliorations</h1>
+    <p class="page-description">Les pistes ci-dessous traduisent les priorités d’évolution de C-Tech Archives. Elles sont proposées à titre indicatif et seront planifiées après validation fonctionnelle et sécurité.</p>
+  </section>
+
+  <section class="roadmap-grid" aria-label="Axes d’évolution envisagés">
+    {% for improvement in improvements %}
+      <article class="roadmap-item">
+        <div class="roadmap-item-header">
+          <span class="roadmap-index" aria-hidden="true">0{{ forloop.counter }}</span>
+          <span class="roadmap-status">{{ improvement.status }}</span>
+        </div>
+        <h2>{{ improvement.title }}</h2>
+        <p>{{ improvement.description }}</p>
+      </article>
+    {% endfor %}
+  </section>
+
+  <section class="roadmap-note" aria-labelledby="roadmap-note-title">
+    <h2 id="roadmap-note-title">Votre retour compte</h2>
+    <p>Les besoins des équipes C-Tech guideront la priorisation. Consultez ce volet régulièrement pour suivre les évolutions envisagées.</p>
+  </section>
+{% endblock %}

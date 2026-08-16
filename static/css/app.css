@@ -1331,3 +1331,315 @@ a:hover {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Découverte de l’interface et feuille de route */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.guide-launcher {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.guide-launcher:hover {
+  background: var(--color-primary-soft);
+}
+
+.welcome-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(13rem, 0.55fr);
+  align-items: center;
+  gap: var(--space-7);
+  min-height: 19rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid #d6e2f0;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(125deg, #0a1c33 0%, #112948 56%, #1d5f91 100%);
+  color: #ffffff;
+  box-shadow: var(--shadow-lg);
+  animation: welcome-arrival 520ms ease-out both;
+}
+
+.welcome-hero .page-kicker,
+.welcome-hero h1,
+.welcome-hero .welcome-lead {
+  color: #ffffff;
+}
+
+.welcome-hero h1 {
+  max-width: 40rem;
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.welcome-lead {
+  max-width: 42rem;
+  margin: var(--space-4) 0 0;
+  color: #dbeafe;
+  font-size: 1rem;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.welcome-actions .button-secondary {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.welcome-orbit {
+  position: relative;
+  width: 13rem;
+  height: 13rem;
+  justify-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+}
+
+.orbit-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--color-primary);
+  font-size: 1.25rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  box-shadow: 0 0 0 0.6rem rgba(255, 255, 255, 0.08);
+}
+
+.orbit-dot {
+  position: absolute;
+  display: block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: #93c5fd;
+  box-shadow: 0 0 0 0.35rem rgba(147, 197, 253, 0.16);
+}
+
+.orbit-dot-one { top: 1rem; left: 2rem; }
+.orbit-dot-two { right: 0.3rem; bottom: 3rem; background: #fde68a; }
+.orbit-dot-three { bottom: 1.2rem; left: 1.1rem; background: #86efac; }
+
+.onboarding-summary,
+.roadmap-hero,
+.roadmap-note {
+  margin-top: var(--space-5);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.onboarding-summary {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.65fr) minmax(0, 1.35fr);
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.onboarding-summary h2,
+.roadmap-hero h1,
+.roadmap-note h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 1.55rem;
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding-steps li {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--color-muted);
+  font-size: 0.84rem;
+}
+
+.onboarding-steps strong {
+  color: var(--color-primary);
+}
+
+.onboarding-dialog {
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+}
+
+.onboarding-dialog::backdrop {
+  background: rgba(10, 28, 51, 0.68);
+}
+
+.guide-progress {
+  width: 100%;
+  height: 0.35rem;
+  background: var(--color-primary-soft);
+}
+
+.guide-progress span {
+  display: block;
+  width: 25%;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 180ms ease;
+}
+
+.guide-content {
+  min-height: 12rem;
+  padding: var(--space-6);
+}
+
+.guide-content h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 1.55rem;
+}
+
+.guide-content p:not(.page-kicker) {
+  margin: var(--space-4) 0 0;
+  color: var(--color-muted);
+}
+
+.guide-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.roadmap-item {
+  display: flex;
+  min-height: 14rem;
+  flex-direction: column;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.roadmap-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.roadmap-index {
+  color: var(--color-accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.roadmap-status {
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-info);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.roadmap-item h2 {
+  margin: var(--space-4) 0 0;
+  color: var(--color-primary);
+  font-size: 1.05rem;
+}
+
+.roadmap-item p,
+.roadmap-note p {
+  margin: var(--space-3) 0 0;
+  color: var(--color-muted);
+}
+
+@keyframes welcome-arrival {
+  from { opacity: 0; transform: translateY(0.8rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 920px) {
+  .welcome-hero,
+  .onboarding-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-orbit {
+    display: none;
+  }
+
+  .roadmap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .topbar-actions {
+    gap: var(--space-2);
+  }
+
+  .guide-launcher {
+    display: none;
+  }
+
+  .onboarding-steps,
+  .roadmap-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-hero {
+    animation: none;
+  }
+
+  .guide-progress span {
+    transition: none;
+  }
+}

@@ -3,7 +3,25 @@
 {% block title %}Tableau de bord | C-Tech Archives{% endblock %}
 
 {% block content %}
-  <section class="panel" aria-labelledby="dashboard-title">
+  <section class="welcome-hero" aria-labelledby="welcome-title" data-welcome-hero>
+    <div class="welcome-hero-copy">
+      <p class="page-kicker">Espace sécurisé</p>
+      <h1 id="welcome-title">Bienvenue, {{ user.get_full_name|default:user.username }}</h1>
+      <p class="welcome-lead">Votre espace documentaire est prêt. Retrouvez vos archives, suivez les actions autorisées et découvrez les fonctionnalités essentielles de C-Tech Archives.</p>
+      <div class="welcome-actions">
+        <button class="button" type="button" data-guide-launcher>Découvrir l’interface</button>
+        <a class="button button-secondary" href="{% url 'future_improvements' %}">Voir les futures améliorations</a>
+      </div>
+    </div>
+    <div class="welcome-orbit" aria-hidden="true">
+      <span class="orbit-core">CT</span>
+      <span class="orbit-dot orbit-dot-one"></span>
+      <span class="orbit-dot orbit-dot-two"></span>
+      <span class="orbit-dot orbit-dot-three"></span>
+    </div>
+  </section>
+
+  <section class="panel dashboard-panel" aria-labelledby="dashboard-title">
     <header class="page-header">
       <div>
         <p class="page-kicker">Espace documentaire</p>
@@ -139,4 +157,30 @@
 
     <p class="notice">Les métadonnées et actions détaillées restent accessibles selon les droits de l’utilisateur. La navigation facilite l’usage ; les autorisations restent contrôlées côté serveur.</p>
   </section>
+
+  <section class="onboarding-summary" aria-labelledby="summary-title">
+    <div>
+      <p class="page-kicker">Repères rapides</p>
+      <h2 id="summary-title">Commencez en trois étapes</h2>
+    </div>
+    <ol class="onboarding-steps">
+      <li><strong>1. Consultez</strong><span>Accédez aux archives disponibles selon vos autorisations.</span></li>
+      <li><strong>2. Agissez</strong><span>Créez ou mettez à jour les dossiers si votre rôle le permet.</span></li>
+      <li><strong>3. Contrôlez</strong><span>Vérifiez l’intégrité, les traces d’audit et les prochains axes d’évolution.</span></li>
+    </ol>
+  </section>
+
+  <dialog class="onboarding-dialog" data-onboarding-dialog aria-labelledby="guide-title">
+    <div class="guide-progress" aria-hidden="true"><span data-guide-progress></span></div>
+    <div class="guide-content" data-guide-content>
+      <p class="page-kicker" data-guide-step-label>Guide d’utilisation · étape 1 sur 4</p>
+      <h2 id="guide-title" data-guide-title>Bienvenue dans C-Tech Archives</h2>
+      <p data-guide-description>Ce guide vous présente les actions principales accessibles avec votre rôle.</p>
+    </div>
+    <div class="guide-actions">
+      <button class="button button-secondary" type="button" data-guide-close>Plus tard</button>
+      <button class="button button-secondary" type="button" data-guide-previous disabled>Précédent</button>
+      <button class="button" type="button" data-guide-next>Suivant</button>
+    </div>
+  </dialog>
 {% endblock %}
