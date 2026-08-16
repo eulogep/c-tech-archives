@@ -1,11 +1,11 @@
 # Matrice finale des tests automatisés
 
-La suite automatisée du MVP contient **280 tests**. Les nombres ci-dessous sont dérivés des fonctions de test réellement présentes dans les modules concernés. Cette matrice synthétise la couverture ; elle ne remplace pas l’exécution de `python manage.py test`.
+La suite automatisée de C-Tech Archives contient **299 tests** validés par `python manage.py test`. Les nombres ci-dessous sont dérivés des fonctions de test réellement présentes dans les modules concernés. Cette matrice synthétise la couverture ; elle ne remplace pas l’exécution de la commande de test.
 
 | Groupe | Nombre | Objectif | Exemples de preuve |
 |---|---:|---|---|
 | Configuration et fondations | 5 | Vérifier l’enregistrement des applications, la configuration PostgreSQL, les répertoires partagés et les réglages de sécurité initiaux | `ProjectConfigurationTests` |
-| Authentification | 27 | Vérifier session Django, connexion, compte inactif, redirection `next`, CSRF, déconnexion et bootstrap privilégié | `accounts/tests.py`, `HARD-019`, `HARD-020`, `HARD-024` |
+| Comptes, authentification et priorisation | 46 | Vérifier la session Django, la connexion par e-mail insensible à la casse, l’inscription Consultant, le bootstrap privilégié, l’avatar privé, le guide et le vote unitaire rétractable | `accounts/tests.py`, `HARD-019`, `HARD-020`, `HARD-024` |
 | Dashboard | 10 | Vérifier les métriques et le respect du périmètre de visibilité | `dashboard/tests.py`, `RBAC-035` à `RBAC-038` |
 | Modèles, CRUD et formulaires | Inclus dans les 144 tests archives | Vérifier contraintes, références, formulaires à liste blanche, création et modification | Tests archive de T-004 et T-008 |
 | Recherche et filtres | Inclus dans les 144 tests archives | Vérifier GET, filtres combinables, pagination, query string, XSS et entrées SQL-like | `SEARCH-001` à `SEARCH-024` |
@@ -18,7 +18,7 @@ La suite automatisée du MVP contient **280 tests**. Les nombres ci-dessous sont
 
 | Module de test | Nombre de tests |
 |---|---:|
-| `accounts/tests.py` | 27 |
+| `accounts/tests.py` | 46 |
 | `archives/tests.py` | 144 |
 | `audit/tests.py` | 30 |
 | `dashboard/tests.py` | 10 |
@@ -26,7 +26,7 @@ La suite automatisée du MVP contient **280 tests**. Les nombres ci-dessous sont
 | `tests/test_security_hardening.py` | 26 |
 | `tests/test_final_ui.py` | 21 |
 | `tests/test_ui_polish.py` | 17 |
-| **Total** | **280** |
+| **Total** | **299** |
 
 ## Lecture des résultats
 

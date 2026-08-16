@@ -14,7 +14,7 @@
 
     <p class="page-kicker">Accès sécurisé</p>
     <h1 id="login-title">Connexion à votre espace</h1>
-    <p class="page-description">Connectez-vous pour accéder à l’espace documentaire correspondant à vos autorisations.</p>
+    <p class="page-description">Utilisez votre adresse e-mail et votre mot de passe pour accéder à l’espace correspondant à vos autorisations.</p>
 
     {% if form.non_field_errors %}
       <div class="errors" role="alert">Identifiants invalides.</div>
@@ -26,7 +26,7 @@
         <input type="hidden" name="next" value="{{ next }}">
       {% endif %}
       <p class="form-field">
-        <label for="{{ form.username.id_for_label }}">Nom d’utilisateur</label>
+        <label for="{{ form.username.id_for_label }}">Adresse e-mail</label>
         {{ form.username }}
         {% for error in form.username.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
       </p>
@@ -35,9 +35,12 @@
         {{ form.password }}
         {% for error in form.password.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
       </p>
-      <button class="button" type="submit">Connexion</button>
+      <div class="auth-actions">
+        <button class="button" type="submit">Se connecter</button>
+        <a class="button button-secondary" href="{% url 'signup' %}">Créer le compte</a>
+      </div>
     </form>
 
-    <p class="login-security-note">L’accès est journalisé et protégé par les contrôles de sécurité de la plateforme.</p>
+    <p class="login-security-note">L’inscription crée un compte Consultant. Les droits administrateur sont attribués séparément par un administrateur autorisé.</p>
   </section>
 {% endblock %}

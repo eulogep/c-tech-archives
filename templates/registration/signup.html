@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Créer le compte | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <section class="login-card" aria-labelledby="signup-title">
+    <div class="login-brand">
+      <span class="brand-mark" aria-hidden="true">CT</span>
+      <div>
+        <strong>C-Tech Archives</strong>
+        <div class="muted">Plateforme sécurisée de gestion documentaire</div>
+      </div>
+    </div>
+
+    <p class="page-kicker">Nouveau compte</p>
+    <h1 id="signup-title">Créer votre accès</h1>
+    <p class="page-description">Votre adresse e-mail devient votre identifiant de connexion. Les nouveaux comptes commencent avec les droits Consultant.</p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+        <p class="form-field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% for error in field.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+        </p>
+      {% endfor %}
+      <div class="auth-actions">
+        <button class="button" type="submit">Créer le compte</button>
+        <a class="button button-secondary" href="{% url 'login' %}">Retour à la connexion</a>
+      </div>
+    </form>
+
+    <p class="login-security-note">Un administrateur autorisé peut modifier vos droits lorsque cela est nécessaire.</p>
+  </section>
+{% endblock %}

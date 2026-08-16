@@ -5,12 +5,14 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
+from django.urls import reverse
 
-from .models import Role, User
+from .models import FutureImprovementFeature, FutureImprovementVote, Role, User
 
 
 class UserModelTests(TestCase):
@@ -409,3 +411,309 @@ class BootstrapDefaultAdminsCommandTests(TestCase):
         self.assertTrue(
             self.client.login(username=self.euloge_email, password=self.euloge_password)
         )
+
+
+class PrivateProfileAvatarTests(TestCase):
+    """Vérifie que l’avatar reste privé, valide et accessible au seul propriétaire."""
+
+    tiny_png = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+        b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+        b"\x00\x00\x00\x0dIDATx\x9cc\xf8\xcf\xc0\xf0\x1f\x00\x05\x00"
+        b"\x01\xff\x89\x99=\x1d\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="steven-avatar",
+            email="steven.avatar@example.test",
+            password="Avatar-Synthetic-Password-2026",
+            first_name="Steven",
+            last_name="Parker",
+            role=Role.ADMINISTRATEUR,
+        )
+        self.other_user = User.objects.create_user(
+            username="other-avatar",
+            email="other.avatar@example.test",
+            password="Other-Avatar-Synthetic-Password-2026",
+        )
+        self.profile_url = reverse("profile")
+        self.avatar_url = reverse("profile_avatar", args=[self.user.pk])
+
+    def avatar_upload(self):
+        return SimpleUploadedFile(
+            "steven-profile.png",
+            self.tiny_png,
+            content_type="image/png",
+        )
+
+    def test_avatar_upload_is_stored_in_database_without_public_media_path(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.profile_url, {"avatar": self.avatar_upload()})
+
+        self.assertRedirects(response, self.profile_url)
+        self.user.refresh_from_db()
+        self.assertEqual(bytes(self.user.profile_avatar), self.tiny_png)
+        self.assertEqual(self.user.profile_avatar_content_type, "image/png")
+        self.assertTrue(self.user.has_profile_avatar)
+
+    def test_avatar_is_only_served_to_its_authenticated_owner_with_private_cache(self):
+        self.user.profile_avatar = self.tiny_png
+        self.user.profile_avatar_content_type = "image/png"
+        self.user.save(update_fields=["profile_avatar", "profile_avatar_content_type"])
+
+        self.client.force_login(self.user)
+        response = self.client.get(self.avatar_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, self.tiny_png)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+
+        self.client.force_login(self.other_user)
+        self.assertEqual(self.client.get(self.avatar_url).status_code, 404)
+
+    def test_profile_page_renders_private_avatar_route_after_upload(self):
+        self.user.profile_avatar = self.tiny_png
+        self.user.profile_avatar_content_type = "image/png"
+        self.user.save(update_fields=["profile_avatar", "profile_avatar_content_type"])
+        self.client.force_login(self.user)
+
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.avatar_url)
+        self.assertContains(response, "Photo de profil de Steven Parker")
+
+    def test_anonymous_user_cannot_access_profile_or_avatar(self):
+        self.assertRedirects(
+            self.client.get(self.profile_url),
+            f"/accounts/login/?next={self.profile_url}",
+        )
+        self.assertRedirects(
+            self.client.get(self.avatar_url),
+            f"/accounts/login/?next={self.avatar_url}",
+        )
+
+
+class EmailSignupAndAuthenticationTests(TestCase):
+    """Vérifie les parcours e-mail et l’absence d’élévation lors de l’inscription."""
+
+    def setUp(self):
+        self.email = "admin.email@example.test"
+        self.password = "Secure-Admin-Password-2026!"
+        self.admin = User.objects.create_user(
+            username=self.email,
+            email=self.email,
+            password=self.password,
+            first_name="Admin",
+            last_name="Email",
+            role=Role.ADMINISTRATEUR,
+            is_staff=True,
+        )
+        self.login_url = reverse("login")
+        self.signup_url = reverse("signup")
+
+    def test_email_login_accepts_case_insensitive_email_and_redirects_on_success(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": self.email.upper(), "password": self.password},
+        )
+
+        self.assertRedirects(response, "/")
+        self.assertEqual(self.client.session["_auth_user_id"], str(self.admin.pk))
+
+    def test_login_page_labels_identifier_as_email_and_offers_signup(self):
+        response = self.client.get(self.login_url)
+
+        self.assertContains(response, "Adresse e-mail")
+        self.assertContains(response, "Créer le compte")
+        self.assertContains(response, self.signup_url)
+
+    def test_signup_creates_active_consultant_with_email_as_username(self):
+        email = "nouveau.consultant@example.test"
+        response = self.client.post(
+            self.signup_url,
+            {
+                "email": email,
+                "first_name": "Nouveau",
+                "last_name": "Consultant",
+                "password1": "Nouveau-Consultant-Password-2026!",
+                "password2": "Nouveau-Consultant-Password-2026!",
+            },
+        )
+
+        self.assertRedirects(response, "/")
+        user = User.objects.get(email=email)
+        self.assertEqual(user.username, email)
+        self.assertEqual(user.role, Role.CONSULTANT)
+        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
+
+    def test_signup_ignores_tampered_privilege_fields(self):
+        email = "tentative.admin@example.test"
+        response = self.client.post(
+            self.signup_url,
+            {
+                "email": email,
+                "first_name": "Tentative",
+                "last_name": "Admin",
+                "password1": "Tentative-Admin-Password-2026!",
+                "password2": "Tentative-Admin-Password-2026!",
+                "role": Role.ADMINISTRATEUR,
+                "is_staff": "true",
+                "is_superuser": "true",
+            },
+        )
+
+        self.assertRedirects(response, "/")
+        user = User.objects.get(email=email)
+        self.assertEqual(user.role, Role.CONSULTANT)
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+
+    def test_signup_rejects_existing_email_even_with_different_case(self):
+        response = self.client.post(
+            self.signup_url,
+            {
+                "email": self.email.upper(),
+                "password1": "Another-Valid-Password-2026!",
+                "password2": "Another-Valid-Password-2026!",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Un compte existe déjà pour cette adresse e-mail.")
+        self.assertEqual(User.objects.filter(email__iexact=self.email).count(), 1)
+
+    def test_authenticated_user_cannot_create_another_account_from_signup_page(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(self.signup_url)
+
+        self.assertRedirects(response, "/")
+
+
+class OnboardingAndFutureImprovementsTests(TestCase):
+    """Vérifie les parcours de découverte, sans contourner l’authentification."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="guide.user@example.test",
+            email="guide.user@example.test",
+            password="Guide-User-Password-2026!",
+            role=Role.CONSULTANT,
+        )
+        self.home_url = reverse("home")
+        self.roadmap_url = reverse("future_improvements")
+
+    def test_home_exposes_welcome_guide_and_roadmap_entry_for_authenticated_user(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.home_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Bienvenue, guide.user@example.test")
+        self.assertContains(response, "Découvrir l’interface")
+        self.assertContains(response, "Guide d’utilisation · étape 1 sur 4")
+        self.assertContains(response, self.roadmap_url)
+        self.assertContains(response, "onboarding.js")
+
+    def test_future_improvements_is_protected(self):
+        response = self.client.get(self.roadmap_url)
+
+        self.assertRedirects(response, f"{reverse('login')}?next={self.roadmap_url}")
+
+    def test_future_improvements_lists_roadmap_for_authenticated_user(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.roadmap_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Futures améliorations")
+        self.assertContains(response, "Recherche enrichie et OCR")
+        self.assertContains(response, "Sécurité renforcée")
+        self.assertContains(response, "Guide d’utilisation")
+
+    def test_roadmap_navigation_is_available_to_consultant_without_privilege_escalation(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.home_url)
+
+        self.assertContains(response, "Futures améliorations")
+        self.assertFalse(self.user.is_staff)
+        self.assertFalse(self.user.is_superuser)
+
+
+class FutureImprovementVotingTests(TestCase):
+    """Vérifie la priorisation participative sans exposition des identités de votants."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="vote.user@example.test",
+            email="vote.user@example.test",
+            password="Vote-User-Password-2026!",
+            role=Role.CONSULTANT,
+        )
+        self.other_user = User.objects.create_user(
+            username="other.vote@example.test",
+            email="other.vote@example.test",
+            password="Other-Vote-Password-2026!",
+            role=Role.CONSULTANT,
+        )
+        self.roadmap_url = reverse("future_improvements")
+        self.vote_url = reverse("toggle_future_improvement_vote")
+        self.feature = FutureImprovementFeature.SEARCH_OCR
+
+    def test_vote_endpoint_requires_authenticated_post_request(self):
+        response = self.client.post(self.vote_url, {"feature": self.feature})
+
+        self.assertRedirects(response, f"{reverse('login')}?next={self.vote_url}")
+        self.assertFalse(FutureImprovementVote.objects.exists())
+
+    def test_authenticated_user_can_add_and_remove_own_vote(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.vote_url, {"feature": self.feature})
+
+        self.assertRedirects(response, self.roadmap_url)
+        self.assertTrue(
+            FutureImprovementVote.objects.filter(user=self.user, feature=self.feature).exists()
+        )
+
+        response = self.client.post(self.vote_url, {"feature": self.feature})
+
+        self.assertRedirects(response, self.roadmap_url)
+        self.assertFalse(
+            FutureImprovementVote.objects.filter(user=self.user, feature=self.feature).exists()
+        )
+
+    def test_vote_constraint_prevents_duplicate_vote_for_same_user_and_feature(self):
+        FutureImprovementVote.objects.create(user=self.user, feature=self.feature)
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                FutureImprovementVote.objects.create(user=self.user, feature=self.feature)
+
+    def test_invalid_feature_is_not_accepted(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.vote_url, {"feature": "FORGED_FEATURE"})
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(FutureImprovementVote.objects.exists())
+
+    def test_roadmap_shows_aggregate_count_and_current_user_vote_state_without_voter_identity(self):
+        FutureImprovementVote.objects.create(user=self.user, feature=self.feature)
+        FutureImprovementVote.objects.create(user=self.other_user, feature=self.feature)
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.roadmap_url)
+
+        self.assertContains(response, "2 votes")
+        self.assertContains(response, "Retirer mon vote")
+        self.assertNotContains(response, self.other_user.email)

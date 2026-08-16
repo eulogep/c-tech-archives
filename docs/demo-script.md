@@ -17,7 +17,7 @@ Préparez uniquement des données synthétiques : **Service Direction Administra
 | 3:45–4:30 | Intégrité | Ouvrir la fiche puis lancer Vérifier l’intégrité. Montrer `VALID`. Expliquer que `MISMATCH` signale une différence sans remplacer le checksum historique. |
 | 4:30–5:15 | Administrateur et audit | Se connecter Administrateur, montrer l’archive CONFIDENTIAL et le journal d’audit. Souligner que l’audit affiche des détails minimaux. |
 | 5:15–6:00 | Sécurité | Résumer RBAC, QuerySets filtrés, 404 anti-inférence, CSRF, stockage privé, audit et SHA-256. |
-| 6:00–6:30 | Tests et limites | Montrer la suite de 263 tests. Terminer avec les limites : pas de MFA, antivirus, versioning, SIEM/WORM, chiffrement applicatif ou pentest externe. |
+| 6:00–6:30 | Tests et limites | Montrer la suite de 299 tests. Terminer avec les limites : pas de MFA, antivirus, versioning, SIEM/WORM, chiffrement applicatif ou pentest externe. |
 
 ## Version courte — 2 minutes
 
@@ -28,7 +28,7 @@ Préparez uniquement des données synthétiques : **Service Direction Administra
 | 0:45–1:10 | Agent et fichier | Montrer l’action Nouvelle archive et une fiche avec téléchargement contrôlé. « Le fichier reste privé et validé côté serveur. » |
 | 1:10–1:30 | Intégrité | Cliquer Vérifier l’intégrité et commenter `VALID`. « SHA-256 détecte une différence, ce n’est pas du chiffrement. » |
 | 1:30–1:50 | Administrateur et audit | Montrer CONFIDENTIAL et Audit. « L’interface est adaptée au rôle, mais l’autorisation est toujours vérifiée côté serveur. » |
-| 1:50–2:00 | Preuve | « Le projet possède 263 tests automatisés et documente ses limites de production. » |
+| 1:50–2:00 | Preuve | « Le projet possède 299 tests automatisés et documente ses limites de production. » |
 
 ## Conseils de démonstration
 
