@@ -12,7 +12,7 @@ Ce plan prépare la matière source d’une soutenance. Il ne constitue pas un P
 | 6. Fonctionnalités | Montrer authentification, CRUD sans DELETE, recherche, fichiers, audit, intégrité et interface. | `final-feature-matrix.md` |
 | 7. Sécurité | Expliquer RBAC, QuerySets, 404 anti-inférence, CSRF, validation, audit et SHA-256. | `security-review.md`, `final-rbac-matrix.md` |
 | 8. Démonstration | Présenter Consultant, Agent puis Administrateur sur données synthétiques. | `demo-script.md`, application locale |
-| 9. Tests | Montrer 263 tests automatisés et les groupes de couverture. | `final-test-matrix.md`, sortie `manage.py test` |
+| 9. Tests | Montrer 299 tests automatisés et les groupes de couverture. | `final-test-matrix.md`, sortie `manage.py test` |
 | 10. Limites | Reconnaître les limites techniques et de production sans sur-promesse. | README, revue de sécurité |
 | 11. Perspectives | Présenter MFA, antivirus, versioning, ACL fine, SIEM/WORM, stockage objet et monitoring comme évolutions. | README et `technical-validation-questions.md` |
 | 12. Conclusion | Le MVP est fonctionnel, documenté, démontrable et prêt pour une revue humaine finale, non pour une promesse de production immédiate. | Synthèse du MVP status |
