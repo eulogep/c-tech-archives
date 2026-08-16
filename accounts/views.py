@@ -5,11 +5,47 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import ProfileAvatarForm, SignUpForm
+from .models import FutureImprovementFeature, FutureImprovementVote
+
+
+FUTURE_IMPROVEMENTS = (
+    {
+        "feature": FutureImprovementFeature.SEARCH_OCR,
+        "description": "Indexation du contenu numérisé et filtres avancés pour retrouver plus vite un document.",
+        "status": "À l’étude",
+    },
+    {
+        "feature": FutureImprovementFeature.SIGNATURE,
+        "description": "Circuits de validation traçables pour formaliser les approbations documentaires.",
+        "status": "Prévu",
+    },
+    {
+        "feature": FutureImprovementFeature.RETENTION,
+        "description": "Alertes sur les échéances d’archivage, de révision et de conservation des dossiers.",
+        "status": "Prévu",
+    },
+    {
+        "feature": FutureImprovementFeature.ANALYTICS,
+        "description": "Tableaux de bord exportables pour suivre l’activité, les accès et le cycle de vie des archives.",
+        "status": "À l’étude",
+    },
+    {
+        "feature": FutureImprovementFeature.SECURITY,
+        "description": "Double authentification et revue périodique des droits pour protéger davantage les accès.",
+        "status": "À l’étude",
+    },
+    {
+        "feature": FutureImprovementFeature.CONNECTORS,
+        "description": "Intégrations contrôlées avec les outils internes de C-Tech et les espaces documentaires autorisés.",
+        "status": "Vision",
+    },
+)
 
 
 @login_required
@@ -41,45 +77,51 @@ def signup(request):
 
 @login_required
 def future_improvements(request):
-    """Présente la feuille de route fonctionnelle aux utilisateurs authentifiés."""
+    """Présente la feuille de route et les votes de l’utilisateur connecté."""
 
+    vote_counts = {
+        entry["feature"]: entry["total"]
+        for entry in FutureImprovementVote.objects.values("feature").annotate(total=Count("id"))
+    }
+    voted_features = set(
+        FutureImprovementVote.objects.filter(user=request.user).values_list("feature", flat=True)
+    )
     improvements = [
         {
-            "title": "Recherche enrichie et OCR",
-            "description": "Indexation du contenu numérisé et filtres avancés pour retrouver plus vite un document.",
-            "status": "À l’étude",
-        },
-        {
-            "title": "Validation et signature électronique",
-            "description": "Circuits de validation traçables pour formaliser les approbations documentaires.",
-            "status": "Prévu",
-        },
-        {
-            "title": "Calendrier de conservation",
-            "description": "Alertes sur les échéances d’archivage, de révision et de conservation des dossiers.",
-            "status": "Prévu",
-        },
-        {
-            "title": "Indicateurs et rapports",
-            "description": "Tableaux de bord exportables pour suivre l’activité, les accès et le cycle de vie des archives.",
-            "status": "À l’étude",
-        },
-        {
-            "title": "Sécurité renforcée",
-            "description": "Double authentification et revue périodique des droits pour protéger davantage les accès.",
-            "status": "À l’étude",
-        },
-        {
-            "title": "Connecteurs métier",
-            "description": "Intégrations contrôlées avec les outils internes de C-Tech et les espaces documentaires autorisés.",
-            "status": "Vision",
-        },
+            **improvement,
+            "title": FutureImprovementFeature(improvement["feature"]).label,
+            "vote_count": vote_counts.get(improvement["feature"], 0),
+            "has_voted": improvement["feature"] in voted_features,
+        }
+        for improvement in FUTURE_IMPROVEMENTS
     ]
     return render(
         request,
         "accounts/future_improvements.html",
         {"improvements": improvements},
     )
+
+
+@login_required
+@require_POST
+def toggle_future_improvement_vote(request):
+    """Ajoute ou retire le vote de l’utilisateur, sans exposer les données des votants."""
+
+    feature = request.POST.get("feature", "")
+    if feature not in FutureImprovementFeature.values:
+        raise Http404("Amélioration introuvable.")
+
+    vote, created = FutureImprovementVote.objects.get_or_create(
+        user=request.user,
+        feature=feature,
+    )
+    feature_label = FutureImprovementFeature(feature).label
+    if created:
+        messages.success(request, f"Votre vote pour « {feature_label} » a été enregistré.")
+    else:
+        vote.delete()
+        messages.info(request, f"Votre vote pour « {feature_label} » a été retiré.")
+    return redirect("future_improvements")
 
 
 @login_required

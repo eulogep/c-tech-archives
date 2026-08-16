@@ -5,6 +5,10 @@
 {% block content %}
   <section class="welcome-hero" aria-labelledby="welcome-title" data-welcome-hero>
     <div class="welcome-hero-copy">
+      <div class="welcome-brand" aria-label="C-Tech Archives">
+        <span class="welcome-logo-mark" aria-hidden="true"><span>C</span><span>T</span></span>
+        <span class="welcome-logo-copy"><strong>C-Tech</strong><small>Archives · sécuriser la mémoire utile</small></span>
+      </div>
       <p class="page-kicker">Espace sécurisé</p>
       <h1 id="welcome-title">Bienvenue, {{ user.get_full_name|default:user.username }}</h1>
       <p class="welcome-lead">Votre espace documentaire est prêt. Retrouvez vos archives, suivez les actions autorisées et découvrez les fonctionnalités essentielles de C-Tech Archives.</p>
