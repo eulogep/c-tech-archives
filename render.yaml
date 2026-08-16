@@ -3,7 +3,7 @@ services:
     name: c-tech-archives
     runtime: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "python manage.py migrate --noinput && python manage.py bootstrap_default_admins && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
     plan: free
     region: frankfurt
     envVars:
