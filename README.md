@@ -14,7 +14,7 @@ L’application est déployée en production simulée à l’adresse suivante :
 | Élément | État vérifiable |
 |---|---|
 | Socle applicatif | Django 5.1.x, PostgreSQL, Django Templates et CSS local responsive |
-| Tests automatisés | **280 tests** avec `python manage.py test` |
+| Tests automatisés | **299 tests** avec `python manage.py test` |
 | Rôles métier | Administrateur, Agent d’archives, Consultant |
 | Niveaux de confidentialité | PUBLIC, INTERNAL, CONFIDENTIAL |
 | Stockage documentaire | Privé, hors `MEDIA_URL`, téléchargement contrôlé |
@@ -22,7 +22,7 @@ L’application est déployée en production simulée à l’adresse suivante :
 | Intégrité | SHA-256 calculé après stockage et vérifié sur demande POST |
 | Sécurité | Revue transverse T-014, profil de déploiement simulé et interface T-015 responsive |
 | T-001 à T-016 | **INTEGRATED** dans `develop` ; T-005 reste `ABSORBED_BY_T004` |
-| MVP académique | **FINALIZED** : MVP fonctionnel, 280 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
+| MVP académique | **FINALIZED** : MVP fonctionnel, 299 tests automatisés, revue de sécurité terminée, livraison académique achevée et limites de production documentées |
 
 Maintenance post-finalisation : le bootstrap sécurisé des comptes privilégiés est disponible par commande explicite et ne modifie pas le périmètre des tickets T-001 à T-016.
 
@@ -47,16 +47,17 @@ Aucun framework frontend séparé, CDN critique, API REST, Docker, S3 ou archite
 
 | Capacité | Description courte |
 |---|---|
-| Authentification | Connexion par session Django, compte inactif refusé, redirection locale contrôlée et logout POST/CSRF |
+| Authentification et comptes | Connexion par e-mail insensible à la casse avec repli de compatibilité utilisateur, inscription limitée au rôle Consultant, compte inactif refusé, redirection locale contrôlée et logout POST/CSRF |
 | Rôles et RBAC | Politique centralisée de visibilité et d’actions par rôle, avec deny-by-default |
-| Dashboard | Six métriques limitées au périmètre visible de l’utilisateur |
+| Dashboard | Six métriques limitées au périmètre visible, accueil C-Tech et guide d’utilisation accessible |
 | Archives | Création et modification des métadonnées autorisées, sans suppression physique |
 | Recherche | Recherche GET, filtres combinables et pagination avec query string conservée |
 | Fichiers | Upload validé, stockage privé UUID et téléchargement par vue protégée |
 | Confidentialité | PUBLIC, INTERNAL et CONFIDENTIAL appliqués avant liste, recherche, pagination et détail |
 | Audit | Événements métier minimaux après opérations réussies ; interface Administrateur uniquement |
 | Intégrité | Empreinte SHA-256 de référence et vérification explicite POST |
-| Interface | Sidebar guidée par le rôle, tables responsive, formulaires structurés et états vides |
+| Interface | Sidebar guidée par le rôle, tables responsive, formulaires structurés, états vides et avatar de profil servi uniquement après authentification |
+| Futures améliorations | Priorisation participative : un vote rétractable par utilisateur et par amélioration, compteurs agrégés uniquement |
 
 La matrice détaillée des fonctionnalités et preuves est disponible dans [`docs/final-feature-matrix.md`](docs/final-feature-matrix.md).
 
@@ -132,7 +133,7 @@ python manage.py runserver
 python manage.py test
 ```
 
-La commande de test exécute **280 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
+La commande de test exécute **299 tests**. Le contrôle de déploiement local signale volontairement les paramètres HTTPS et DEBUG non adaptés au développement HTTP :
 
 ```bash
 python manage.py check --deploy
