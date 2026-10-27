@@ -1,140 +1,226 @@
-# C-Tech Archives
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="C-Tech Archives — la mémoire de C-Tech, scellée et traçable" width="100%">
+</p>
 
-> **Le coffre documentaire de C-Tech** — archives, intégrité SHA-256 et traçabilité, dans une interface pensée comme un sceau.
+<p align="center">
+  <a href="https://github.com/eulogep/c-tech-archives/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/eulogep/c-tech-archives/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Django 5.2 LTS" src="https://img.shields.io/badge/Django-5.2%20LTS-0c4b33?logo=django&logoColor=white">
+  <img alt="Python 3.12 | 3.13" src="https://img.shields.io/badge/Python-3.12%20%7C%203.13-3776ab?logo=python&logoColor=white">
+  <img alt="PostgreSQL 17" src="https://img.shields.io/badge/PostgreSQL-17-4169e1?logo=postgresql&logoColor=white">
+  <img alt="362 tests" src="https://img.shields.io/badge/tests-362%20%E2%9C%93-3ddc97">
+  <img alt="pip-audit : 0 vulnérabilité" src="https://img.shields.io/badge/pip--audit-0%20vuln%C3%A9rabilit%C3%A9-3ddc97">
+  <img alt="CSP stricte" src="https://img.shields.io/badge/CSP-stricte%2C%20sans%20unsafe--inline-8f88ff">
+</p>
 
-C-Tech Archives centralise les métadonnées et documents d’archives dans un monolithe Django modulaire. Les accès sont décidés côté serveur et refusés par défaut, les fichiers restent privés, chaque action sensible est journalisée et l’intégrité de chaque document peut être revérifiée à tout moment.
+<p align="center">
+  <a href="https://c-tech-archives.onrender.com"><b>Démo en ligne</b></a> ·
+  <a href="#visite-guidée">Visite guidée</a> ·
+  <a href="#démarrer-en-5-minutes">Démarrer en 5 minutes</a> ·
+  <a href="#sécurité-par-conception">Sécurité</a> ·
+  <a href="#feuille-de-route">Feuille de route</a> ·
+  <a href="docs/">Documentation</a>
+</p>
 
-**Production :** [https://c-tech-archives.onrender.com](https://c-tech-archives.onrender.com) · sonde de santé : `/healthz/`
+---
 
-## Version 2.0 en bref
+**C-Tech Archives** est le coffre documentaire de C-Tech : chaque document y est classé, protégé selon son niveau de confidentialité, scellé par une empreinte SHA-256 et suivi par un journal d’audit. Le projet, académique, a été conçu comme une application réelle : les droits sont décidés par le serveur et refusés par défaut, l’interface ne montre que ce que le rôle autorise, et chaque affirmation de sécurité est couverte par un test.
 
-| Domaine | Ce qui change |
-|---|---|
-| Interface | Système de design « Sceau » : thèmes clair, sombre et système ; typographies Fraunces, Geist et Geist Mono auto-hébergées ; sceau génératif unique par archive ; tableau de bord analytique ; responsive jusqu’à 360 px |
-| Productivité | Palette de commandes <kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>K</kbd> avec recherche d’archives en direct filtrée par le RBAC ; raccourcis clavier (<kbd>/</kbd>, <kbd>G</kbd> <kbd>A</kbd>, <kbd>N</kbd>, <kbd>T</kbd>, <kbd>?</kbd>) ; vue tableau ou grille ; tri ; filtres actifs retirables |
-| Archives | Glisser-déposer avec contrôle anticipé ; aperçu à la demande des images et textes (tracé dans l’audit) ; panneau d’intégrité visuel ; historique des accès pour les administrateurs ; fiche imprimable |
-| Audit | Chronologie groupée par jour, filtres par période, export CSV protégé contre l’injection de formules (l’export est lui-même audité) |
-| Comptes | Changement de mot de passe en libre-service (audité), retrait de l’avatar, carte d’habilitation, verrouillage temporaire après échecs de connexion, limitation des inscriptions |
-| Sécurité | Content-Security-Policy stricte sans `unsafe-inline`, Permissions-Policy, session de 8 h, Django 5.2 LTS, Pillow 13, **0 vulnérabilité connue** (`pip-audit`) |
-| Exploitation | Journaux console (les erreurs 500 sont enfin visibles), `/healthz/`, statiques hachés et compressés, cache partagé, CI GitHub Actions, versions figées (`constraints.txt`), `docker compose`, `Makefile`, `seed_demo` |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/dashboard-dark.webp">
+  <img alt="Tableau de bord de C-Tech Archives : accueil, couverture SHA-256 et indicateurs du périmètre visible" src="docs/assets/dashboard-light.webp">
+</picture>
 
-Le détail figure dans [`CHANGELOG.md`](CHANGELOG.md) et la charte graphique dans [`docs/design-system.md`](docs/design-system.md).
+## Pourquoi ce projet se distingue
 
-## Stack
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>Accès maîtrisé</h3>
+      Trois rôles et trois niveaux de confidentialité. Le filtrage a lieu dans la requête SQL, avant toute liste, recherche ou pagination. Une archive hors périmètre répond <code>404</code> : on ne peut même pas deviner qu’elle existe.
+    </td>
+    <td width="33%" valign="top">
+      <h3>Intégrité prouvable</h3>
+      Chaque fichier est scellé à son dépôt par une empreinte SHA-256. Une vérification à la demande détecte la moindre altération et l’affiche comme un sceau rompu. Le fichier altéré de la démonstration le prouve en un clic.
+    </td>
+    <td width="33%" valign="top">
+      <h3>Traçabilité totale</h3>
+      Connexions, consultations, aperçus, téléchargements, modifications, contrôles d’intégrité, exports : tout est inscrit dans un journal en ajout seul, consultable en chronologie et exportable en CSV.
+    </td>
+  </tr>
+</table>
 
-| Couche | Technologie |
-|---|---|
-| Framework | Django 5.2 LTS (support jusqu’en avril 2028) |
-| Base de données | PostgreSQL 17 via `psycopg` 3.2 |
-| Fichiers statiques | WhiteNoise, manifeste haché et gzip en production |
-| Images | Pillow 13 (avatars, validation) |
-| Serveur | gunicorn |
-| Interface | Django Templates, CSS et JavaScript sans dépendance, sprite SVG interne |
-| Tests | Django TestCase : **362 tests** en ~13 s |
+## Visite guidée
 
-Aucun CDN, aucune police ni aucun script tiers : tout est servi par l’application, ce qui permet la CSP stricte.
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/login-dark.webp" alt="Page de connexion avec le coffre animé"></td>
+    <td width="50%"><img src="docs/assets/palette-dark.webp" alt="Palette de commandes avec recherche d’archives en direct"></td>
+  </tr>
+  <tr>
+    <td><b>Une entrée qui pose le décor.</b> Coffre animé, verrouillage temporaire après des échecs, inscription limitée au rôle Consultant.</td>
+    <td><b>Palette de commandes <kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>K</kbd>.</b> Navigation, actions et recherche d’archives en direct, filtrées par le rôle côté serveur.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/detail-light.webp" alt="Fiche d’archive avec alerte d’intégrité"></td>
+    <td><img src="docs/assets/analytics-dark.webp" alt="Graphiques du tableau de bord en thème sombre"></td>
+  </tr>
+  <tr>
+    <td><b>La fiche d’archive.</b> Sceau unique, panneau d’intégrité (ici : fichier altéré détecté), aperçu à la demande, historique des accès pour les administrateurs.</td>
+    <td><b>Des chiffres qui respectent les droits.</b> Flux sur douze mois, confidentialité, intégrité, pouls du journal : des graphiques SVG calculés sur le seul périmètre visible.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/form-light.webp" alt="Formulaire de dépôt avec sceau en direct"></td>
+    <td><img src="docs/assets/audit-light.webp" alt="Journal d’audit chronologique"></td>
+  </tr>
+  <tr>
+    <td><b>Déposer en confiance.</b> Sceau généré pendant la saisie, choix de confidentialité qui explique qui pourra lire le document, glisser-déposer contrôlé.</td>
+    <td><b>Le journal d’audit.</b> Chronologie par jour, filtres par action et par période, export CSV protégé contre l’injection de formules.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/grid-dark.webp" alt="Archives en vue grille, thème sombre"></td>
+    <td><img src="docs/assets/list-light.webp" alt="Archives en vue tableau, thème clair"></td>
+  </tr>
+  <tr>
+    <td><b>Grille ou tableau.</b> Tri, filtres retirables d’un clic, barre de périmètre proportionnelle aux niveaux visibles.</td>
+    <td><b>Clair, sombre ou système.</b> Le thème suit le système ou votre choix, sans flash au chargement.</td>
+  </tr>
+</table>
 
-## Démarrage rapide
+<p align="center"><img src="docs/assets/mobile.webp" alt="Connexion, tableau de bord et navigation sur mobile" width="100%"></p>
+<p align="center"><sub>Pensé aussi pour le téléphone : tiroir de navigation, carte d’habilitation, indicateurs sur deux colonnes.</sub></p>
+
+## Le sceau
+
+Chaque archive porte un emblème unique, calculé à partir de sa **référence** (jamais de son contenu) : trois anneaux symétriques, des teintes et une rotation tirées d’une empreinte SHA-256. Le serveur dessine le sceau en SVG, et le formulaire le recalcule à l’identique pendant la saisie, avec la même empreinte côté navigateur.
+
+<p align="center"><img src="docs/assets/seals.svg" alt="Exemples de sceaux génératifs" width="100%"></p>
+
+## Sécurité par conception
+
+| Menace | Réponse | Preuve |
+|---|---|---|
+| Lire une archive hors de son niveau | QuerySet filtré avant liste, recherche, pagination, palette et graphiques ; `404` anti-inférence | `RBAC-001…040`, tests de la palette et des analyses |
+| Fichier piégé ou falsifié | Extension, type MIME et signature binaire vérifiés ; aperçu limité à PNG, JPEG et texte, isolé (`sandbox`, `nosniff`) | `FILE-001…020`, `ArchivePreviewTests` |
+| Altération silencieuse | Empreinte SHA-256 au dépôt, vérification à la demande, alertes sur 30 jours | `HASH-001…024`, `ArchiveDetailV2Tests` |
+| Brute force | Verrouillage temporaire par compte, mot de passe non testé pendant le verrou | `LoginThrottleTests` |
+| XSS et injection de contenu | CSP stricte sans `unsafe-inline`, aucun script ni style en ligne, autoéchappement | test de conformité CSP de tous les gabarits |
+| Formules malveillantes dans un export | Cellules préfixées dans le CSV | `AuditExportTests` |
+| Compte admin réactivé à son insu | Bootstrap en mode création seule au démarrage | `BootstrapCreateOnlyTests` |
+| Dépendances vulnérables | Versions figées, `pip-audit` en CI | 0 vulnérabilité connue |
+
+> Le projet ne se présente pas comme « totalement sécurisé » : il n’offre ni MFA, ni antivirus, ni chiffrement applicatif au repos. Les risques résiduels sont listés dans [`docs/security-review.md`](docs/security-review.md).
+
+## Architecture
+
+```mermaid
+flowchart LR
+  U([Navigateur]) -->|HTTPS · CSP stricte| MW[Middlewares<br/>sécurité · session · CSRF]
+  MW --> V[Vues Django]
+  V --> P{Politique RBAC<br/>refus par défaut}
+  P -->|hors périmètre| N[404 anti-inférence]
+  P -->|autorisé| S[Services métier]
+  S --> DB[(PostgreSQL)]
+  S --> F[[Stockage privé<br/>noms UUID]]
+  S --> H[Empreinte SHA-256]
+  S --> A[(Journal d’audit<br/>append-only)]
+```
+
+Un monolithe Django modulaire : `accounts` (identité, rôles, connexion), `archives` (domaine, RBAC, fichiers, intégrité, sceaux), `audit` (journal, export), `dashboard` (indicateurs) et `config` (paramètres, CSP, santé). Les détails sont dans [`docs/architecture-final.md`](docs/architecture-final.md).
+
+## Démarrer en 5 minutes
+
+Prérequis : Python 3.12 ou plus et Docker.
 
 ```bash
 git clone https://github.com/eulogep/c-tech-archives.git
 cd c-tech-archives
-cp .env.example .env            # puis renseigner les secrets locaux
-make setup                       # venv + versions figées
-make db                          # PostgreSQL local (docker compose)
+cp .env.example .env        # renseigner DJANGO_SECRET_KEY et POSTGRES_PASSWORD
+make setup                  # environnement virtuel + versions figées
+make db                     # PostgreSQL 17 via docker compose
 make migrate
-CTECH_DEMO_PASSWORD='un-mot-de-passe-robuste' make seed   # données de démonstration
-make run                         # http://127.0.0.1:8000
+CTECH_DEMO_PASSWORD='choisissez-un-mot-de-passe-robuste' make seed
+make run                    # http://127.0.0.1:8000
 ```
 
-Sans `make` : `python -m venv .venv`, `pip install -r requirements.txt -c constraints.txt`, `python manage.py migrate`, `python manage.py runserver`.
+`make seed` crée trois comptes de démonstration (`demo.admin@ctech.test`, `demo.agent@ctech.test`, `demo.consultant@ctech.test`), 42 archives réalistes et dix-huit semaines d’activité. Connectez-vous avec chacun pour voir l’interface changer selon le rôle, puis vérifiez l’intégrité de `CT-DEMO-0013` : son fichier a été volontairement altéré.
 
-`seed_demo` crée trois comptes (`demo.admin@ctech.test`, `demo.agent@ctech.test`, `demo.consultant@ctech.test`), 42 archives réalistes et dix-huit semaines d’audit. La commande est idempotente, refusée en production et n’affiche jamais le mot de passe. L’archive `CT-DEMO-0013` a un fichier volontairement altéré : sa vérification d’intégrité déclenche une alerte, utile en démonstration.
-
-Les comptes privilégiés réels sont créés par `python manage.py bootstrap_default_admins` à partir des variables `CTECH_*` (voir plus bas). **Ne commitez jamais `.env`, des mots de passe ou des données réelles C-Tech.**
-
-## Rôles et habilitations
-
-| Rôle | Niveaux visibles | Actions principales |
-|---|---|---|
-| Consultant | Public | Consulter, rechercher, prévisualiser, télécharger, vérifier l’intégrité |
-| Agent d’archives | Public, Interne | + créer et modifier dans son périmètre |
-| Administrateur | Public, Interne, Confidentiel | + journal d’audit, export CSV, historique des accès |
-| Superutilisateur technique | Tous | Administration Django (référentiels, comptes) |
-
-Une archive hors périmètre répond 404 (anti-inférence). Les compteurs, graphiques, la palette et la recherche instantanée sont calculés sur le seul périmètre visible. La matrice complète est dans [`docs/final-rbac-matrix.md`](docs/final-rbac-matrix.md).
-
-## Configuration
-
-| Variable | Rôle | Exemple non sensible |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | Secret Django obligatoire | `replace-with-a-unique-long-random-secret` |
-| `DJANGO_ENV` | Profil | `development` ou `production` |
-| `DJANGO_DEBUG` | Debug | `True` en local, `False` en production |
-| `DJANGO_ALLOWED_HOSTS` | Hôtes acceptés (`*` refusé hors debug) | `localhost,127.0.0.1` |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Base et rôle applicatif | `c_tech_archives` / `c_tech_app` / secret local |
-| `POSTGRES_HOST` / `POSTGRES_PORT` | Connexion | `127.0.0.1` / `5432` |
-| `PRIVATE_MEDIA_ROOT` | Documents privés | `private_media` |
-| `ARCHIVE_MAX_UPLOAD_SIZE` / `ARCHIVE_ALLOWED_EXTENSIONS` | Limites d’upload | `10485760` / `.pdf,.docx,…` |
-| `CTECH_STEVEN_EMAIL` / `CTECH_STEVEN_PASSWORD` | Administrateur métier | `business-administrator@example.invalid` |
-| `CTECH_EULOGE_EMAIL` / `CTECH_EULOGE_PASSWORD` | Superutilisateur technique | `technical-administrator@example.invalid` |
-| `CTECH_BOOTSTRAP_RECONCILE` | Réaligner les comptes privilégiés au prochain démarrage | `False` |
-| `CTECH_LOGIN_FAILURE_LIMIT` / `CTECH_LOGIN_LOCKOUT_SECONDS` | Verrouillage après échecs | `5` / `900` |
-| `CTECH_SIGNUP_LIMIT` / `CTECH_SIGNUP_WINDOW_SECONDS` | Inscriptions par origine | `10` / `3600` |
-| `DJANGO_SESSION_COOKIE_AGE` | Durée de session | `28800` (8 h) |
-| `DJANGO_LOG_LEVEL` | Niveau des journaux applicatifs | `INFO` |
-| `DJANGO_CACHE_BACKEND` | Cache des compteurs | `database` (production) ou `locmem` |
-
-Les mots de passe des comptes privilégiés doivent respecter les validateurs Django : un mot de passe faible est refusé par la commande de bootstrap.
-
-## Vérifications
+<details>
+<summary><b>Sans make, sous Windows ou sans Docker</b></summary>
 
 ```bash
-make check          # manage.py check + dérive des migrations
-make test           # 362 tests
-make audit-deps     # pip-audit sur constraints.txt
-python manage.py check --deploy   # à lancer avec le profil de production
+python -m venv .venv
+.venv\Scripts\activate            # Windows ; sinon : source .venv/bin/activate
+pip install -r requirements.txt -c constraints.txt
+python manage.py migrate
+python manage.py seed_demo --password "choisissez-un-mot-de-passe-robuste"
+python manage.py runserver
 ```
 
-La CI GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) exécute ces contrôles sur Python 3.12 et 3.13 avec PostgreSQL 17, construit les statiques de production et lance `pip-audit`.
+Une instance PostgreSQL existante convient : renseignez `POSTGRES_HOST` et `POSTGRES_PORT` dans `.env`. Le guide détaillé est dans [`docs/installation.md`](docs/installation.md).
+</details>
 
-## Déploiement
+### Raccourcis clavier
 
-Le blueprint [`render.yaml`](render.yaml) décrit le service web et la base. Au démarrage : migrations, table de cache, création des comptes privilégiés manquants (sans jamais réactiver ni réinitialiser un compte existant), puis gunicorn. Render surveille `/healthz/`. La procédure et les limites de l’offre gratuite sont dans [`docs/deployment-render.md`](docs/deployment-render.md).
+| Touche | Action |
+|---|---|
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>K</kbd> | Palette de commandes et recherche d’archives |
+| <kbd>/</kbd> | Rechercher dans la page |
+| <kbd>G</kbd> puis <kbd>D</kbd> · <kbd>A</kbd> · <kbd>J</kbd> · <kbd>P</kbd> | Tableau de bord · Archives · Journal · Profil |
+| <kbd>N</kbd> | Nouvelle archive (si le rôle le permet) |
+| <kbd>T</kbd> | Thème clair ou sombre |
+| <kbd>?</kbd> | Aide des raccourcis |
 
-## Structure
+## Rôles
 
-```text
-accounts/       identité, rôles, connexion limitée, profil, feuille de route
-archives/       domaine documentaire, RBAC, fichiers, intégrité, sceaux, aperçus
-audit/          journal métier, chronologie, export CSV
-dashboard/      indicateurs et graphiques du périmètre visible
-config/         paramètres, CSP, santé, contexte d’interface
-templates/      gabarits (partials : icônes, avatar, pagination, guide)
-static/         css/app.css, js/app.js, polices OFL, favicon, manifeste
-tests/          tests transverses, sécurité, interface et v2
-docs/           documentation technique, académique et de démonstration
-```
+| Rôle | Niveaux visibles | Peut aussi |
+|---|---|---|
+| Consultant | Public | Rechercher, prévisualiser, télécharger, vérifier l’intégrité |
+| Agent d’archives | Public, Interne | Créer et modifier dans son périmètre |
+| Administrateur | Public, Interne, Confidentiel | Consulter le journal d’audit, l’exporter, voir l’historique des accès |
+| Superutilisateur technique | Tous | Administrer les référentiels et les comptes |
 
-## Limites connues
+## Qualité
 
-Pas de MFA, d’antivirus, de chiffrement applicatif au repos, de signature électronique ni de versioning documentaire. Sur l’offre gratuite de Render, le disque est éphémère : les fichiers déposés disparaissent au redémarrage, et la base gratuite expire. La limitation des connexions est par compte (une adresse IP derrière le proxy Render est partagée) ; celle des inscriptions porte sur l’adresse vue par l’application. Le projet ne doit pas être présenté comme « totalement sécurisé » : la revue et les risques résiduels sont dans [`docs/security-review.md`](docs/security-review.md).
+| Indicateur | Valeur |
+|---|---|
+| Tests automatisés | **362**, exécutés en environ 13 s |
+| Vulnérabilités connues (`pip-audit`) | **0** |
+| Politique de contenu | CSP sans `unsafe-inline` ; aucun CDN, police ou script tiers |
+| CI | PostgreSQL 17 × Python 3.12 / 3.13, contrôles de déploiement, build des statiques, `pip-audit` |
+| Accessibilité | Lien d’évitement, focus visible, graphiques décrits, palette au motif combobox, `prefers-reduced-motion` |
+| Production | Statiques hachés et compressés, journaux console, sonde `/healthz/` |
+
+## Feuille de route
+
+Les améliorations sont proposées dans l’application, où chaque utilisateur peut voter pour les priorités.
+
+- [ ] **Recherche enrichie** : indexation du contenu des documents et recherche plein texte
+- [ ] **Calendrier de conservation** : échéances de révision et de conservation, alertes
+- [ ] **Sécurité renforcée** : double authentification et revue périodique des droits
+- [ ] **Indicateurs et rapports** : exports et rapports d’activité
+- [ ] **Validation et signature** : circuits d’approbation traçables
+- [ ] **Connecteurs métier** : intégrations avec les outils internes
+
+L’historique des versions est dans [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Documentation
 
 | Document | Contenu |
 |---|---|
-| [`CHANGELOG.md`](CHANGELOG.md) | Historique des versions |
-| [`docs/design-system.md`](docs/design-system.md) | Charte « Sceau » : jetons, composants, accessibilité, CSP |
-| [`docs/deployment-render.md`](docs/deployment-render.md) | Déploiement Render et diagnostic |
-| [`docs/installation.md`](docs/installation.md) | Installation détaillée Linux, macOS et Windows |
+| [`docs/design-system.md`](docs/design-system.md) | Charte « Sceau » : jetons, composants, algorithme du sceau, règles CSP |
+| [`docs/deployment-render.md`](docs/deployment-render.md) | Déploiement Render, réalignement des comptes, diagnostic |
 | [`docs/architecture-final.md`](docs/architecture-final.md) | Architecture et modèle de données |
-| [`docs/final-rbac-matrix.md`](docs/final-rbac-matrix.md) | Matrice par rôle et confidentialité |
-| [`docs/security-review.md`](docs/security-review.md) | Revue sécurité et risques résiduels |
-| [`docs/tests.md`](docs/tests.md) | Stratégie et matrice de tests |
-| [`docs/demo-script.md`](docs/demo-script.md) | Scripts de démonstration |
-| [`docs/jury-questions.md`](docs/jury-questions.md) | Questions et réponses de jury |
+| [`docs/final-rbac-matrix.md`](docs/final-rbac-matrix.md) | Matrice des droits par rôle et confidentialité |
+| [`docs/security-review.md`](docs/security-review.md) | Revue de sécurité et risques résiduels |
+| [`docs/final-test-matrix.md`](docs/final-test-matrix.md) | Couverture des tests |
+| [`docs/demo-script.md`](docs/demo-script.md) | Scénarios de démonstration |
 
-## Licence
+## Stack
 
-Code : modalités à définir avec C-Tech et l’établissement académique. Polices Fraunces et Geist : SIL Open Font License 1.1 (licences dans `static/fonts/`).
+Django 5.2 LTS · PostgreSQL 17 · psycopg 3 · Pillow 13 · WhiteNoise · gunicorn · Django Templates · CSS et JavaScript sans dépendance · Fraunces, Geist et Geist Mono (SIL OFL, auto-hébergées) · GitHub Actions · Render.
+
+## Auteur
+
+Conçu et développé par **Euloge Junior Mabiala** ([eulogep](https://github.com/eulogep)), projet académique de Génie Informatique réalisé pour C-Tech.
+
+Les modalités de licence du code restent à définir avec C-Tech et l’établissement. Les polices sont distribuées sous SIL Open Font License 1.1 (licences dans `static/fonts/`).
