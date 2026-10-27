@@ -506,6 +506,7 @@
     j: commands.find((command) => command.shortcut === "G J")?.url,
     p: commands.find((command) => command.shortcut === "G P")?.url,
     r: commands.find((command) => command.shortcut === "G R")?.url,
+    v: commands.find((command) => command.shortcut === "G V")?.url,
   };
   let awaitingGo = false;
   let goTimer = null;

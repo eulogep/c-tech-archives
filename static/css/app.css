@@ -3761,6 +3761,127 @@ a.stat-tile:hover {
   }
 }
 
+/* ---------- Validation et visa ---------- */
+.approval-panel {
+  --state-color: var(--text-3);
+}
+
+.approval-panel.tone-valid { --state-color: var(--success); }
+.approval-panel.tone-info { --state-color: var(--info); }
+.approval-panel.tone-warning { --state-color: var(--warning); }
+.approval-panel.tone-alert { --state-color: var(--danger); }
+
+.approval-message {
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.86rem;
+}
+
+.approval-form,
+.approval-request form {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.approval-form label,
+.approval-request label {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.approval-request {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
+.approval-request summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.visa-code {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--text-3);
+  font-size: 0.78rem;
+}
+
+.visa-code code {
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+
+.approval-timeline {
+  margin-top: 1rem;
+}
+
+.approval-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.approval-list > li {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.approval-list > li:last-child {
+  border-bottom: 0;
+}
+
+.approval-archive {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.approval-list .approval-form {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  margin-top: 0;
+}
+
+.nav-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: #ff6b86;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .approval-list .approval-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ---------- Feuille de route : améliorations livrées ---------- */
 .roadmap-status.is-delivered {
   display: inline-flex;

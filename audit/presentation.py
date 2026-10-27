@@ -19,6 +19,9 @@ ACTION_TONES = {
     AuditAction.TWO_FACTOR_DISABLE: "warning",
     AuditAction.TWO_FACTOR_FAILURE: "warning",
     AuditAction.RECOVERY_CODE_USED: "warning",
+    AuditAction.APPROVAL_REQUEST: "info",
+    AuditAction.APPROVAL_GRANT: "success",
+    AuditAction.APPROVAL_REJECT: "warning",
 }
 ACTION_ICONS = {
     AuditAction.LOGIN: "login",
@@ -36,6 +39,9 @@ ACTION_ICONS = {
     AuditAction.TWO_FACTOR_DISABLE: "unlock",
     AuditAction.TWO_FACTOR_FAILURE: "alert",
     AuditAction.RECOVERY_CODE_USED: "key",
+    AuditAction.APPROVAL_REQUEST: "signature",
+    AuditAction.APPROVAL_GRANT: "check-circle",
+    AuditAction.APPROVAL_REJECT: "x",
 }
 
 INTEGRITY_RESULT_LABELS = {

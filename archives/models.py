@@ -185,3 +185,67 @@ class Archive(models.Model):
 
     def __str__(self) -> str:
         return f"{self.reference} — {self.title}"
+
+
+class ApprovalStatus(models.TextChoices):
+    PENDING = "PENDING", "En attente"
+    APPROVED = "APPROVED", "Validée"
+    REJECTED = "REJECTED", "Refusée"
+
+
+class ApprovalRequest(models.Model):
+    """Demande de validation d’une archive et, une fois décidée, son visa signé.
+
+    Le visa est un HMAC-SHA256 (clé dérivée de SECRET_KEY) portant sur la
+    décision et sur une empreinte des métadonnées et du fichier au moment de la
+    décision : toute modification ultérieure de l’archive est détectable. Il
+    s’agit d’une signature électronique simple, pas d’une signature qualifiée.
+    """
+
+    archive = models.ForeignKey(
+        Archive, on_delete=models.PROTECT, related_name="approvals", verbose_name="archive"
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="approval_requests",
+        verbose_name="demandée par",
+    )
+    approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="approvals_to_review",
+        verbose_name="valideur",
+    )
+    message = models.TextField("message", blank=True, max_length=1000)
+    status = models.CharField(
+        "statut",
+        max_length=16,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.PENDING,
+        db_index=True,
+    )
+    decision_comment = models.TextField("commentaire de décision", blank=True, max_length=1000)
+    decided_at = models.DateTimeField("décidée le", null=True, blank=True)
+    signed_fingerprint = models.CharField("empreinte signée", max_length=64, blank=True)
+    signature = models.CharField("visa", max_length=64, blank=True)
+    created_at = models.DateTimeField("demandée le", auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at", "-pk")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["archive"],
+                condition=Q(status="PENDING"),
+                name="archives_one_pending_approval",
+            ),
+            models.CheckConstraint(
+                condition=~Q(approver=models.F("requested_by")),
+                name="archives_approval_separation_of_duties",
+            ),
+        ]
+        verbose_name = "demande de validation"
+        verbose_name_plural = "demandes de validation"
+
+    def __str__(self) -> str:
+        return f"{self.archive.reference} — {self.get_status_display()}"

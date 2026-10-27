@@ -20,6 +20,7 @@ from audit.services import record_audit_event
 from audit.presentation import ACTION_ICONS, ACTION_TONES
 from config.exports import csv_response, safe_cell
 
+from .approval_views import approval_context
 from .access import (
     ArchiveCreatePermissionMixin,
     ArchiveUpdatePermissionMixin,
@@ -346,6 +347,7 @@ class ArchiveDetailView(ArchiveVisibleQuerysetMixin, DetailView):
         )
         context["integrity_state"] = _integrity_state(archive, context["last_integrity_check"])
         context["retention"] = retention_state(archive)
+        context.update(approval_context(self.request.user, archive))
         if audit_policy(self.request)["audit_policy"]["can_view"]:
             history = list(
                 AuditLog.objects.filter(archive=archive).order_by("-timestamp", "-pk")[:8]

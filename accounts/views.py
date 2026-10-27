@@ -48,8 +48,10 @@ FUTURE_IMPROVEMENTS = (
     {
         "feature": FutureImprovementFeature.SIGNATURE,
         "description": "Circuits de validation traçables pour formaliser les approbations documentaires.",
-        "status": "Prévu",
+        "status": "Disponible",
         "icon": "signature",
+        "delivered": "Demande de validation à un administrateur, décision motivée et journalisée, visa HMAC qui signale toute modification ultérieure.",
+        "link": "archives:approvals",
     },
     {
         "feature": FutureImprovementFeature.RETENTION,

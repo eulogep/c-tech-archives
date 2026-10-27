@@ -4,7 +4,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les ve
 
 ## [2.1.0] — 2026-10-27 · Feuille de route livrée
 
-Quatre des six améliorations soumises au vote des utilisateurs sont livrées ; elles apparaissent comme « Disponible » dans la page Futures améliorations.
+Cinq des six améliorations soumises au vote des utilisateurs sont livrées ; elles apparaissent comme « Disponible » dans la page Futures améliorations.
 
 ### Recherche enrichie
 
@@ -23,6 +23,13 @@ Quatre des six améliorations soumises au vote des utilisateurs sont livrées ; 
 
 - Rapport d’activité imprimable sur 30, 90 ou 365 jours, avec activité du journal pour les administrateurs.
 - Export CSV des archives filtrées, journalisé (`ARCHIVE_EXPORT`), sans empreinte et protégé contre les formules.
+
+### Validation et signature
+
+- Demande de validation d’une archive à un administrateur, par un profil autorisé à la modifier ; une seule demande en attente par archive, jamais à soi-même (contraintes en base).
+- Décision du seul valideur désigné, refus motivé obligatoire, événements `APPROVAL_REQUEST`, `APPROVAL_GRANT` et `APPROVAL_REJECT`.
+- Visa HMAC-SHA256 sur la décision et l’empreinte canonique de l’archive : « valide », « dépassé » si l’archive a changé, « invalide » si le registre a été altéré.
+- File « Validations » avec compteur dans la barre latérale, section « F. Validation et visa » sur la fiche (personnes et commentaires masqués aux consultants).
 
 ### Sécurité renforcée
 

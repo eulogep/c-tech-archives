@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Validations | C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Validation et signature{% endblock %}
+{% block page_heading %}Validations{% endblock %}
+
+{% block content %}
+  <header class="page-header reveal">
+    <div>
+      <p class="page-kicker">Validation et signature</p>
+      <h1 id="approvals-title">Validations</h1>
+      <p class="page-description">Circuit d’approbation traçable : chaque décision est journalisée et chaque validation porte un visa signé, qui signale toute modification ultérieure de l’archive.</p>
+    </div>
+  </header>
+
+  <section class="card card-flush reveal reveal-1" aria-labelledby="to-review-title">
+    <header class="card-header">
+      <div>
+        <h2 class="card-title" id="to-review-title">À valider</h2>
+        <p class="card-subtitle">Demandes qui vous sont adressées</p>
+      </div>
+      <span class="badge badge-plain badge-role">{{ to_review|length }}</span>
+    </header>
+    {% if to_review %}
+      <ul class="approval-list">
+        {% for approval in to_review %}
+          <li>
+            <a class="approval-archive" href="{% url 'archives:detail' approval.archive.pk %}">
+              {% seal approval.archive.reference 40 %}
+              <span class="strip-main">
+                <span class="ref">{{ approval.archive.reference }}</span>
+                <strong>{{ approval.archive.title }}</strong>
+                <span class="cell-sub">Demandée par {{ approval.requested_by.get_full_name|default:approval.requested_by.email }} · {{ approval.created_at|naturaltime }}</span>
+              </span>
+            </a>
+            {% if approval.message %}<blockquote class="approval-message">{{ approval.message }}</blockquote>{% endif %}
+            <form class="approval-form" method="post" action="{% url 'archives:approval_decide' approval.pk %}">
+              {% csrf_token %}
+              <label class="visually-hidden" for="id_comment_{{ approval.pk }}">Commentaire</label>
+              <input id="id_comment_{{ approval.pk }}" type="text" name="comment" maxlength="1000" placeholder="Commentaire (obligatoire en cas de refus)">
+              <button class="button button-compact" type="submit" name="decision" value="approve">{% icon "check" %}Valider et signer</button>
+              <button class="button button-secondary button-compact" type="submit" name="decision" value="reject">{% icon "x" %}Refuser</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="card-body">
+        <div class="empty-state empty-state-compact">
+          {% icon "check-circle" "icon-lg" %}
+          <h3>Rien à valider</h3>
+          <p>Aucune demande ne vous attend.</p>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
+  <div class="dash-grid reveal reveal-2">
+    <section class="card span-6" aria-labelledby="mine-title">
+      <header class="card-header"><h2 class="card-title" id="mine-title">Mes demandes</h2></header>
+      {% if my_requests %}
+        <ol class="timeline">
+          {% for approval in my_requests %}
+            <li>
+              <span class="timeline-dot {% if approval.status == 'APPROVED' %}tone-success-bg{% elif approval.status == 'REJECTED' %}tone-warning-bg{% else %}tone-info-bg{% endif %}">{% if approval.status == 'APPROVED' %}{% icon "check" %}{% elif approval.status == 'REJECTED' %}{% icon "x" %}{% else %}{% icon "clock" %}{% endif %}</span>
+              <div class="timeline-body">
+                <a class="ref" href="{% url 'archives:detail' approval.archive.pk %}">{{ approval.archive.reference }}</a>
+                <span>{{ approval.get_status_display }} · {{ approval.approver.get_full_name|default:approval.approver.email }} · {{ approval.created_at|date:"d/m/Y" }}</span>
+                {% if approval.decision_comment %}<span>« {{ approval.decision_comment }} »</span>{% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="card-subtitle">Vous n’avez encore demandé aucune validation. Depuis une fiche d’archive, utilisez « Demander une validation ».</p>
+      {% endif %}
+    </section>
+
+    <section class="card span-6" aria-labelledby="decided-title">
+      <header class="card-header"><h2 class="card-title" id="decided-title">Mes décisions récentes</h2></header>
+      {% if decided %}
+        <ol class="timeline">
+          {% for approval in decided %}
+            <li>
+              <span class="timeline-dot {% if approval.visa.tone == 'valid' %}tone-success-bg{% elif approval.visa.tone == 'unknown' %}tone-muted-bg{% else %}tone-warning-bg{% endif %}">{% icon "signature" %}</span>
+              <div class="timeline-body">
+                <a class="ref" href="{% url 'archives:detail' approval.archive.pk %}">{{ approval.archive.reference }}</a>
+                <span>{{ approval.get_status_display }} le {{ approval.decided_at|date:"d/m/Y" }}{% if approval.status == 'APPROVED' %} · {{ approval.visa.label }}{% endif %}</span>
+              </div>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="card-subtitle">Aucune décision pour le moment.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

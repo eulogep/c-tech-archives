@@ -24,6 +24,7 @@ from django.utils import timezone
 from PIL import Image, ImageDraw
 
 from accounts.models import Role
+from archives.approvals import decide, request_approval
 from archives.integrity import calculate_archive_checksum
 from archives.permissions import can_create_archive, visible_confidentiality_levels_for
 from archives.search import update_search_document
@@ -221,6 +222,8 @@ class Command(BaseCommand):
             types = [DocumentType.objects.get_or_create(name=name)[0] for name in DOCUMENT_TYPES]
             created = self._archives(options["archives"], users, services, categories, types)
             events = self._audit_trail(users) if created else 0
+            if created:
+                self._approvals(users)
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -314,6 +317,23 @@ class Command(BaseCommand):
             Archive.objects.filter(pk=archive.pk).update(created_at=now - age, updated_at=now - age)
             created += 1
         return created
+
+    def _approvals(self, users):
+        """Quelques validations : accordées, une refusée et une en attente pour l’administrateur."""
+        admin, agent, _ = users
+        archives = list(
+            Archive.objects.filter(reference__startswith="CT-DEMO-")
+            .exclude(confidentiality_level=ConfidentialityLevel.CONFIDENTIAL)
+            .order_by("reference")[:5]
+        )
+        for index, archive in enumerate(archives):
+            approval = request_approval(
+                user=agent, archive=archive, approver=admin, message="Merci de valider cette pièce."
+            )
+            if index < 3:
+                decide(user=admin, approval=approval, approve=True, comment="Conforme.")
+            elif index == 3:
+                decide(user=admin, approval=approval, approve=False, comment="Pièce incomplète : annexe manquante.")
 
     def _audit_trail(self, users):
         """Historique crédible sur dix-huit semaines pour le pouls du journal."""

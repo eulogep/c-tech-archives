@@ -52,13 +52,18 @@
               {% icon "grid" %}<span>Tableau de bord</span><kbd class="nav-shortcut">G D</kbd>
             </a>
             {% if archive_policy.can_access %}
-              <a class="nav-link{% if request.resolver_match.app_name == 'archives' and request.resolver_match.url_name != 'create' %} active{% endif %}" href="{% url 'archives:list' %}"{% if request.resolver_match.app_name == 'archives' and request.resolver_match.url_name != 'create' %} aria-current="page"{% endif %}>
+              <a class="nav-link{% if request.resolver_match.app_name == 'archives' and request.resolver_match.url_name != 'create' and request.resolver_match.url_name != 'approvals' %} active{% endif %}" href="{% url 'archives:list' %}"{% if request.resolver_match.app_name == 'archives' and request.resolver_match.url_name != 'create' and request.resolver_match.url_name != 'approvals' %} aria-current="page"{% endif %}>
                 {% icon "archive" %}<span>Archives</span><kbd class="nav-shortcut">G A</kbd>
               </a>
             {% endif %}
             {% if archive_policy.can_create %}
               <a class="nav-link{% if request.resolver_match.url_name == 'create' %} active{% endif %}" href="{% url 'archives:create' %}"{% if request.resolver_match.url_name == 'create' %} aria-current="page"{% endif %}>
                 {% icon "plus" %}<span>Nouvelle archive</span><kbd class="nav-shortcut">N</kbd>
+              </a>
+            {% endif %}
+            {% if archive_policy.can_create %}
+              <a class="nav-link{% if request.resolver_match.url_name == 'approvals' %} active{% endif %}" href="{% url 'archives:approvals' %}"{% if request.resolver_match.url_name == 'approvals' %} aria-current="page"{% endif %}>
+                {% icon "signature" %}<span>Validations</span>{% if pending_approvals_count %}<span class="nav-count" aria-label="{{ pending_approvals_count }} à valider">{{ pending_approvals_count }}</span>{% else %}<kbd class="nav-shortcut">G V</kbd>{% endif %}
               </a>
             {% endif %}
             <a class="nav-link{% if request.resolver_match.url_name == 'report' %} active{% endif %}" href="{% url 'report' %}"{% if request.resolver_match.url_name == 'report' %} aria-current="page"{% endif %}>

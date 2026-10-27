@@ -147,6 +147,70 @@
         </dl>
       </section>
 
+      <section class="detail-section approval-panel tone-{% if approval_visa %}{{ approval_visa.tone }}{% elif approval_pending %}info{% else %}unknown{% endif %} reveal reveal-3" aria-labelledby="approval-title">
+        <h2 id="approval-title">{% icon "signature" %}F. Validation et visa</h2>
+        {% if approval_pending %}
+          <p class="retention-state"><span class="retention-pill">Validation en attente</span></p>
+          <p class="card-subtitle">Demandée le {{ approval_pending.created_at|date:"d/m/Y à H:i" }}{% if approval_details_visible %} par {{ approval_pending.requested_by.get_full_name|default:approval_pending.requested_by.email }} à {{ approval_pending.approver.get_full_name|default:approval_pending.approver.email }}{% endif %}.</p>
+          {% if approval_details_visible and approval_pending.message %}<blockquote class="approval-message">{{ approval_pending.message }}</blockquote>{% endif %}
+          {% if approval_can_decide %}
+            <form class="approval-form no-print" method="post" action="{% url 'archives:approval_decide' approval_pending.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'archives:detail' archive.pk %}">
+              <label for="id_decision_comment">Commentaire <span class="field-optional">(obligatoire en cas de refus)</span></label>
+              <textarea id="id_decision_comment" name="comment" rows="2" maxlength="1000"></textarea>
+              <div class="action-group">
+                <button class="button" type="submit" name="decision" value="approve">{% icon "check" %}Valider et signer</button>
+                <button class="button button-secondary" type="submit" name="decision" value="reject">{% icon "x" %}Refuser</button>
+              </div>
+            </form>
+          {% endif %}
+        {% elif approval_visa %}
+          <p class="retention-state"><span class="retention-pill">{{ approval_visa.label }}</span></p>
+          <p class="card-subtitle">{{ approval_visa.detail }}</p>
+          <p class="card-subtitle">Validée le {{ approval_latest.decided_at|date:"d/m/Y à H:i" }}{% if approval_details_visible %} par {{ approval_latest.approver.get_full_name|default:approval_latest.approver.email }}{% endif %}.</p>
+          {% if approval_details_visible %}<p class="visa-code" title="Visa HMAC-SHA256"><span>Visa</span><code>{{ approval_latest.signature|slice:":16" }}…</code></p>{% endif %}
+        {% else %}
+          <p class="retention-state"><span class="retention-pill">Non validée</span></p>
+          <p class="card-subtitle">Aucune validation n’a encore été accordée pour cette archive.</p>
+        {% endif %}
+
+        {% if approval_can_request %}
+          <details class="approval-request no-print">
+            <summary>{% icon "signature" %}Demander une validation</summary>
+            {% if approval_candidates %}
+              <form method="post" action="{% url 'archives:approval_request' archive.pk %}">
+                {% csrf_token %}
+                <label for="id_approver">Valideur</label>
+                <select id="id_approver" name="approver" required>
+                  {% for candidate in approval_candidates %}<option value="{{ candidate.pk }}">{{ candidate.get_full_name|default:candidate.email }}</option>{% endfor %}
+                </select>
+                <label for="id_approval_message">Message <span class="field-optional">(facultatif)</span></label>
+                <textarea id="id_approval_message" name="message" rows="2" maxlength="1000"></textarea>
+                <button class="button button-secondary" type="submit">{% icon "signature" %}Envoyer la demande</button>
+              </form>
+            {% else %}
+              <p class="card-subtitle">Aucun autre administrateur actif ne peut valider cette archive.</p>
+            {% endif %}
+          </details>
+        {% endif %}
+
+        {% if approvals %}
+          <ol class="timeline approval-timeline">
+            {% for approval in approvals %}
+              <li>
+                <span class="timeline-dot {% if approval.status == 'APPROVED' %}tone-success-bg{% elif approval.status == 'REJECTED' %}tone-warning-bg{% else %}tone-info-bg{% endif %}">{% if approval.status == 'APPROVED' %}{% icon "check" %}{% elif approval.status == 'REJECTED' %}{% icon "x" %}{% else %}{% icon "clock" %}{% endif %}</span>
+                <div class="timeline-body">
+                  <strong>{{ approval.get_status_display }}</strong>
+                  <span>{{ approval.requested_by.get_full_name|default:approval.requested_by.email }} → {{ approval.approver.get_full_name|default:approval.approver.email }} · {{ approval.created_at|date:"d/m/Y" }}</span>
+                  {% if approval.decision_comment %}<span>« {{ approval.decision_comment }} »</span>{% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+        {% endif %}
+      </section>
+
       {% if archive_history is not None %}
         <section class="detail-section reveal reveal-3" aria-labelledby="history-title">
           <h2 id="history-title">{% icon "history" %}Historique des accès</h2>
