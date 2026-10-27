@@ -10,6 +10,7 @@ from django.db.models import Count, Q
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.http import urlencode
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, View
 
@@ -17,6 +18,7 @@ from audit.context_processors import audit_policy
 from audit.models import AuditAction, AuditLog
 from audit.services import record_audit_event
 from audit.presentation import ACTION_ICONS, ACTION_TONES
+from config.exports import csv_response, safe_cell
 
 from .access import (
     ArchiveCreatePermissionMixin,
@@ -32,13 +34,18 @@ from .integrity import (
 from .models import Archive, ConfidentialityLevel
 from .permissions import visible_confidentiality_levels_for
 from .presentation import PREVIEWABLE_KINDS, file_kind, svg_number
+from .retention import RETENTION_PRESETS, filter_by_deadline, retention_state
+from .search import apply_text_search, content_snippet, update_search_document
+from .text_extraction import extract_text
 
 
 SORT_OPTIONS = {
+    "relevance": ("Pertinence", ("-rank", "-created_at", "-pk")),
     "recent": ("Plus récentes", ("-created_at", "-pk")),
     "oldest": ("Plus anciennes", ("created_at", "pk")),
     "document_date": ("Date du document", ("-document_date", "-pk")),
     "reference": ("Référence A → Z", ("reference",)),
+    "retention": ("Fin de conservation", ("retention_until", "pk")),
     "title": ("Titre A → Z", ("title", "pk")),
 }
 VIEW_MODES = ("table", "grid")
@@ -68,9 +75,16 @@ class ArchiveListView(ArchiveVisibleQuerysetMixin, ListView):
             )
         return self._search_form
 
+    def get_search_text(self):
+        return self.request.GET.get("q", "").strip()
+
     def get_sort(self):
-        sort = self.request.GET.get("sort", "recent")
-        return sort if sort in SORT_OPTIONS else "recent"
+        """Pertinence par défaut lorsqu’un texte est recherché, sinon les plus récentes."""
+        has_text = bool(self.get_search_text())
+        sort = self.request.GET.get("sort", "")
+        if sort in SORT_OPTIONS and (sort != "relevance" or has_text):
+            return sort
+        return "relevance" if has_text else "recent"
 
     def get_view_mode(self):
         view = self.request.GET.get("view", "table")
@@ -80,7 +94,7 @@ class ArchiveListView(ArchiveVisibleQuerysetMixin, ListView):
         queryset = self.visible_archive_queryset(
             Archive.objects.select_related(
                 "category", "document_type", "service", "uploaded_by"
-            )
+            ).defer("content_text", "search_document")
         )
         form = self.get_search_form()
         if not form.is_valid():
@@ -89,11 +103,7 @@ class ArchiveListView(ArchiveVisibleQuerysetMixin, ListView):
         cleaned_data = form.cleaned_data
         query = cleaned_data.get("q")
         if query:
-            queryset = queryset.filter(
-                Q(reference__icontains=query)
-                | Q(title__icontains=query)
-                | Q(description__icontains=query)
-            )
+            queryset = apply_text_search(queryset, query)
         if category := cleaned_data.get("category"):
             queryset = queryset.filter(category=category)
         if document_type := cleaned_data.get("document_type"):
@@ -108,6 +118,8 @@ class ArchiveListView(ArchiveVisibleQuerysetMixin, ListView):
             queryset = queryset.filter(document_date__gte=date_from)
         if date_to := cleaned_data.get("document_date_to"):
             queryset = queryset.filter(document_date__lte=date_to)
+        if deadline := cleaned_data.get("deadline"):
+            queryset = filter_by_deadline(queryset, deadline)
         return queryset.order_by(*SORT_OPTIONS[self.get_sort()][1])
 
     def _active_filters(self, form):
@@ -149,6 +161,19 @@ class ArchiveListView(ArchiveVisibleQuerysetMixin, ListView):
         form = self.get_search_form()
         context["search_form"] = form
         context["query_string"] = parameters.urlencode()
+        search_text = self.get_search_text()
+        if search_text and context["archives"]:
+            # Extraits calculés pour la seule page affichée : le texte complet
+            # n’est jamais chargé pour toute la liste.
+            page = list(context["archives"])
+            contents = dict(
+                Archive.objects.filter(pk__in=[archive.pk for archive in page]).values_list(
+                    "pk", "content_text"
+                )
+            )
+            for archive in page:
+                archive.snippet = content_snippet(contents.get(archive.pk, ""), search_text)
+            context["archives"] = context["object_list"] = page
         context["result_count"] = context["paginator"].count
         context["has_active_search"] = bool(search_parameters)
         context["active_filters"] = self._active_filters(form)
@@ -227,6 +252,7 @@ class ArchiveFormContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["max_upload_size"] = settings.ARCHIVE_MAX_UPLOAD_SIZE
+        context["retention_presets"] = RETENTION_PRESETS
         context["allowed_extensions"] = ",".join(settings.ARCHIVE_ALLOWED_EXTENSIONS)
         return context
 
@@ -256,7 +282,10 @@ class ArchiveCreateView(
                 response = super().form_valid(form)
                 if self.object.file:
                     self.object.checksum = calculate_archive_checksum(self.object)
-                    self.object.save(update_fields=["checksum"])
+                    with self.object.file.open("rb") as handle:
+                        self.object.content_text = extract_text(handle, self.object.file.name)
+                    self.object.save(update_fields=["checksum", "content_text"])
+                update_search_document(self.object.pk)
                 record_audit_event(
                     actor=self.request.user,
                     action=AuditAction.ARCHIVE_CREATE,
@@ -316,6 +345,7 @@ class ArchiveDetailView(ArchiveVisibleQuerysetMixin, DetailView):
             else None
         )
         context["integrity_state"] = _integrity_state(archive, context["last_integrity_check"])
+        context["retention"] = retention_state(archive)
         if audit_policy(self.request)["audit_policy"]["can_view"]:
             history = list(
                 AuditLog.objects.filter(archive=archive).order_by("-timestamp", "-pk")[:8]
@@ -541,9 +571,8 @@ class ArchiveQuickSearchView(ArchiveVisibleQuerysetMixin, View):
         results = []
         if len(query) >= 2:
             archives = (
-                self.visible_archive_queryset(Archive.objects.all())
-                .filter(Q(reference__icontains=query) | Q(title__icontains=query))
-                .order_by("-created_at", "-pk")
+                apply_text_search(self.visible_archive_queryset(Archive.objects.all()), query)
+                .order_by("-rank", "-created_at", "-pk")
                 .only("pk", "reference", "title", "confidentiality_level", "status")[: self.limit]
             )
             results = [
@@ -582,6 +611,7 @@ class ArchiveUpdateView(
         changed_fields = list(form.changed_data)
         with transaction.atomic():
             response = super().form_valid(form)
+            update_search_document(self.object.pk)
             if changed_fields:
                 record_audit_event(
                     actor=self.request.user,
@@ -594,3 +624,65 @@ class ArchiveUpdateView(
 
     def get_success_url(self):
         return reverse_lazy("archives:detail", kwargs={"pk": self.object.pk})
+
+
+class ArchiveExportView(ArchiveListView):
+    """Exporte en CSV la liste filtrée, dans le seul périmètre visible.
+
+    Mêmes filtres et même RBAC que la liste ; l’empreinte n’est jamais
+    exportée (seule sa présence l’est) et l’export est journalisé.
+    """
+
+    paginate_by = None
+    row_limit = 50_000
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()[: self.row_limit]
+        row_count = queryset.count()
+        record_audit_event(
+            actor=request.user,
+            action=AuditAction.ARCHIVE_EXPORT,
+            request=request,
+            details={"source": "web", "row_count": row_count},
+        )
+
+        def date_cell(value):
+            return value.isoformat() if value else ""
+
+        rows = (
+            [
+                safe_cell(archive.reference),
+                safe_cell(archive.title),
+                safe_cell(archive.service.name),
+                safe_cell(archive.category.name),
+                safe_cell(archive.document_type.name),
+                archive.get_status_display(),
+                archive.get_confidentiality_level_display(),
+                date_cell(archive.document_date),
+                date_cell(archive.review_date),
+                date_cell(archive.retention_until),
+                archive.file_size if archive.file else "",
+                "oui" if archive.checksum else "non",
+                timezone.localtime(archive.created_at).date().isoformat(),
+            ]
+            for archive in queryset.iterator(chunk_size=2000)
+        )
+        return csv_response(
+            "archives",
+            [
+                "reference",
+                "titre",
+                "service",
+                "categorie",
+                "type",
+                "statut",
+                "confidentialite",
+                "date_document",
+                "prochaine_revision",
+                "conservation_jusqu_au",
+                "taille_octets",
+                "empreinte_sha256",
+                "creee_le",
+            ],
+            rows,
+        )

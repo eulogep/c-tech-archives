@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from archives.models import ArchiveStatus, Category, DocumentType, Service
 from archives.permissions import visible_archives_for, visible_confidentiality_levels_for
+from archives.retention import deadline_overview
 from audit.context_processors import audit_policy
 from audit.models import AuditLog
 
@@ -49,6 +50,7 @@ def home(request):
         "donut": analytics.confidentiality_donut(visible_archives, visible_levels),
         "services_ranking": analytics.top_services(visible_archives),
         "integrity": analytics.integrity_overview(visible_archives),
+        "deadlines": deadline_overview(visible_archives),
     }
     if can_view_audit:
         context["recent_audit_events"] = AuditLog.objects.select_related(
@@ -57,3 +59,21 @@ def home(request):
         context["heatmap"] = analytics.activity_heatmap()
         context["action_ranking"] = analytics.action_breakdown()
     return render(request, "dashboard/home.html", context)
+
+
+@login_required
+def report(request):
+    """Rapport d’activité imprimable, limité au périmètre visible du rôle."""
+    try:
+        days = int(request.GET.get("days", 30))
+    except ValueError:
+        days = 30
+    visible_archives = visible_archives_for(request.user)
+    can_view_audit = audit_policy(request)["audit_policy"]["can_view"]
+    context = {
+        "report": analytics.activity_report(visible_archives, days, can_view_audit),
+        "periods": analytics.REPORT_PERIODS,
+        "deadlines": deadline_overview(visible_archives),
+        "generated_at": timezone.localtime(),
+    }
+    return render(request, "dashboard/report.html", context)

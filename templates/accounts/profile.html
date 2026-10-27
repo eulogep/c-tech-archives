@@ -100,9 +100,12 @@
         <header class="card-header">
           <div>
             <h2 class="card-title" id="security-title">Sécurité et préférences</h2>
-            <p class="card-subtitle">Mot de passe et apparence de l’interface.</p>
+            <p class="card-subtitle">Mot de passe, double authentification et apparence de l’interface.</p>
           </div>
-          <a class="button button-secondary button-compact" href="{% url 'password_change' %}">{% icon "key" %}Changer mon mot de passe</a>
+          <div class="action-group">
+            <a class="button button-secondary button-compact" href="{% url 'two_factor' %}">{% icon "shield" %}{% if user.totp_enabled %}Double authentification active{% else %}Activer la double authentification{% endif %}</a>
+            <a class="button button-secondary button-compact" href="{% url 'password_change' %}">{% icon "key" %}Changer mon mot de passe</a>
+          </div>
         </header>
         <div class="theme-choices" role="group" aria-label="Thème de l’interface">
           <button class="theme-choice" type="button" data-theme-choice="light" aria-pressed="false"><span class="theme-swatch light"></span>Clair</button>

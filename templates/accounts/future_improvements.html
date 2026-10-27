@@ -19,16 +19,19 @@
 
   <section class="roadmap-grid" aria-label="Axes d’évolution envisagés">
     {% for improvement in improvements %}
-      <article class="roadmap-item reveal reveal-{{ forloop.counter }}{% if improvement.has_voted %} roadmap-item-voted{% endif %}">
+      <article class="roadmap-item reveal reveal-{{ forloop.counter }}{% if improvement.has_voted %} roadmap-item-voted{% endif %}{% if improvement.delivered %} roadmap-item-delivered{% endif %}">
         <div class="roadmap-item-header">
           <span class="roadmap-icon" aria-hidden="true">{% icon improvement.icon %}</span>
-          <span class="roadmap-status">{{ improvement.status }}</span>
+          <span class="roadmap-status{% if improvement.delivered %} is-delivered{% endif %}">{% if improvement.delivered %}{% icon "check" %}{% endif %}{{ improvement.status }}</span>
         </div>
         <div>
           {% if improvement.is_leading %}<p class="roadmap-leading">{% icon "star" %}En tête des votes</p>{% endif %}
           <h2>{{ improvement.title }}</h2>
         </div>
         <p>{{ improvement.description }}</p>
+        {% if improvement.delivered %}
+          <p class="roadmap-delivered">{% icon "check-circle" %}<span>{{ improvement.delivered }}{% if improvement.link %} <a href="{% url improvement.link %}">Essayer</a>{% endif %}</span></p>
+        {% endif %}
         <div class="vote-meter">
           <svg viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true" focusable="false">
             <rect class="track" width="100" height="6" rx="3"/>

@@ -2,7 +2,7 @@
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
 
-.PHONY: help setup db migrate run test check seed audit-deps static
+.PHONY: help setup db migrate run test check seed reindex audit-deps static
 
 help: ## Affiche les commandes disponibles
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -29,6 +29,9 @@ check: ## Contrôles Django et dérive des migrations
 
 seed: ## Jeu de démonstration (CTECH_DEMO_PASSWORD requis, jamais en production)
 	$(PYTHON) manage.py seed_demo
+
+reindex: ## Indexe le contenu des documents pour la recherche plein texte
+	$(PYTHON) manage.py reindex_archives
 
 static: ## Collecte et compresse les fichiers statiques
 	$(PYTHON) manage.py collectstatic --noinput

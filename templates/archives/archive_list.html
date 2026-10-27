@@ -11,11 +11,12 @@
       <h1 id="archives-title">Archives</h1>
       <p class="page-description">Recherchez et consultez les métadonnées documentaires accessibles dans votre périmètre.</p>
     </div>
-    {% if archive_policy.can_create %}
-      <div class="page-actions">
+    <div class="page-actions">
+      <a class="button button-secondary" href="{% url 'archives:export' %}{% if query_string %}?{{ query_string }}{% endif %}">{% icon "export" %}Exporter en CSV</a>
+      {% if archive_policy.can_create %}
         <a class="button" href="{% url 'archives:create' %}">{% icon "plus" %}Nouvelle archive</a>
-      </div>
-    {% endif %}
+      {% endif %}
+    </div>
   </header>
 
   <form class="filter-panel" method="get" aria-label="Recherche et filtres d’archives" data-filter-form>
@@ -112,6 +113,7 @@
             <div>
               <span class="ref">{{ archive.reference }}</span>
               <h2 class="archive-card-title"><a href="{% url 'archives:detail' archive.pk %}">{{ archive.title }}</a></h2>
+              {% if archive.snippet %}<p class="snippet">{% icon "text" %}<span>{{ archive.snippet.before }}<mark>{{ archive.snippet.match }}</mark>{{ archive.snippet.after }}</span></p>{% endif %}
               <div class="archive-card-meta">
                 <span>{% icon "building" %}{{ archive.service.name }}</span>
                 <span>{% icon "folder" %}{{ archive.document_type.name }}</span>
@@ -157,6 +159,7 @@
                       <div class="cell-archive-text">
                         <a class="table-link" href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a>
                         <span class="cell-title">{{ archive.title }}</span>
+                        {% if archive.snippet %}<span class="snippet" title="Extrait du contenu du document">{% icon "text" %}<span>{{ archive.snippet.before }}<mark>{{ archive.snippet.match }}</mark>{{ archive.snippet.after }}</span></span>{% endif %}
                       </div>
                     </div>
                   </td>

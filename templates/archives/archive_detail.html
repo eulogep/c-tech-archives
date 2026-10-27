@@ -130,6 +130,23 @@
         {% endif %}
       </section>
 
+      <section class="detail-section retention-panel tone-{{ retention.tone }} reveal reveal-3" aria-labelledby="retention-title">
+        <h2 id="retention-title">{% icon "calendar" %}E. Conservation</h2>
+        <p class="retention-state"><span class="retention-pill">{{ retention.label }}</span></p>
+        <p class="card-subtitle">{{ retention.detail }}</p>
+        {% if retention.progress is not None %}
+          <svg class="retention-bar" viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label="{{ retention.progress }} % de la durée de conservation écoulée" focusable="false">
+            <rect class="track" width="100" height="8" rx="4"/>
+            <rect class="value" width="{{ retention.progress }}" height="8" rx="4"/>
+          </svg>
+          <p class="retention-scale"><span>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}{{ archive.created_at|date:"d/m/Y" }}{% endif %}</span><span>{{ retention.progress }} %</span><span>{{ archive.retention_until|date:"d/m/Y" }}</span></p>
+        {% endif %}
+        <dl class="detail-list">
+          <dt>Prochaine révision</dt><dd>{% if archive.review_date %}{{ archive.review_date|date:"d/m/Y" }}{% else %}Non planifiée{% endif %}</dd>
+          <dt>Conservation jusqu’au</dt><dd>{% if archive.retention_until %}{{ archive.retention_until|date:"d/m/Y" }}{% else %}Non définie{% endif %}</dd>
+        </dl>
+      </section>
+
       {% if archive_history is not None %}
         <section class="detail-section reveal reveal-3" aria-labelledby="history-title">
           <h2 id="history-title">{% icon "history" %}Historique des accès</h2>

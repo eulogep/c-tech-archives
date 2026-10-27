@@ -61,6 +61,9 @@
                 {% icon "plus" %}<span>Nouvelle archive</span><kbd class="nav-shortcut">N</kbd>
               </a>
             {% endif %}
+            <a class="nav-link{% if request.resolver_match.url_name == 'report' %} active{% endif %}" href="{% url 'report' %}"{% if request.resolver_match.url_name == 'report' %} aria-current="page"{% endif %}>
+              {% icon "chart" %}<span>Rapport d’activité</span><kbd class="nav-shortcut">G R</kbd>
+            </a>
           </div>
 
           {% if audit_policy.can_view %}
@@ -68,6 +71,9 @@
               <span class="nav-group-label">Contrôle</span>
               <a class="nav-link{% if request.resolver_match.app_name == 'audit' %} active{% endif %}" href="{% url 'audit:list' %}"{% if request.resolver_match.app_name == 'audit' %} aria-current="page"{% endif %}>
                 {% icon "shield" %}<span>Journal d’audit</span><kbd class="nav-shortcut">G J</kbd>
+              </a>
+              <a class="nav-link{% if request.resolver_match.url_name == 'access_review' %} active{% endif %}" href="{% url 'access_review' %}"{% if request.resolver_match.url_name == 'access_review' %} aria-current="page"{% endif %}>
+                {% icon "user" %}<span>Revue des droits</span>
               </a>
             </div>
           {% endif %}

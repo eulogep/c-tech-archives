@@ -1,6 +1,8 @@
 """Modèles métier fondamentaux du domaine documentaire C-Tech."""
 
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
@@ -100,6 +102,18 @@ class Archive(models.Model):
     )
     document_date = models.DateField("date du document", null=True, blank=True)
     archived_at = models.DateTimeField("date d’archivage", null=True, blank=True)
+    review_date = models.DateField(
+        "prochaine révision",
+        null=True,
+        blank=True,
+        help_text="Date à laquelle le dossier doit être relu ou mis à jour.",
+    )
+    retention_until = models.DateField(
+        "conservation jusqu’au",
+        null=True,
+        blank=True,
+        help_text="Fin de la durée d’utilité administrative : décider ensuite du sort du dossier.",
+    )
     status = models.CharField(
         "statut",
         max_length=16,
@@ -130,6 +144,13 @@ class Archive(models.Model):
         blank=True,
         help_text="Empreinte SHA-256 hexadécimale, renseignée par un futur ticket d’upload.",
     )
+    content_text = models.TextField(
+        "texte extrait",
+        blank=True,
+        editable=False,
+        help_text="Texte du document indexé pour la recherche plein texte.",
+    )
+    search_document = SearchVectorField("index de recherche", null=True, editable=False)
     created_at = models.DateTimeField("créée le", auto_now_add=True)
     updated_at = models.DateTimeField("mise à jour le", auto_now=True)
 
@@ -137,6 +158,9 @@ class Archive(models.Model):
         ordering = ("reference",)
         indexes = [
             models.Index(fields=["status", "document_date"], name="archives_status_date_idx"),
+            models.Index(fields=["retention_until"], name="archives_retention_idx"),
+            models.Index(fields=["review_date"], name="archives_review_idx"),
+            GinIndex(fields=["search_document"], name="archives_search_gin"),
         ]
         constraints = [
             models.CheckConstraint(

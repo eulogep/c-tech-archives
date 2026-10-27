@@ -30,6 +30,7 @@
         <li><a href="#identification" data-step-link>{% icon "info" %}<span>Identification</span></a></li>
         <li><a href="#classification" data-step-link>{% icon "layers" %}<span>Classification</span></a></li>
         <li><a href="#confidentiality" data-step-link>{% icon "lock" %}<span>Confidentialité</span></a></li>
+        <li><a href="#retention" data-step-link>{% icon "calendar" %}<span>Conservation</span></a></li>
         {% if form.file %}<li><a href="#document" data-step-link>{% icon "upload" %}<span>Document</span></a></li>{% endif %}
       </ol>
     </aside>
@@ -121,8 +122,32 @@
         {% for error in form.confidentiality_level.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
       </section>
 
+      <section class="form-section reveal reveal-4" id="retention" aria-labelledby="retention-title">
+        <header>
+          <h2 id="retention-title">{% icon "calendar" %}Conservation</h2>
+          <p>Le calendrier de conservation : quand relire le dossier et jusqu’à quand le conserver.</p>
+        </header>
+        <div class="form-grid">
+          <p class="form-field">
+            <label for="{{ form.review_date.id_for_label }}">{{ form.review_date.label|capfirst }} <span class="field-optional">(facultatif)</span></label>
+            {{ form.review_date }}
+            <small class="help-text">{{ form.review_date.help_text }}</small>
+            {% for error in form.review_date.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </p>
+          <div class="form-field">
+            <label for="{{ form.retention_until.id_for_label }}">{{ form.retention_until.label|capfirst }} <span class="field-optional">(facultatif)</span></label>
+            {{ form.retention_until }}
+            <div class="preset-row" role="group" aria-label="Durées de conservation usuelles, à partir de la date du document">
+              {% for years in retention_presets %}<button class="chip-button" type="button" data-retention-years="{{ years }}">+{{ years }} an{{ years|pluralize }}</button>{% endfor %}
+            </div>
+            <small class="help-text">{{ form.retention_until.help_text }}</small>
+            {% for error in form.retention_until.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </div>
+        </div>
+      </section>
+
       {% if form.file %}
-        <section class="form-section reveal reveal-4" id="document" aria-labelledby="document-title">
+        <section class="form-section reveal reveal-5" id="document" aria-labelledby="document-title">
           <header>
             <h2 id="document-title">{% icon "upload" %}Document</h2>
             <p class="upload-hint">Le fichier est validé côté serveur avant stockage. Formats autorisés : PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, JPEG, PNG (taille max {{ max_upload_size|filesizeformat }}).</p>

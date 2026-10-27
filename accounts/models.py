@@ -58,6 +58,13 @@ class User(AbstractUser):
         blank=True,
         editable=False,
     )
+    # Double authentification TOTP. Comme dans django-otp, le secret est
+    # conservé en clair : il doit rester lisible pour vérifier les codes.
+    totp_secret = models.CharField("secret TOTP", max_length=64, blank=True, editable=False)
+    totp_enabled = models.BooleanField("double authentification active", default=False)
+    totp_last_counter = models.BigIntegerField(
+        "dernier compteur TOTP accepté", null=True, blank=True, editable=False
+    )
 
     class Meta:
         constraints = [
@@ -110,3 +117,20 @@ class FutureImprovementVote(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} → {self.get_feature_display()}"
+
+
+class RecoveryCode(models.Model):
+    """Code de secours à usage unique ; seule son empreinte HMAC est conservée."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recovery_codes")
+    code_hash = models.CharField(max_length=64)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "code_hash"], name="accounts_recovery_lookup_idx")]
+        verbose_name = "code de secours"
+        verbose_name_plural = "codes de secours"
+
+    def __str__(self) -> str:
+        return f"Code de secours de {self.user}"

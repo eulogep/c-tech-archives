@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Vérification en deux étapes | C-Tech Archives{% endblock %}
+
+{% block content %}
+  <div class="auth-layout">
+    {% include "partials/auth_visual.html" %}
+
+    <section class="auth-panel" aria-labelledby="verify-title">
+      <div class="login-card auth-card">
+        <a class="auth-brand auth-mobile-brand" href="{% url 'login' %}">
+          {% brand_seal 44 %}
+          <span><strong>C-Tech Archives</strong><span>Coffre documentaire</span></span>
+        </a>
+
+        <p class="page-kicker">Double authentification</p>
+        <h1 id="verify-title">Confirmez que c’est bien vous</h1>
+        <p class="page-description">Saisissez le code à six chiffres affiché par votre application d’authentification, ou l’un de vos codes de secours.</p>
+
+        {% if error %}
+          <div class="alert errors" role="alert">{% icon "alert" %}<span>{{ error }}</span></div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="form-field">
+            <label for="id_code">Code de vérification</label>
+            <div class="input-with-icon">
+              {% icon "shield" %}
+              <input class="otp-input" id="id_code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="11" placeholder="123 456" autofocus required>
+            </div>
+          </div>
+          <div class="auth-actions">
+            <button class="button" type="submit">Vérifier{% icon "arrow-right" %}</button>
+            <a class="button button-secondary" href="{% url 'login' %}">Annuler</a>
+          </div>
+        </form>
+
+        <p class="login-security-note">{% icon "clock" %}<span>Cette étape expire au bout de cinq minutes. Après plusieurs codes erronés, la vérification est verrouillée temporairement.</span></p>
+      </div>
+    </section>
+  </div>
+{% endblock %}

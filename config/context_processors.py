@@ -58,6 +58,16 @@ def _commands_for(request):
                 shortcut="G A",
             )
         )
+    commands.append(
+        _command(
+            "Rapport d’activité",
+            group="Navigation",
+            icon="chart",
+            url=reverse("report"),
+            keywords="rapport statistiques imprimer pdf période",
+            shortcut="G R",
+        )
+    )
     if can_create_archive(user):
         commands.append(
             _command(
@@ -80,6 +90,15 @@ def _commands_for(request):
                 shortcut="G J",
             )
         )
+        commands.append(
+            _command(
+                "Revue des droits",
+                group="Navigation",
+                icon="user",
+                url=reverse("access_review"),
+                keywords="comptes rôles habilitations double authentification inactifs",
+            )
+        )
     commands += [
         _command(
             "Futures améliorations",
@@ -95,6 +114,13 @@ def _commands_for(request):
             url=reverse("profile"),
             keywords="photo avatar compte",
             shortcut="G P",
+        ),
+        _command(
+            "Double authentification",
+            group="Compte",
+            icon="shield",
+            url=reverse("two_factor"),
+            keywords="2fa totp mfa sécurité code application",
         ),
         _command(
             "Changer mon mot de passe",
