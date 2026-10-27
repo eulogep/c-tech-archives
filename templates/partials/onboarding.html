@@ -1,0 +1,17 @@
+<dialog class="onboarding-dialog" data-onboarding-dialog aria-labelledby="guide-title">
+  <div class="guide-art" aria-hidden="true">
+    {% brand_seal 104 %}
+    <span class="guide-step-icon" data-guide-icon>{% icon "compass" %}</span>
+  </div>
+  <div class="guide-progress" aria-hidden="true"><span data-guide-progress></span></div>
+  <div class="guide-content" data-guide-content aria-live="polite">
+    <p class="page-kicker" data-guide-step-label>Guide d’utilisation · étape 1 sur 4</p>
+    <h2 id="guide-title" data-guide-title>Bienvenue dans C-Tech Archives</h2>
+    <p data-guide-description>Ce guide vous présente les actions principales accessibles avec votre rôle.</p>
+  </div>
+  <div class="guide-actions">
+    <button class="button button-ghost" type="button" data-guide-close>Plus tard</button>
+    <button class="button button-secondary" type="button" data-guide-previous disabled>Précédent</button>
+    <button class="button" type="button" data-guide-next>Suivant</button>
+  </div>
+</dialog>

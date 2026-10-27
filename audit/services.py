@@ -51,6 +51,10 @@ def _minimal_details(details: Mapping | None) -> dict:
     result = details.get("result")
     if isinstance(result, str) and result in ALLOWED_INTEGRITY_RESULTS:
         sanitized["result"] = result
+
+    row_count = details.get("row_count")
+    if isinstance(row_count, int) and not isinstance(row_count, bool) and row_count >= 0:
+        sanitized["row_count"] = row_count
     return sanitized
 
 

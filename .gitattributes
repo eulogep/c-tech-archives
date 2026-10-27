@@ -1,0 +1,10 @@
+# Fins de ligne LF dans le dépôt, quel que soit le poste (évite les 109 fichiers
+# « modifiés » observés après une copie depuis Windows).
+* text=auto eol=lf
+
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.ico binary

@@ -107,4 +107,4 @@ La navigation et l’interface responsive de T-015 réutilisent les politiques d
 
 ## Limites architecturales
 
-Le MVP n’inclut pas de MFA, rate limiting intégré, antivirus, chiffrement applicatif au repos, signature numérique, ACL par service ou individu, versioning documentaire, suppression physique, SIEM/WORM, pentest externe ou certification OWASP. Ces éléments sont des perspectives conditionnées à une validation des risques et des besoins de C-Tech.
+Le MVP n’inclut pas de MFA, de protection distribuée contre le credential stuffing (la v2 verrouille par compte et limite les inscriptions), d’antivirus, chiffrement applicatif au repos, signature numérique, ACL par service ou individu, versioning documentaire, suppression physique, SIEM/WORM, pentest externe ou certification OWASP. Ces éléments sont des perspectives conditionnées à une validation des risques et des besoins de C-Tech.

@@ -1,5 +1,7 @@
 """Tests de fumée pour la configuration du projet Django."""
 
+import os
+
 from django.conf import settings
 from django.test import SimpleTestCase
 
@@ -27,8 +29,10 @@ class ProjectConfigurationTests(SimpleTestCase):
         self.assertEqual(database["ENGINE"], "django.db.backends.postgresql")
         self.assertTrue(database["NAME"].endswith("c_tech_archives"))
         self.assertEqual(database["USER"], "c_tech_app")
-        self.assertEqual(database["HOST"], "127.0.0.1")
-        self.assertEqual(database["PORT"], "5432")
+        # Hôte et port viennent de l’environnement : la CI et les postes
+        # locaux peuvent exposer PostgreSQL ailleurs que sur 127.0.0.1:5432.
+        self.assertEqual(database["HOST"], os.environ["POSTGRES_HOST"])
+        self.assertEqual(database["PORT"], os.environ["POSTGRES_PORT"])
         self.assertTrue(database["CONN_HEALTH_CHECKS"])
 
     def test_hsts_defaults_to_zero_in_local_development(self):

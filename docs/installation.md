@@ -11,7 +11,7 @@ Ce guide permet de préparer C-Tech Archives depuis un clone propre avec Postgre
 | Git | Clonage du dépôt et suivi des versions |
 | Environnement virtuel Python | Isolation des dépendances |
 
-Les dépendances directes sont définies dans `requirements.txt` : Django 5.1.x, `psycopg[binary]` 3.2.x, `python-dotenv` 1.x et Pillow 10–11.x.
+Les dépendances directes sont définies dans `requirements.txt` : Django 5.2 LTS, `psycopg[binary]` 3.2.x, `python-dotenv` 1.x, Pillow 13.x, gunicorn et WhiteNoise. Les versions exactes validées sont figées dans `constraints.txt` : `pip install -r requirements.txt -c constraints.txt`.
 
 ## Clone et environnement Python
 
@@ -99,7 +99,7 @@ python manage.py migrate --noinput
 python manage.py test
 ```
 
-La baseline actuelle contient **299 tests**. Le contrôle de déploiement local affiche cinq warnings attendus lorsque le développement conserve HTTP et `DEBUG=True` :
+La baseline actuelle contient **362 tests**. Le contrôle de déploiement local affiche cinq warnings attendus lorsque le développement conserve HTTP et `DEBUG=True` :
 
 ```bash
 python manage.py check --deploy

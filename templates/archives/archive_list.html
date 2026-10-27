@@ -1,31 +1,49 @@
 {% extends "base.html" %}
 
 {% block title %}Archives | C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Espace documentaire{% endblock %}
+{% block page_heading %}Archives{% endblock %}
 
 {% block content %}
-  <section class="panel" aria-labelledby="archives-title">
-    <header class="page-header">
-      <div>
-        <p class="page-kicker">Espace documentaire</p>
-        <h1 id="archives-title">Archives</h1>
-        <p class="page-description">Recherchez et consultez les métadonnées documentaires accessibles dans votre périmètre.</p>
+  <header class="page-header reveal">
+    <div>
+      <p class="page-kicker">Espace documentaire</p>
+      <h1 id="archives-title">Archives</h1>
+      <p class="page-description">Recherchez et consultez les métadonnées documentaires accessibles dans votre périmètre.</p>
+    </div>
+    {% if archive_policy.can_create %}
+      <div class="page-actions">
+        <a class="button" href="{% url 'archives:create' %}">{% icon "plus" %}Nouvelle archive</a>
       </div>
-      {% if archive_policy.can_create %}
-        <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
-      {% endif %}
-    </header>
+    {% endif %}
+  </header>
 
-    <form class="filter-panel" method="get" aria-label="Recherche et filtres d’archives">
-      <h2 class="filter-heading">Recherche et filtres</h2>
-      {% if search_form.non_field_errors %}
-        <div class="errors" role="alert">{{ search_form.non_field_errors }}</div>
-      {% endif %}
-      <div class="form-grid">
-        <p class="form-field form-field-wide">
-          <label for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label>
-          {{ search_form.q }}
-          {% for error in search_form.q.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
-        </p>
+  <form class="filter-panel" method="get" aria-label="Recherche et filtres d’archives" data-filter-form>
+    <h2 class="filter-heading">Recherche et filtres</h2>
+    {% if search_form.non_field_errors %}
+      <div class="alert errors" role="alert">{% icon "alert" %}<span>{{ search_form.non_field_errors|join:" " }}</span></div>
+    {% endif %}
+    <div class="search-row">
+      <div class="search-field">
+        {% icon "search" %}
+        <label class="visually-hidden" for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label>
+        {{ search_form.q }}
+        <kbd aria-hidden="true">/</kbd>
+      </div>
+      <label class="visually-hidden" for="id_sort">Trier par</label>
+      <select id="id_sort" name="sort" data-auto-submit>
+        {% for value, label in sort_options %}
+          <option value="{{ value }}"{% if value == sort %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% if view_mode != "table" %}<input type="hidden" name="view" value="{{ view_mode }}">{% endif %}
+      <button class="button" type="submit">{% icon "search" %}Rechercher</button>
+    </div>
+    {% for error in search_form.q.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+
+    <details class="filter-toggle"{% if advanced_filter_open %} open{% endif %}>
+      <summary>{% icon "filter" %}Filtres avancés{% if active_filters %} <span class="filter-count">{{ active_filters|length }}</span>{% endif %}{% icon "chevron-down" "icon-chevron" %}</summary>
+      <div class="filter-grid">
         {% for field in search_form %}
           {% if field.name != "q" %}
             <p class="form-field">
@@ -35,92 +53,150 @@
             </p>
           {% endif %}
         {% endfor %}
+        <div class="filter-actions">
+          <a class="button button-ghost" href="{% url 'archives:list' %}">Réinitialiser</a>
+          <button class="button button-secondary" type="submit">Appliquer les filtres</button>
+        </div>
       </div>
-      <div class="form-actions">
-        <button class="button" type="submit">Rechercher</button>
-        <a class="button button-secondary" href="{% url 'archives:list' %}">Réinitialiser</a>
-      </div>
-    </form>
+    </details>
+  </form>
 
-    <!-- Synthèse du périmètre visible -->
-    <div class="summary-bar" aria-label="Synthèse documentaire">
+  {% if active_filters %}
+    <div class="chips reveal" aria-label="Filtres actifs">
+      {% for chip in active_filters %}
+        <a class="chip" href="?{{ chip.remove_query }}" aria-label="Retirer le filtre {{ chip.label }} : {{ chip.value }}">
+          <span class="chip-label">{{ chip.label }}</span> {{ chip.value }}<span class="chip-remove">{% icon "x" %}</span>
+        </a>
+      {% endfor %}
+      <a class="chip-clear" href="{% url 'archives:list' %}">Tout effacer</a>
+    </div>
+  {% endif %}
+
+  <section class="scope reveal reveal-2" aria-label="Synthèse documentaire">
+    <div class="summary-bar">
       <span class="summary-bar-title">Périmètre visible :</span>
       <span class="summary-chip">Total : <strong>{{ total_visible_count }}</strong></span>
-      <span class="summary-chip">Public : <strong>{{ public_count }}</strong></span>
+      <span class="summary-chip level-public"><span class="level-dot"></span>Public : <strong>{{ public_count }}</strong></span>
       {% if internal_count is not None %}
-        <span class="summary-chip">Interne : <strong>{{ internal_count }}</strong></span>
+        <span class="summary-chip level-internal"><span class="level-dot"></span>Interne : <strong>{{ internal_count }}</strong></span>
       {% endif %}
       {% if confidential_count is not None %}
-        <span class="summary-chip">Confidentiel : <strong>{{ confidential_count }}</strong></span>
+        <span class="summary-chip level-confidential"><span class="level-dot"></span>Confidentiel : <strong>{{ confidential_count }}</strong></span>
       {% endif %}
     </div>
+    <div class="view-switch" role="group" aria-label="Mode d’affichage">
+      <a href="?{{ view_queries.table }}"{% if view_mode == "table" %} aria-current="true"{% endif %} data-view-link="table">{% icon "table" %}Tableau</a>
+      <a href="?{{ view_queries.grid }}"{% if view_mode == "grid" %} aria-current="true"{% endif %} data-view-link="grid">{% icon "cards" %}Grille</a>
+    </div>
+    <svg class="scope-meter" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <rect class="track" width="100" height="8"/>
+      {% for segment in level_segments %}{% if segment.count %}<rect class="seg-{{ segment.value }}" x="{{ segment.x }}" width="{{ segment.width }}" height="8"/>{% endif %}{% endfor %}
+    </svg>
+  </section>
 
-    <p class="result-meta">{{ result_count }} résultat{{ result_count|pluralize:"s" }}.</p>
+  <div class="results-bar">
+    <p class="result-meta" role="status"><strong>{{ result_count }}</strong> résultat{{ result_count|pluralize:"s" }}.</p>
+  </div>
 
-    {% if archives %}
-      <div class="table-responsive" tabindex="0" aria-label="Tableau des archives, défilement horizontal disponible sur petit écran">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th scope="col">Référence</th>
-              <th scope="col">Titre</th>
-              <th scope="col">Service</th>
-              <th scope="col">Type</th>
-              <th scope="col">Statut</th>
-              <th scope="col">Confidentialité</th>
-              <th scope="col">Date</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for archive in archives %}
-              <tr>
-                <td><a class="table-link" href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a></td>
-                <td>{{ archive.title }}</td>
-                <td>{{ archive.service.name }}</td>
-                <td>{{ archive.document_type.name }}</td>
-                <td><span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span></td>
-                <td><span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span></td>
-                <td>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</td>
-                <td class="table-actions">
-                  <a class="button button-secondary button-compact" href="{% url 'archives:detail' archive.pk %}">Consulter<span class="visually-hidden"> {{ archive.reference }}</span></a>
-                  {% if archive.file %}
-                    <a class="button button-secondary button-compact" href="{% url 'archives:download' archive.pk %}" title="Télécharger le fichier">
-                      Télécharger<span class="visually-hidden"> {{ archive.reference }}</span>
-                    </a>
-                    <form class="inline-action-form" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
-                      {% csrf_token %}
-                      <button class="button button-secondary button-compact" type="submit">Vérifier l’intégrité<span class="visually-hidden"> de {{ archive.reference }}</span></button>
-                    </form>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      {% if is_paginated %}
-        <nav class="pagination" aria-label="Pagination des archives">
-          {% if page_obj.has_previous %}
-            <a class="button button-secondary button-compact" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">← Précédent</a>
-          {% endif %}
-          <span class="pagination-status">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
-          {% if page_obj.has_next %}
-            <a class="button button-secondary button-compact" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant →</a>
-          {% endif %}
-        </nav>
-      {% endif %}
+  {% if archives %}
+    {% if view_mode == "grid" %}
+      <ul class="archive-grid" role="list">
+        {% for archive in archives %}
+          <li class="archive-card level-{{ archive.confidentiality_level|lower }}">
+            <div class="archive-card-head">
+              {% seal archive.reference 52 %}
+              <div class="action-group">
+                <span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span>
+              </div>
+            </div>
+            <div>
+              <span class="ref">{{ archive.reference }}</span>
+              <h2 class="archive-card-title"><a href="{% url 'archives:detail' archive.pk %}">{{ archive.title }}</a></h2>
+              <div class="archive-card-meta">
+                <span>{% icon "building" %}{{ archive.service.name }}</span>
+                <span>{% icon "folder" %}{{ archive.document_type.name }}</span>
+                <span>{% icon "calendar" %}{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</span>
+              </div>
+            </div>
+            <div class="archive-card-foot">
+              <span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span>
+              <div class="row-actions">
+                <a class="row-action" href="{% url 'archives:detail' archive.pk %}" data-tip="Consulter">{% icon "eye" %}<span class="visually-hidden">Consulter {{ archive.reference }}</span></a>
+                {% if archive.file %}
+                  <a class="row-action" href="{% url 'archives:download' archive.pk %}" data-tip="Télécharger">{% icon "download" %}<span class="visually-hidden">Télécharger {{ archive.reference }}</span></a>
+                  <form class="inline-action-form" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
+                    {% csrf_token %}
+                    <button class="row-action" type="submit" data-tip="Vérifier l’intégrité">{% icon "fingerprint" %}<span class="visually-hidden">Vérifier l’intégrité de {{ archive.reference }}</span></button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
     {% else %}
-      <div class="empty-state">
-        {% if has_active_search %}
-          <h2>Aucun résultat</h2>
-          <p>Aucune archive ne correspond aux critères.</p>
-        {% else %}
-          <h2>Aucune archive disponible</h2>
-          <p>Aucune archive enregistrée n’est accessible dans votre périmètre.</p>
-        {% endif %}
+      <div class="card card-flush">
+        <div class="table-responsive" tabindex="0" aria-label="Tableau des archives, défilement horizontal disponible sur petit écran">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Archive</th>
+                <th scope="col" class="hide-sm">Service · Type</th>
+                <th scope="col">Statut</th>
+                <th scope="col">Confidentialité</th>
+                <th scope="col" class="hide-sm">Date</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for archive in archives %}
+                <tr>
+                  <td>
+                    <div class="cell-archive">
+                      {% seal archive.reference 38 %}
+                      <div class="cell-archive-text">
+                        <a class="table-link" href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a>
+                        <span class="cell-title">{{ archive.title }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hide-sm"><span class="cell-muted">{{ archive.service.name }}</span><br><span class="cell-sub">{{ archive.document_type.name }}</span></td>
+                  <td><span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span></td>
+                  <td><span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span></td>
+                  <td class="hide-sm cell-muted">{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</td>
+                  <td>
+                    <div class="table-actions">
+                      <a class="row-action" href="{% url 'archives:detail' archive.pk %}" data-tip="Consulter">{% icon "eye" %}<span class="visually-hidden">Consulter {{ archive.reference }}</span></a>
+                      {% if archive.file %}
+                        <a class="row-action" href="{% url 'archives:download' archive.pk %}" data-tip="Télécharger">{% icon "download" %}<span class="visually-hidden">Télécharger {{ archive.reference }}</span></a>
+                        <form class="inline-action-form" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
+                          {% csrf_token %}
+                          <button class="row-action" type="submit" data-tip="Vérifier l’intégrité">{% icon "fingerprint" %}<span class="visually-hidden">Vérifier l’intégrité de {{ archive.reference }}</span></button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     {% endif %}
-  </section>
+
+    {% include "partials/pagination.html" with label="Pagination des archives" %}
+  {% else %}
+    <div class="empty-state">
+      {% seal "∅" 88 "" "empty-state-art" %}
+      {% if has_active_search %}
+        <h2>Aucun résultat</h2>
+        <p>Aucune archive ne correspond aux critères.</p>
+        <a class="button button-secondary" href="{% url 'archives:list' %}">Réinitialiser la recherche</a>
+      {% else %}
+        <h2>Aucune archive disponible</h2>
+        <p>Aucune archive enregistrée n’est accessible dans votre périmètre.</p>
+        {% if archive_policy.can_create %}<a class="button" href="{% url 'archives:create' %}">{% icon "plus" %}Déposer la première archive</a>{% endif %}
+      {% endif %}
+    </div>
+  {% endif %}
 {% endblock %}

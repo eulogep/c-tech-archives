@@ -1,65 +1,69 @@
-# Guide de Déploiement sur Render — C-Tech Archives
+# Déploiement sur Render — C-Tech Archives
 
-Ce document décrit la procédure de déploiement en ligne de l'application **C-Tech Archives** sur la plateforme Render pour la démonstration de soutenance.
+Ce document décrit le déploiement de C-Tech Archives sur Render à partir du blueprint [`render.yaml`](../render.yaml), puis le diagnostic en cas de panne.
 
----
+## 1. Ce que fait le blueprint
 
-## 1. Caractéristiques du Déploiement
+| Élément | Valeur |
+|---|---|
+| Service | Web Service Python, offre gratuite |
+| Runtime | Python 3.13 (`PYTHON_VERSION`) |
+| Framework | Django 5.2 LTS, servi par gunicorn (`WEB_CONCURRENCY`, 2 workers par défaut) |
+| Statiques | WhiteNoise, `CompressedManifestStaticFilesStorage` (noms hachés, gzip, cache d’un an) |
+| Base | PostgreSQL géré `ctech-postgres-db` |
+| Santé | `healthCheckPath: /healthz/` : interroge la base et renvoie 200 ou 503 |
 
-- **Plateforme :** Render (Web Service + Managed PostgreSQL).
-- **Runtime :** Python 3.13.x.
-- **Framework :** Django 5.1.x.
-- **Serveur WSGI :** Gunicorn.
-- **Fichiers statiques :** WhiteNoise (`CompressedManifestStaticFilesStorage`).
-- **Stockage des documents privés :** `PRIVATE_FILE_STORAGE: EPHEMERAL` (système de fichiers local éphémère Render réservé à la démonstration en ligne).
+**Build** (`./build.sh`) : installation des versions figées (`pip install -r requirements.txt -c constraints.txt`) puis `collectstatic`.
 
----
+**Démarrage** (`startCommand`), dans cet ordre :
 
-## 2. Variables d'Environnement Requises
+1. `migrate --noinput` ;
+2. `createcachetable` : table `ctech_cache` partagée par les workers pour la limitation des tentatives de connexion ;
+3. `bootstrap_default_admins --create-only --allow-missing` : crée les comptes privilégiés manquants. Il ne réactive pas un compte désactivé et ne réinitialise pas un mot de passe changé. Si les variables `CTECH_*` sont absentes, il écrit un avertissement et laisse l’application démarrer ;
+4. gunicorn avec journal d’accès sur la sortie standard.
 
-| Variable | Exemple / Valeur | Description |
+## 2. Variables d’environnement
+
+| Variable | Valeur | Rôle |
 |---|---|---|
-| `DJANGO_ENV` | `production` | Active le profil de production Django |
-| `DJANGO_DEBUG` | `False` | Désactive le mode debug |
-| `DJANGO_SECRET_KEY` | *(clé aléatoire)* | Clé secrète cryptographique Django |
-| `DJANGO_ALLOWED_HOSTS` | `c-tech-archives.onrender.com` | Hôte public Render assigné |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://c-tech-archives.onrender.com` | Origine HTTPS de confiance pour CSRF |
-| `DJANGO_SESSION_COOKIE_SECURE` | `True` | Cookies de session sur HTTPS uniquement |
-| `DJANGO_CSRF_COOKIE_SECURE` | `True` | Cookies CSRF sur HTTPS uniquement |
-| `DJANGO_SECURE_SSL_REDIRECT` | `True` | Redirection automatique vers HTTPS |
-| `DJANGO_USE_X_FORWARDED_PROTO` | `True` | Confiance dans l'en-tête HTTPS du proxy Render |
-| `POSTGRES_DB` | `c_tech_archives` | Nom de la base PostgreSQL |
-| `POSTGRES_USER` | `c_tech_app` | Utilisateur PostgreSQL |
-| `POSTGRES_PASSWORD` | *(mot de passe)* | Mot de passe PostgreSQL |
-| `POSTGRES_HOST` | `ctech-postgres-db` | Hôte interne PostgreSQL |
-| `POSTGRES_PORT` | `5432` | Port PostgreSQL |
-| `CTECH_STEVEN_EMAIL` | *(email Steven)* | Identifiant du compte Administrateur métier |
-| `CTECH_STEVEN_PASSWORD` | *(mot de passe Steven)* | Mot de passe du compte Steven |
-| `CTECH_EULOGE_EMAIL` | *(email Euloge)* | Identifiant du compte Administrateur technique |
-| `CTECH_EULOGE_PASSWORD` | *(mot de passe Euloge)* | Mot de passe du compte Euloge |
+| `DJANGO_ENV` | `production` | Profil de production (refuse `DEBUG`) |
+| `DJANGO_DEBUG` | `False` | Debug désactivé |
+| `DJANGO_SECRET_KEY` | générée par Render | Secret cryptographique |
+| `DJANGO_ALLOWED_HOSTS` | `c-tech-archives.onrender.com` | Hôte public (à saisir) |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://c-tech-archives.onrender.com` | Origine CSRF (à saisir) |
+| `DJANGO_SESSION_COOKIE_SECURE` / `DJANGO_CSRF_COOKIE_SECURE` | `True` | Cookies HTTPS uniquement |
+| `DJANGO_SECURE_SSL_REDIRECT` | `True` | Redirection HTTPS (sauf `/healthz/`) |
+| `DJANGO_USE_X_FORWARDED_PROTO` | `True` | Confiance dans l’en-tête HTTPS du proxy Render |
+| `DJANGO_SECURE_HSTS_SECONDS` | `0` | HSTS à activer une fois le domaine final stabilisé |
+| `POSTGRES_*` | issues de `ctech-postgres-db` | Connexion à la base |
+| `CTECH_STEVEN_EMAIL` / `CTECH_STEVEN_PASSWORD` | à saisir | Administrateur métier |
+| `CTECH_EULOGE_EMAIL` / `CTECH_EULOGE_PASSWORD` | à saisir | Superutilisateur technique |
+| `CTECH_BOOTSTRAP_RECONCILE` | `false` | Voir § 3 |
+| `DJANGO_LOG_LEVEL` | `INFO` | Journaux applicatifs (`ctech.*`) |
 
----
+Les mots de passe `CTECH_*` doivent passer les validateurs Django ; sinon la commande refuse le compte et l’indique dans les journaux, sans afficher la valeur.
 
-## 3. Commandes de Build et d'Initialisation
+## 3. Réaligner un compte privilégié sans shell
 
-### Build Command (Automatique lors du déploiement)
-```bash
-./build.sh
-```
+L’offre gratuite n’a pas de shell. Pour réinitialiser un mot de passe oublié ou réactiver un administrateur :
 
-### Initialisation de la Base de Données (Via Render Shell ou Release Command)
-1. Application des migrations :
-```bash
-python manage.py migrate --noinput
-```
-2. Bootstrap sécurisé des comptes privilégiés :
-```bash
-python manage.py bootstrap_default_admins
-```
+1. Mettre à jour `CTECH_*_PASSWORD` si besoin.
+2. Passer `CTECH_BOOTSTRAP_RECONCILE` à `true`, puis redéployer.
+3. Vérifier dans les journaux la ligne `Privileged accounts bootstrapped (reconcile)`.
+4. Remettre `CTECH_BOOTSTRAP_RECONCILE` à `false`.
 
----
+## 4. Diagnostic d’une panne
 
-## 4. Limites de Stockage
+| Symptôme | Vérification | Cause probable |
+|---|---|---|
+| Connexion TLS ouverte mais aucune réponse | Tableau de bord Render, onglet *Events* et *Logs* | Démarrage bloqué : base indisponible ou expirée, migration en échec |
+| `/healthz/` répond 503 | Journaux `ctech.health` | Base injoignable |
+| Erreur 500 | Journaux `django.request` (traceback complet sur la sortie standard) | Bug applicatif |
+| Connexion refusée « Trop de tentatives » | Journaux `ctech.security` (empreinte du compte, jamais l’e-mail) | Verrouillage de 15 minutes après 5 échecs |
+
+La base PostgreSQL de l’offre gratuite de Render expire au bout d’une période limitée. Si elle a expiré, il faut en créer une nouvelle (ou passer à une offre payante), redéployer, puis recréer les comptes par le bootstrap.
+
+## 5. Limites de l’offre gratuite
 
 > [!WARNING]
-> Sur l'offre Render Web Service standard, le système de fichiers est éphémère. Les archives uploadées lors de la session de test peuvent disparaître lors d'un redémarrage de l'instance. Cette version constitue une **démonstration en ligne** avec données synthétiques.
+> Le disque du service est éphémère : les documents déposés disparaissent au redémarrage ou au redéploiement. L’instance s’endort après une période d’inactivité, et le premier accès peut prendre plusieurs dizaines de secondes. Cette configuration convient à une démonstration avec des données synthétiques, pas à la conservation d’archives réelles. Pour un usage réel, il faut un disque persistant Render ou un stockage objet privé.

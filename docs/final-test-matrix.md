@@ -1,11 +1,11 @@
 # Matrice finale des tests automatisés
 
-La suite automatisée de C-Tech Archives contient **299 tests** validés par `python manage.py test`. Les nombres ci-dessous sont dérivés des fonctions de test réellement présentes dans les modules concernés. Cette matrice synthétise la couverture ; elle ne remplace pas l’exécution de la commande de test.
+La suite automatisée de C-Tech Archives contient **362 tests** validés par `python manage.py test`. Les nombres ci-dessous sont dérivés des fonctions de test réellement présentes dans les modules concernés. Cette matrice synthétise la couverture ; elle ne remplace pas l’exécution de la commande de test.
 
 | Groupe | Nombre | Objectif | Exemples de preuve |
 |---|---:|---|---|
 | Configuration et fondations | 5 | Vérifier l’enregistrement des applications, la configuration PostgreSQL, les répertoires partagés et les réglages de sécurité initiaux | `ProjectConfigurationTests` |
-| Comptes, authentification et priorisation | 46 | Vérifier la session Django, la connexion par e-mail insensible à la casse, l’inscription Consultant, le bootstrap privilégié, l’avatar privé, le guide et le vote unitaire rétractable | `accounts/tests.py`, `HARD-019`, `HARD-020`, `HARD-024` |
+| Comptes, authentification et priorisation | 55 | Vérifier la session Django, la connexion par e-mail insensible à la casse, l’inscription Consultant, le bootstrap privilégié, l’avatar privé, le guide et le vote unitaire rétractable | `accounts/tests.py`, `HARD-019`, `HARD-020`, `HARD-024` |
 | Dashboard | 10 | Vérifier les métriques et le respect du périmètre de visibilité | `dashboard/tests.py`, `RBAC-035` à `RBAC-038` |
 | Modèles, CRUD et formulaires | Inclus dans les 144 tests archives | Vérifier contraintes, références, formulaires à liste blanche, création et modification | Tests archive de T-004 et T-008 |
 | Recherche et filtres | Inclus dans les 144 tests archives | Vérifier GET, filtres combinables, pagination, query string, XSS et entrées SQL-like | `SEARCH-001` à `SEARCH-024` |
@@ -15,10 +15,11 @@ La suite automatisée de C-Tech Archives contient **299 tests** validés par `py
 | Audit métier | 30 | Vérifier événements, données minimales, permissions, pagination et Admin read-only | `AUDIT-001` à `AUDIT-030` |
 | Durcissement sécurité | 26 | Vérifier IDOR, mass assignment, CSRF, XSS, injection-like, traversal, secrets et configuration production | `HARD-001` à `HARD-026` |
 | Interface et accessibilité légère | 38 | Vérifier navigation par rôle, formulaires, composants critiques, états vides, landmarks et UI polish | `UI-001` à `UI-038` |
+| Plateforme v2 | 54 | Vérifier CSP, santé, verrouillage des connexions, limitation des inscriptions, mot de passe, palette RBAC, aperçus isolés, export CSV, tri, analyses sans fuite, sceaux, fichiers orphelins, bootstrap `--create-only`, `seed_demo` | `tests/test_v2_platform.py` |
 
 | Module de test | Nombre de tests |
 |---|---:|
-| `accounts/tests.py` | 46 |
+| `accounts/tests.py` | 55 |
 | `archives/tests.py` | 144 |
 | `audit/tests.py` | 30 |
 | `dashboard/tests.py` | 10 |
@@ -26,7 +27,8 @@ La suite automatisée de C-Tech Archives contient **299 tests** validés par `py
 | `tests/test_security_hardening.py` | 26 |
 | `tests/test_final_ui.py` | 21 |
 | `tests/test_ui_polish.py` | 17 |
-| **Total** | **299** |
+| `tests/test_v2_platform.py` | 54 |
+| **Total** | **362** |
 
 ## Lecture des résultats
 

@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: c_tech_archives
+          POSTGRES_USER: c_tech_app
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U c_tech_app -d c_tech_archives"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DJANGO_ENV: development
+      DJANGO_DEBUG: "True"
+      DJANGO_SECRET_KEY: ci-only-secret-key-not-used-anywhere-else-0123456789
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      POSTGRES_DB: c_tech_archives
+      POSTGRES_USER: c_tech_app
+      POSTGRES_PASSWORD: ci-only-password
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            constraints.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt -c constraints.txt
+      - name: Django system checks
+        run: python manage.py check
+      - name: Migration drift
+        run: python manage.py makemigrations --check --dry-run
+      - name: Production configuration checks
+        env:
+          DJANGO_ENV: production
+          DJANGO_DEBUG: "False"
+          DJANGO_ALLOWED_HOSTS: c-tech-archives.onrender.com
+          DJANGO_SECURE_HSTS_SECONDS: "0"
+        run: python manage.py check --deploy --fail-level ERROR
+      - name: Static files build (hashed and compressed)
+        env:
+          DJANGO_ENV: production
+          DJANGO_DEBUG: "False"
+          DJANGO_ALLOWED_HOSTS: c-tech-archives.onrender.com
+        run: python manage.py collectstatic --noinput
+      - name: Test suite
+        run: python -W default manage.py test --noinput
+
+  dependencies:
+    name: Known vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pip-audit
+      - run: pip-audit -r constraints.txt --progress-spinner off

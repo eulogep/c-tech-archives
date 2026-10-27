@@ -1,17 +1,38 @@
-"""Vues liées à l’authentification et au profil privé du MVP."""
+"""Vues liées à l’authentification, au profil privé et à la feuille de route."""
 
 from __future__ import annotations
 
+import logging
+from hashlib import sha256
+
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods, require_POST
 
-from .forms import ProfileAvatarForm, SignUpForm
+from archives.permissions import visible_archives_for
+from audit.models import AuditAction
+from audit.services import get_client_ip, record_audit_event
+
+from .forms import EmailAuthenticationForm, ProfileAvatarForm, SignUpForm
 from .models import FutureImprovementFeature, FutureImprovementVote
+from .throttling import (
+    format_wait,
+    login_lockout_remaining,
+    normalize_identifier,
+    register_login_failure,
+    register_signup,
+    reset_login_failures,
+    signup_allowed,
+)
+
+
+security_logger = logging.getLogger("ctech.security")
 
 
 FUTURE_IMPROVEMENTS = (
@@ -19,40 +40,89 @@ FUTURE_IMPROVEMENTS = (
         "feature": FutureImprovementFeature.SEARCH_OCR,
         "description": "Indexation du contenu numérisé et filtres avancés pour retrouver plus vite un document.",
         "status": "À l’étude",
+        "icon": "search",
     },
     {
         "feature": FutureImprovementFeature.SIGNATURE,
         "description": "Circuits de validation traçables pour formaliser les approbations documentaires.",
         "status": "Prévu",
+        "icon": "signature",
     },
     {
         "feature": FutureImprovementFeature.RETENTION,
         "description": "Alertes sur les échéances d’archivage, de révision et de conservation des dossiers.",
         "status": "Prévu",
+        "icon": "calendar",
     },
     {
         "feature": FutureImprovementFeature.ANALYTICS,
         "description": "Tableaux de bord exportables pour suivre l’activité, les accès et le cycle de vie des archives.",
         "status": "À l’étude",
+        "icon": "chart",
     },
     {
         "feature": FutureImprovementFeature.SECURITY,
         "description": "Double authentification et revue périodique des droits pour protéger davantage les accès.",
         "status": "À l’étude",
+        "icon": "shield",
     },
     {
         "feature": FutureImprovementFeature.CONNECTORS,
         "description": "Intégrations contrôlées avec les outils internes de C-Tech et les espaces documentaires autorisés.",
         "status": "Vision",
+        "icon": "plug",
     },
 )
 
 
-@login_required
-def home(request):
-    """Page protégée de démonstration, sans implémenter le futur tableau de bord."""
+def _fingerprint(identifier: str) -> str:
+    """Empreinte courte permettant de corréler les journaux sans e-mail en clair."""
+    return sha256(identifier.encode()).hexdigest()[:12] if identifier else "-"
 
-    return render(request, "accounts/home.html")
+
+class ThrottledLoginView(auth_views.LoginView):
+    """Connexion par e-mail verrouillée temporairement après des échecs répétés."""
+
+    template_name = "registration/login.html"
+    authentication_form = EmailAuthenticationForm
+    redirect_authenticated_user = True
+
+    def post(self, request, *args, **kwargs):
+        identifier = normalize_identifier(request.POST.get("username"))
+        remaining = login_lockout_remaining(identifier)
+        if remaining:
+            # Le formulaire n’est pas validé : aucun mot de passe n’est testé
+            # pendant le verrouillage, même correct.
+            return self._render_locked(identifier, remaining)
+        return super().post(request, *args, **kwargs)
+
+    def form_invalid(self, form):
+        identifier = normalize_identifier(self.request.POST.get("username"))
+        locked_for = register_login_failure(identifier)
+        security_logger.warning(
+            "Login failure account=%s ip=%s locked=%s",
+            _fingerprint(identifier),
+            get_client_ip(self.request) or "-",
+            bool(locked_for),
+        )
+        if locked_for:
+            return self._render_locked(identifier, locked_for)
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        reset_login_failures(normalize_identifier(form.cleaned_data.get("username")))
+        return super().form_valid(form)
+
+    def _render_locked(self, identifier, seconds):
+        form = self.get_form_class()(request=self.request, initial={"username": identifier})
+        context = self.get_context_data(
+            form=form,
+            lockout_message=(
+                "Trop de tentatives de connexion pour ce compte. "
+                f"Réessayez dans {format_wait(seconds)}."
+            ),
+        )
+        return self.render_to_response(context, status=429)
 
 
 @require_http_methods(["GET", "POST"])
@@ -62,10 +132,26 @@ def signup(request):
     if request.user.is_authenticated:
         return redirect("home")
 
+    client_key = get_client_ip(request) or "unknown"
     if request.method == "POST":
+        if not signup_allowed(client_key):
+            security_logger.warning("Signup throttled ip=%s", client_key)
+            return render(
+                request,
+                "registration/signup.html",
+                {
+                    "form": SignUpForm(),
+                    "throttle_message": (
+                        "Trop d’inscriptions récentes depuis cette connexion. "
+                        "Réessayez plus tard."
+                    ),
+                },
+                status=429,
+            )
         form = SignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
+            register_signup(client_key)
             login(request, user, backend="accounts.backends.EmailBackend")
             messages.success(request, "Votre compte Consultant a été créé avec succès.")
             return redirect("home")
@@ -73,6 +159,24 @@ def signup(request):
         form = SignUpForm()
 
     return render(request, "registration/signup.html", {"form": form})
+
+
+class AuditedPasswordChangeView(auth_views.PasswordChangeView):
+    """Changement de mot de passe en libre-service, tracé dans le journal d’audit."""
+
+    template_name = "registration/password_change_form.html"
+    success_url = reverse_lazy("profile")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        record_audit_event(
+            actor=self.request.user,
+            action=AuditAction.PASSWORD_CHANGE,
+            request=self.request,
+            details={"source": "web"},
+        )
+        messages.success(self.request, "Votre mot de passe a été modifié.")
+        return response
 
 
 @login_required
@@ -86,19 +190,27 @@ def future_improvements(request):
     voted_features = set(
         FutureImprovementVote.objects.filter(user=request.user).values_list("feature", flat=True)
     )
+    leading_count = max(vote_counts.values(), default=0)
     improvements = [
         {
             **improvement,
             "title": FutureImprovementFeature(improvement["feature"]).label,
             "vote_count": vote_counts.get(improvement["feature"], 0),
             "has_voted": improvement["feature"] in voted_features,
+            "is_leading": leading_count > 0
+            and vote_counts.get(improvement["feature"], 0) == leading_count,
         }
         for improvement in FUTURE_IMPROVEMENTS
     ]
     return render(
         request,
         "accounts/future_improvements.html",
-        {"improvements": improvements},
+        {
+            "improvements": improvements,
+            "leading_count": leading_count,
+            "total_votes": sum(vote_counts.values()),
+            "my_vote_count": len(voted_features),
+        },
     )
 
 
@@ -128,6 +240,16 @@ def toggle_future_improvement_vote(request):
 def profile(request):
     """Permet à l’utilisateur connecté de gérer son unique avatar privé."""
 
+    if request.method == "POST" and request.POST.get("action") == "remove-avatar":
+        if request.user.has_profile_avatar:
+            request.user.profile_avatar = None
+            request.user.profile_avatar_content_type = ""
+            request.user.save(
+                update_fields=["profile_avatar", "profile_avatar_content_type"]
+            )
+            messages.info(request, "Votre photo de profil a été retirée.")
+        return redirect("profile")
+
     if request.method == "POST":
         form = ProfileAvatarForm(request.POST, request.FILES)
         if form.is_valid():
@@ -142,7 +264,14 @@ def profile(request):
     else:
         form = ProfileAvatarForm()
 
-    return render(request, "accounts/profile.html", {"form": form})
+    context = {
+        "form": form,
+        "uploaded_archive_count": visible_archives_for(request.user)
+        .filter(uploaded_by=request.user)
+        .count(),
+        "vote_count": FutureImprovementVote.objects.filter(user=request.user).count(),
+    }
+    return render(request, "accounts/profile.html", context)
 
 
 @login_required

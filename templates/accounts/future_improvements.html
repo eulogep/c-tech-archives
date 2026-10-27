@@ -1,39 +1,59 @@
 {% extends "base.html" %}
 
 {% block title %}Futures améliorations | C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Plateforme{% endblock %}
+{% block page_heading %}Futures améliorations{% endblock %}
 
 {% block content %}
-  <section class="roadmap-hero" aria-labelledby="roadmap-title">
-    <p class="page-kicker">Feuille de route participative</p>
-    <h1 id="roadmap-title">Futures améliorations</h1>
-    <p class="page-description">Soutenez les évolutions les plus utiles à votre travail. Chaque utilisateur authentifié dispose d’un vote par amélioration et peut le retirer à tout moment.</p>
-  </section>
+  <header class="roadmap-hero reveal" aria-labelledby="roadmap-title">
+    <div>
+      <p class="page-kicker">Feuille de route participative</p>
+      <h1 class="page-title" id="roadmap-title">Futures améliorations</h1>
+      <p class="page-description">Soutenez les évolutions les plus utiles à votre travail. Chaque utilisateur authentifié dispose d’un vote par amélioration et peut le retirer à tout moment.</p>
+    </div>
+    <div class="roadmap-stats">
+      <div class="stat-tile"><span>Votes exprimés</span><strong data-count="{{ total_votes }}">{{ total_votes }}</strong></div>
+      <div class="stat-tile"><span>Mes soutiens</span><strong>{{ my_vote_count }}/{{ improvements|length }}</strong></div>
+    </div>
+  </header>
 
   <section class="roadmap-grid" aria-label="Axes d’évolution envisagés">
     {% for improvement in improvements %}
-      <article class="roadmap-item{% if improvement.has_voted %} roadmap-item-voted{% endif %}">
+      <article class="roadmap-item reveal reveal-{{ forloop.counter }}{% if improvement.has_voted %} roadmap-item-voted{% endif %}">
         <div class="roadmap-item-header">
-          <span class="roadmap-index" aria-hidden="true">0{{ forloop.counter }}</span>
+          <span class="roadmap-icon" aria-hidden="true">{% icon improvement.icon %}</span>
           <span class="roadmap-status">{{ improvement.status }}</span>
         </div>
-        <h2>{{ improvement.title }}</h2>
+        <div>
+          {% if improvement.is_leading %}<p class="roadmap-leading">{% icon "star" %}En tête des votes</p>{% endif %}
+          <h2>{{ improvement.title }}</h2>
+        </div>
         <p>{{ improvement.description }}</p>
-        <div class="roadmap-vote-row">
-          <span class="roadmap-vote-count" aria-label="{{ improvement.vote_count }} vote{{ improvement.vote_count|pluralize }}">{{ improvement.vote_count }} vote{{ improvement.vote_count|pluralize }}</span>
-          <form method="post" action="{% url 'toggle_future_improvement_vote' %}">
-            {% csrf_token %}
-            <input type="hidden" name="feature" value="{{ improvement.feature }}">
-            <button class="vote-button{% if improvement.has_voted %} vote-button-active{% endif %}" type="submit" aria-pressed="{% if improvement.has_voted %}true{% else %}false{% endif %}">
-              {% if improvement.has_voted %}Retirer mon vote{% else %}Voter pour cette amélioration{% endif %}
-            </button>
-          </form>
+        <div class="vote-meter">
+          <svg viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <rect class="track" width="100" height="6" rx="3"/>
+            {% if leading_count %}<rect class="value" width="{% widthratio improvement.vote_count leading_count 100 %}" height="6" rx="3"/>{% endif %}
+          </svg>
+          <div class="roadmap-vote-row">
+            <span class="roadmap-vote-count" aria-label="{{ improvement.vote_count }} vote{{ improvement.vote_count|pluralize }}">{{ improvement.vote_count }} vote{{ improvement.vote_count|pluralize }}</span>
+            <form method="post" action="{% url 'toggle_future_improvement_vote' %}">
+              {% csrf_token %}
+              <input type="hidden" name="feature" value="{{ improvement.feature }}">
+              <button class="vote-button{% if improvement.has_voted %} vote-button-active{% endif %}" type="submit" aria-pressed="{% if improvement.has_voted %}true{% else %}false{% endif %}">
+                {% if improvement.has_voted %}{% icon "check" %}Retirer mon vote{% else %}{% icon "vote" %}Voter pour cette amélioration{% endif %}
+              </button>
+            </form>
+          </div>
         </div>
       </article>
     {% endfor %}
   </section>
 
-  <section class="roadmap-note" aria-labelledby="roadmap-note-title">
-    <h2 id="roadmap-note-title">Votre retour compte</h2>
-    <p>Les votes servent à éclairer la priorisation avec les équipes C-Tech. Ils ne remplacent pas la validation fonctionnelle, de sécurité et de faisabilité avant chaque mise en œuvre.</p>
+  <section class="card roadmap-note" aria-labelledby="roadmap-note-title">
+    <span class="roadmap-icon" aria-hidden="true">{% icon "info" %}</span>
+    <div>
+      <h2 id="roadmap-note-title">Votre retour compte</h2>
+      <p>Les votes servent à éclairer la priorisation avec les équipes C-Tech. Ils ne remplacent pas la validation fonctionnelle, de sécurité et de faisabilité avant chaque mise en œuvre.</p>
+    </div>
   </section>
 {% endblock %}

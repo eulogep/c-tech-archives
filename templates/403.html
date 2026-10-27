@@ -1,12 +1,18 @@
 {% extends "base.html" %}
 
 {% block title %}Accès refusé | C-Tech Archives{% endblock %}
+{% block page_heading %}Erreur 403{% endblock %}
 
 {% block content %}
-  <section class="panel error-page" aria-labelledby="error-title">
-    <p class="error-code" aria-hidden="true">403</p>
-    <h1 id="error-title">Accès refusé</h1>
-    <p class="page-description">Vous ne disposez pas des autorisations nécessaires pour effectuer cette action.</p>
-    <p class="form-actions"><a class="button" href="{% url 'home' %}">Retour au tableau de bord</a></p>
+  <section class="error-page" aria-labelledby="error-title">
+    <div class="error-card reveal">
+      {% brand_seal 84 "error-seal" %}
+      <p class="error-code" aria-hidden="true">403</p>
+      <h1 id="error-title">Accès refusé</h1>
+      <p class="page-description">Vous ne disposez pas des autorisations nécessaires pour effectuer cette action. Votre habilitation actuelle ne couvre pas cette ressource.</p>
+      <div class="action-group form-actions">
+        <a class="button" href="{% url 'home' %}">{% icon "grid" %}Retour au tableau de bord</a>
+      </div>
+    </div>
   </section>
 {% endblock %}

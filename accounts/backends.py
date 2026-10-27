@@ -28,3 +28,15 @@ class EmailBackend(ModelBackend):
         if user.check_password(password) and self.user_can_authenticate(user):
             return user
         return None
+
+    def get_user(self, user_id):
+        """Charge l’utilisateur de session sans les octets de son avatar.
+
+        AuthenticationMiddleware appelle cette méthode à chaque requête : un
+        avatar de 2 Mo multipliait par 3,3 le temps de rendu des pages.
+        """
+        try:
+            user = User._default_manager.defer("profile_avatar").get(pk=user_id)
+        except User.DoesNotExist:
+            return None
+        return user if self.user_can_authenticate(user) else None

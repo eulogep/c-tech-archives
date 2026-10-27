@@ -1,57 +1,115 @@
 {% extends "base.html" %}
 
 {% block title %}Mon profil · C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Espace personnel{% endblock %}
+{% block page_heading %}Mon profil{% endblock %}
 
 {% block content %}
-  <section class="profile-page" aria-labelledby="profile-title">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">Espace personnel</p>
-        <h1 id="profile-title">Mon profil</h1>
-        <p class="page-description">Votre photo de profil est stockée de manière privée et n’est accessible qu’après authentification.</p>
-      </div>
+  <header class="page-header reveal">
+    <div>
+      <p class="page-kicker">Espace personnel</p>
+      <h1 id="profile-title">Mon profil</h1>
+      <p class="page-description">Votre photo de profil est stockée de manière privée et n’est accessible qu’après authentification.</p>
     </div>
+  </header>
 
-    <div class="profile-layout">
-      <section class="profile-avatar-panel" aria-labelledby="avatar-preview-title">
-        <h2 id="avatar-preview-title">Photo actuelle</h2>
-        {% if user.has_profile_avatar %}
-          <img
-            class="profile-avatar-preview"
-            src="{% url 'profile_avatar' user.pk %}"
-            alt="Photo de profil de {{ user.get_full_name|default:user.username }}"
-            width="152"
-            height="152"
-          >
-        {% else %}
-          <div class="profile-avatar-placeholder" aria-label="Aucune photo de profil configurée">
-            {{ user.username|slice:":1"|upper }}
+  <div class="profile-grid">
+    <section class="card profile-card reveal reveal-1" aria-labelledby="avatar-preview-title">
+      <h2 class="visually-hidden" id="avatar-preview-title">Photo actuelle</h2>
+      {% if user.has_profile_avatar %}
+        <span class="avatar avatar-xl tone-{{ user.username|tone_of }}">
+          <img class="profile-avatar-preview" src="{% url 'profile_avatar' user.pk %}" alt="Photo de profil de {{ user.get_full_name|default:user.username }}" width="132" height="132">
+        </span>
+      {% else %}
+        <span class="avatar avatar-xl tone-{{ user.username|tone_of }}" role="img" aria-label="Aucune photo de profil configurée">{{ user.get_full_name|default:user.username|initials }}</span>
+      {% endif %}
+      <p class="profile-name profile-identity">{{ user.get_full_name|default:user.username }}</p>
+      <p class="profile-email">{{ user.email }}</p>
+      <div class="profile-badges">
+        <span class="badge badge-role profile-identity-meta">{{ user.get_role_display }}</span>
+        {% if user.is_superuser %}<span class="badge badge-tech">Superutilisateur technique</span>{% endif %}
+      </div>
+      <dl class="profile-facts">
+        <div><dt>Archives déposées</dt><dd>{{ uploaded_archive_count }}</dd></div>
+        <div><dt>Votes exprimés</dt><dd>{{ vote_count }}</dd></div>
+      </dl>
+      <div class="profile-meta">
+        <span>{% icon "calendar" %}Membre depuis le {{ user.date_joined|date:"j F Y" }}</span>
+        <span>{% icon "clock" %}{% if user.last_login %}Dernière connexion {{ user.last_login|naturaltime }}{% else %}Première connexion{% endif %}</span>
+      </div>
+    </section>
+
+    <div class="profile-stack">
+      <section class="card reveal reveal-2" aria-labelledby="avatar-form-title">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title" id="avatar-form-title">Mettre à jour ma photo</h2>
+            <p class="card-subtitle">Le fichier est décodé et vérifié avant d’être enregistré.</p>
           </div>
-        {% endif %}
-        <p class="profile-identity">{{ user.get_full_name|default:user.username }}</p>
-        <p class="profile-identity-meta">{{ user.get_role_display }}</p>
-      </section>
-
-      <section class="profile-form-panel" aria-labelledby="avatar-form-title">
-        <h2 id="avatar-form-title">Mettre à jour ma photo</h2>
+          {% if user.has_profile_avatar %}
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="remove-avatar">
+              <button class="button button-ghost button-compact" type="submit">{% icon "trash" %}Retirer la photo</button>
+            </form>
+          {% endif %}
+        </header>
         <form method="post" enctype="multipart/form-data" class="form-grid">
           {% csrf_token %}
           {% if form.non_field_errors %}
-            <div class="form-errors">{{ form.non_field_errors }}</div>
+            <div class="alert form-errors" role="alert">{% icon "alert" %}<span>{{ form.non_field_errors|join:" " }}</span></div>
           {% endif %}
-          <div class="form-field">
-            <label for="{{ form.avatar.id_for_label }}">{{ form.avatar.label }}</label>
-            {{ form.avatar }}
-            {% if form.avatar.help_text %}
-              <small>{{ form.avatar.help_text }}</small>
-            {% endif %}
+          <div class="form-field form-field-wide">
+            <div class="dropzone" data-dropzone data-max-size="2097152" data-allowed=".jpg,.jpeg,.png,.webp">
+              <label class="visually-hidden" for="{{ form.avatar.id_for_label }}">{{ form.avatar.label }}</label>
+              {{ form.avatar }}
+              <span class="dropzone-icon" aria-hidden="true">{% icon "image" %}</span>
+              <span class="dropzone-title">{{ form.avatar.label }}</span>
+              <span class="dropzone-hint">{{ form.avatar.help_text }}</span>
+              <span class="dropzone-file" data-dropzone-file aria-live="polite"></span>
+            </div>
             {% for error in form.avatar.errors %}
-              <span class="field-error">{{ error }}</span>
+              <span class="field-error errors" role="alert">{{ error }}</span>
             {% endfor %}
           </div>
-          <button class="button button-primary" type="submit">Enregistrer ma photo</button>
+          <div class="form-actions">
+            <button class="button button-primary" type="submit">{% icon "upload" %}Enregistrer ma photo</button>
+          </div>
         </form>
       </section>
+
+      <section class="card reveal reveal-3" aria-labelledby="clearance-card-title">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title" id="clearance-card-title">Mon habilitation</h2>
+            <p class="card-subtitle">Niveaux de confidentialité que votre rôle permet de consulter.</p>
+          </div>
+        </header>
+        <div class="clearance-cards">
+          {% for level in clearance_levels %}
+            <div class="clearance-card level-{{ level.value|lower }}{% if not level.granted %} is-locked{% endif %}">
+              <strong><span class="level-dot"></span>{{ level.label }}</strong>
+              <span>{{ level.audience }}</span>
+              <span>{% if level.granted %}{% icon "unlock" %} Accessible{% else %}{% icon "lock" %} Non accessible{% endif %}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card reveal reveal-4" aria-labelledby="security-title">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title" id="security-title">Sécurité et préférences</h2>
+            <p class="card-subtitle">Mot de passe et apparence de l’interface.</p>
+          </div>
+          <a class="button button-secondary button-compact" href="{% url 'password_change' %}">{% icon "key" %}Changer mon mot de passe</a>
+        </header>
+        <div class="theme-choices" role="group" aria-label="Thème de l’interface">
+          <button class="theme-choice" type="button" data-theme-choice="light" aria-pressed="false"><span class="theme-swatch light"></span>Clair</button>
+          <button class="theme-choice" type="button" data-theme-choice="dark" aria-pressed="false"><span class="theme-swatch dark"></span>Sombre</button>
+          <button class="theme-choice" type="button" data-theme-choice="auto" aria-pressed="false"><span class="theme-swatch auto"></span>Système</button>
+        </div>
+      </section>
     </div>
-  </section>
+  </div>
 {% endblock %}
