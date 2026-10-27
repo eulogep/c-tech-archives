@@ -19,8 +19,9 @@ Ce document décrit le déploiement de C-Tech Archives sur Render à partir du b
 
 1. `migrate --noinput` ;
 2. `createcachetable` : table `ctech_cache` partagée par les workers pour la limitation des tentatives de connexion ;
-3. `bootstrap_default_admins --create-only --allow-missing` : crée les comptes privilégiés manquants. Il ne réactive pas un compte désactivé et ne réinitialise pas un mot de passe changé. Si les variables `CTECH_*` sont absentes, il écrit un avertissement et laisse l’application démarrer ;
-4. gunicorn avec journal d’accès sur la sortie standard.
+3. `reindex_archives --missing` : indexe pour la recherche plein texte les archives qui ne le sont pas encore (instantané lorsque tout est à jour) ;
+4. `bootstrap_default_admins --create-only --allow-missing` : crée les comptes privilégiés manquants. Il ne réactive pas un compte désactivé et ne réinitialise pas un mot de passe changé. Si les variables `CTECH_*` sont absentes, il écrit un avertissement et laisse l’application démarrer ;
+5. gunicorn avec journal d’accès sur la sortie standard.
 
 ## 2. Variables d’environnement
 

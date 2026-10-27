@@ -4,3 +4,5 @@ python-dotenv>=1.0,<2.0
 Pillow>=13.0,<14.0
 gunicorn>=23.0,<24.0
 whitenoise>=6.8,<7.0
+pypdf>=6.21,<7.0
+segno>=1.6,<2.0

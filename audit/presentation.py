@@ -14,6 +14,14 @@ ACTION_TONES = {
     AuditAction.ARCHIVE_INTEGRITY_CHECK: "seal",
     AuditAction.AUDIT_EXPORT: "warning",
     AuditAction.PASSWORD_CHANGE: "info",
+    AuditAction.ARCHIVE_EXPORT: "warning",
+    AuditAction.TWO_FACTOR_ENABLE: "success",
+    AuditAction.TWO_FACTOR_DISABLE: "warning",
+    AuditAction.TWO_FACTOR_FAILURE: "warning",
+    AuditAction.RECOVERY_CODE_USED: "warning",
+    AuditAction.APPROVAL_REQUEST: "info",
+    AuditAction.APPROVAL_GRANT: "success",
+    AuditAction.APPROVAL_REJECT: "warning",
 }
 ACTION_ICONS = {
     AuditAction.LOGIN: "login",
@@ -26,6 +34,14 @@ ACTION_ICONS = {
     AuditAction.ARCHIVE_INTEGRITY_CHECK: "seal",
     AuditAction.AUDIT_EXPORT: "export",
     AuditAction.PASSWORD_CHANGE: "key",
+    AuditAction.ARCHIVE_EXPORT: "export",
+    AuditAction.TWO_FACTOR_ENABLE: "shield",
+    AuditAction.TWO_FACTOR_DISABLE: "unlock",
+    AuditAction.TWO_FACTOR_FAILURE: "alert",
+    AuditAction.RECOVERY_CODE_USED: "key",
+    AuditAction.APPROVAL_REQUEST: "signature",
+    AuditAction.APPROVAL_GRANT: "check-circle",
+    AuditAction.APPROVAL_REJECT: "x",
 }
 
 INTEGRITY_RESULT_LABELS = {

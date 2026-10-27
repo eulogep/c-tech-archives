@@ -24,8 +24,11 @@ from django.utils import timezone
 from PIL import Image, ImageDraw
 
 from accounts.models import Role
+from archives.approvals import decide, request_approval
 from archives.integrity import calculate_archive_checksum
 from archives.permissions import can_create_archive, visible_confidentiality_levels_for
+from archives.search import update_search_document
+from archives.text_extraction import extract_text
 from archives.models import (
     Archive,
     ArchiveStatus,
@@ -94,17 +97,33 @@ LEVEL_WEIGHTS = (
 TAMPERED_REFERENCE = "CT-DEMO-0013"
 
 
-def _pdf_bytes(title: str) -> bytes:
-    """PDF minimal mais valide, sans dépendance supplémentaire."""
-    safe = title.encode("latin-1", "replace").replace(b"(", b"[").replace(b")", b"]")
-    stream = b"BT /F1 18 Tf 72 760 Td (" + safe + b") Tj ET"
+BODY_LINES = (
+    "Objet : pièce de démonstration pour la recherche plein texte.",
+    "Le prestataire s’engage à respecter la confidentialité des données.",
+    "Échéance de révision : à planifier avec le service concerné.",
+    "Sécurité : accès restreint selon l’habilitation du lecteur.",
+    "Budget, facturation et pénalités de retard détaillés en annexe.",
+)
+
+
+def _pdf_bytes(title: str, rng=None) -> bytes:
+    """PDF minimal mais valide, sans dépendance supplémentaire (police standard, WinAnsi)."""
+    def escape(text):
+        return text.encode("cp1252", "replace").replace(b"(", b"[").replace(b")", b"]")
+
+    lines = list(BODY_LINES)
+    if rng is not None:
+        rng.shuffle(lines)
+    stream = b"BT /F1 18 Tf 72 760 Td (" + escape(title) + b") Tj ET"
+    for index, line in enumerate(lines[:4]):
+        stream += b"\nBT /F1 11 Tf 72 " + str(720 - index * 18).encode() + b" Td (" + escape(line) + b") Tj ET"
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R "
         b"/Resources << /Font << /F1 5 0 R >> >> >>",
         b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
     ]
     output = BytesIO()
     output.write(b"%PDF-1.4\n")
@@ -150,6 +169,34 @@ def _text_bytes(title: str) -> bytes:
     return "\n".join(lines).encode("utf-8")
 
 
+def _add_years(day, years):
+    try:
+        return day.replace(year=day.year + years)
+    except ValueError:  # 29 février
+        return day.replace(year=day.year + years, day=28)
+
+
+def _retention_dates(rng, document_date, today):
+    """Calendrier crédible : quelques échéances dépassées ou proches."""
+    roll = rng.random()
+    if roll < 0.12:
+        retention_until = today - timedelta(days=rng.randint(3, 160))
+    elif roll < 0.24:
+        retention_until = today + timedelta(days=rng.randint(5, 85))
+    elif roll < 0.85:
+        retention_until = _add_years(document_date, rng.choice((1, 5, 5, 10, 10, 30)))
+    else:
+        retention_until = None
+    if retention_until and retention_until < document_date:
+        retention_until = document_date
+    review_date = None
+    if rng.random() < 0.5:
+        review_date = today + timedelta(days=rng.randint(-40, 120))
+        if retention_until and review_date > retention_until:
+            review_date = None
+    return review_date, retention_until
+
+
 class Command(BaseCommand):
     help = "Crée un jeu de démonstration (comptes, référentiels, archives, journal). Hors production."
 
@@ -175,6 +222,8 @@ class Command(BaseCommand):
             types = [DocumentType.objects.get_or_create(name=name)[0] for name in DOCUMENT_TYPES]
             created = self._archives(options["archives"], users, services, categories, types)
             events = self._audit_trail(users) if created else 0
+            if created:
+                self._approvals(users)
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -212,6 +261,7 @@ class Command(BaseCommand):
     def _archives(self, count, users, services, categories, types):
         rng = random.Random(2026)
         now = timezone.now()
+        today = timezone.localdate()
         uploaders = [user for user in users if user.role != Role.CONSULTANT]
         levels = [level for level, weight in LEVEL_WEIGHTS for _ in range(weight)]
         created = 0
@@ -223,6 +273,8 @@ class Command(BaseCommand):
             year = (now - age).year
             title = rng.choice(TITLES).format(year=year)
             level = rng.choice(levels)
+            document_date = (now - age - timedelta(days=rng.randint(0, 40))).date()
+            review_date, retention_until = _retention_dates(rng, document_date, today)
             archive = Archive(
                 reference=reference,
                 title=title,
@@ -234,13 +286,15 @@ class Command(BaseCommand):
                 document_type=rng.choice(types),
                 service=services[min(int(rng.expovariate(0.55)), len(services) - 1)],
                 uploaded_by=rng.choice(uploaders),
-                document_date=(now - age - timedelta(days=rng.randint(0, 40))).date(),
+                document_date=document_date,
+                review_date=review_date,
+                retention_until=retention_until,
                 status=ArchiveStatus.ARCHIVED if rng.random() < 0.28 else ArchiveStatus.ACTIVE,
                 confidentiality_level=level,
             )
             kind = rng.random()
             if kind < 0.55:
-                content, extension = _pdf_bytes(title), "pdf"
+                content, extension = _pdf_bytes(title, rng), "pdf"
             elif kind < 0.72:
                 content, extension = _png_bytes(index), "png"
             elif kind < 0.86:
@@ -253,13 +307,33 @@ class Command(BaseCommand):
             archive.save()
             if content:
                 archive.checksum = calculate_archive_checksum(archive)
-                archive.save(update_fields=["checksum"])
+                with archive.file.open("rb") as handle:
+                    archive.content_text = extract_text(handle, archive.file.name)
+                archive.save(update_fields=["checksum", "content_text"])
                 if reference == TAMPERED_REFERENCE:
                     with archive.file.storage.open(archive.file.name, "ab") as handle:
                         handle.write(b"\n% simulated tampering\n")
+            update_search_document(archive.pk)
             Archive.objects.filter(pk=archive.pk).update(created_at=now - age, updated_at=now - age)
             created += 1
         return created
+
+    def _approvals(self, users):
+        """Quelques validations : accordées, une refusée et une en attente pour l’administrateur."""
+        admin, agent, _ = users
+        archives = list(
+            Archive.objects.filter(reference__startswith="CT-DEMO-")
+            .exclude(confidentiality_level=ConfidentialityLevel.CONFIDENTIAL)
+            .order_by("reference")[:5]
+        )
+        for index, archive in enumerate(archives):
+            approval = request_approval(
+                user=agent, archive=archive, approver=admin, message="Merci de valider cette pièce."
+            )
+            if index < 3:
+                decide(user=admin, approval=approval, approve=True, comment="Conforme.")
+            elif index == 3:
+                decide(user=admin, approval=approval, approve=False, comment="Pièce incomplète : annexe manquante.")
 
     def _audit_trail(self, users):
         """Historique crédible sur dix-huit semaines pour le pouls du journal."""

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Revue des droits | C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Contrôle{% endblock %}
+{% block page_heading %}Revue des droits{% endblock %}
+
+{% block content %}
+  <header class="page-header reveal">
+    <div>
+      <p class="page-kicker">Sécurité renforcée</p>
+      <h1 id="review-title">Revue des droits</h1>
+      <p class="page-description">Revue périodique des comptes : rôle, privilèges techniques, activité récente et double authentification. Les modifications se font dans l’administration technique.</p>
+    </div>
+  </header>
+
+  <section class="stat-tiles reveal reveal-1" aria-label="Synthèse des comptes actifs">
+    <a class="stat-tile" href="?"><span>Comptes actifs</span><strong>{{ summary.total }}</strong></a>
+    <a class="stat-tile" href="?focus=no_2fa"><span>Avec double authentification</span><strong>{{ summary.with_2fa }}</strong><span>sur {{ summary.total }}</span></a>
+    <a class="stat-tile" href="?focus=privileged"><span>Comptes privilégiés sans 2FA</span><strong class="{% if summary.privileged_without_2fa %}text-danger{% endif %}">{{ summary.privileged_without_2fa }}</strong><span>sur {{ summary.privileged }} privilégié{{ summary.privileged|pluralize }}</span></a>
+    <a class="stat-tile" href="?focus=stale"><span>Inactifs depuis {{ stale_days }} jours</span><strong>{{ summary.stale }}</strong></a>
+  </section>
+
+  <form class="filter-panel" method="get" aria-label="Filtres de la revue des droits">
+    <div class="search-row">
+      <label class="visually-hidden" for="id_role">Rôle</label>
+      <select id="id_role" name="role" data-auto-submit>
+        <option value="">Tous les rôles</option>
+        {% for value, label in roles %}<option value="{{ value }}"{% if role_filter == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <label class="visually-hidden" for="id_focus">Point d’attention</label>
+      <select id="id_focus" name="focus" data-auto-submit>
+        <option value="">Tous les comptes</option>
+        <option value="privileged"{% if focus == "privileged" %} selected{% endif %}>Comptes privilégiés</option>
+        <option value="no_2fa"{% if focus == "no_2fa" %} selected{% endif %}>Sans double authentification</option>
+        <option value="stale"{% if focus == "stale" %} selected{% endif %}>Inactifs depuis {{ stale_days }} jours</option>
+      </select>
+      <button class="button" type="submit">{% icon "filter" %}Filtrer</button>
+    </div>
+  </form>
+
+  <div class="card card-flush reveal reveal-2">
+    <div class="table-responsive" tabindex="0" aria-label="Comptes, défilement horizontal disponible sur petit écran">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Compte</th>
+            <th scope="col">Rôle</th>
+            <th scope="col">Double authentification</th>
+            <th scope="col">Dernière connexion</th>
+            <th scope="col" class="hide-sm">Créé le</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for account in accounts %}
+            <tr>
+              <td>
+                <div class="cell-archive">
+                  <span class="avatar avatar-sm tone-{{ account.username|tone_of }}" aria-hidden="true">{{ account.get_full_name|default:account.username|initials }}</span>
+                  <div class="cell-archive-text">
+                    <span class="cell-title">{{ account.get_full_name|default:account.username }}</span>
+                    <span class="cell-sub">{{ account.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge badge-role">{{ account.get_role_display }}</span>
+                {% if account.is_superuser %}<span class="badge badge-tech">Superutilisateur</span>{% elif account.is_staff %}<span class="badge badge-tech">Staff</span>{% endif %}
+                {% if not account.is_active %}<span class="badge badge-archived">Désactivé</span>{% endif %}
+              </td>
+              <td>{% if account.totp_enabled %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-internal">Absente</span>{% endif %}</td>
+              <td class="cell-muted">{% if account.last_login %}<time datetime="{{ account.last_login|date:'c' }}" title="{{ account.last_login|date:'d/m/Y H:i' }}">{{ account.last_login|naturaltime }}</time>{% if account.last_login < stale_before %} {% icon "alert" %}{% endif %}{% else %}Jamais{% endif %}</td>
+              <td class="hide-sm cell-muted">{{ account.date_joined|date:"d/m/Y" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">Aucun compte ne correspond.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

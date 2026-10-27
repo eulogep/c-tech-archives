@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Rapport d’activité | C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Indicateurs et rapports{% endblock %}
+{% block page_heading %}Rapport d’activité{% endblock %}
+
+{% block content %}
+  <header class="page-header reveal">
+    <div>
+      <p class="page-kicker">Indicateurs et rapports</p>
+      <h1 id="report-title">Rapport d’activité</h1>
+      <p class="page-description">Du {{ report.start|date:"j F Y" }} au {{ report.end|date:"j F Y" }} · calculé sur votre seul périmètre visible · généré le {{ generated_at|date:"d/m/Y à H:i" }}.</p>
+    </div>
+    <div class="page-actions no-print">
+      <div class="view-switch" role="group" aria-label="Période du rapport">
+        {% for value, label in periods.items %}
+          <a href="?days={{ value }}"{% if value == report.days %} aria-current="true"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </div>
+      <button class="button" type="button" data-print>{% icon "printer" %}Imprimer ou PDF</button>
+    </div>
+  </header>
+
+  <section class="stat-tiles reveal reveal-1" aria-label="Synthèse de la période">
+    <div class="stat-tile"><span>Archives enregistrées</span><strong>{{ report.created }}</strong><span>{{ report.label }}</span></div>
+    <div class="stat-tile"><span>Archives visibles au total</span><strong>{{ report.total }}</strong></div>
+    <div class="stat-tile"><span>Contrôles d’intégrité</span><strong>{{ report.checks }}</strong><span>{% if report.alerts %}{{ report.alerts }} alerte{{ report.alerts|pluralize }}{% else %}aucune alerte{% endif %}</span></div>
+    <div class="stat-tile"><span>Échéances dépassées</span><strong>{{ deadlines.overdue }}</strong><span>{{ deadlines.next_30 }} sous 30 jours</span></div>
+  </section>
+
+  <div class="dash-grid reveal reveal-2">
+    <section class="card span-6" aria-labelledby="report-services">
+      <header class="card-header"><h2 class="card-title" id="report-services">Archives enregistrées par service</h2></header>
+      {% if report.by_service %}
+        <table class="data-table">
+          <thead><tr><th scope="col">Service</th><th scope="col">Archives</th></tr></thead>
+          <tbody>
+            {% for row in report.by_service %}<tr><td>{{ row.service__name }}</td><td class="mono">{{ row.total }}</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="card-subtitle">Aucune archive enregistrée sur la période.</p>
+      {% endif %}
+    </section>
+
+    <section class="card span-6" aria-labelledby="report-levels">
+      <header class="card-header"><h2 class="card-title" id="report-levels">Par niveau de confidentialité</h2></header>
+      <ul class="legend">
+        {% for level in report.by_level %}
+          <li class="level-{{ level.value }}"><span class="level-dot"></span><span>{{ level.label }}</span><span><strong>{{ level.total }}</strong></span></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {% if report.audit %}
+      <section class="card span-12" aria-labelledby="report-audit">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title" id="report-audit">Activité du journal d’audit</h2>
+            <p class="card-subtitle">{{ report.audit.events }} événement{{ report.audit.events|pluralize }} · {{ report.audit.actors }} acteur{{ report.audit.actors|pluralize }} distinct{{ report.audit.actors|pluralize }}</p>
+          </div>
+          <a class="section-link no-print" href="{% url 'audit:export' %}?from={{ report.start|date:'Y-m-d' }}&amp;to={{ report.end|date:'Y-m-d' }}">Exporter la période en CSV{% icon "arrow-right" %}</a>
+        </header>
+        <table class="data-table">
+          <thead><tr><th scope="col">Action</th><th scope="col">Occurrences</th></tr></thead>
+          <tbody>
+            {% for row in report.audit.by_action %}<tr><td>{{ row.label }}</td><td class="mono">{{ row.total }}</td></tr>{% empty %}<tr><td colspan="2">Aucun événement sur la période.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </section>
+    {% endif %}
+  </div>
+
+  <p class="notice">{% icon "shield" %}<span>Ce rapport ne contient que des agrégats de votre périmètre ; il ne révèle aucune archive hors de votre habilitation. L’export détaillé reste disponible depuis la liste des archives.</span></p>
+{% endblock %}

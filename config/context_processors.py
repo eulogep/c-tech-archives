@@ -7,10 +7,12 @@ absente de la palette n’est jamais simplement masquée par le navigateur.
 from django.conf import settings
 from django.urls import reverse
 
-from archives.models import ConfidentialityLevel
+from archives.approvals import is_approver_role
+from archives.models import ApprovalRequest, ApprovalStatus, ConfidentialityLevel
 from archives.permissions import (
     can_create_archive,
     has_archive_access,
+    visible_archives_for,
     visible_confidentiality_levels_for,
 )
 from audit.context_processors import audit_policy
@@ -58,7 +60,27 @@ def _commands_for(request):
                 shortcut="G A",
             )
         )
+    commands.append(
+        _command(
+            "Rapport d’activité",
+            group="Navigation",
+            icon="chart",
+            url=reverse("report"),
+            keywords="rapport statistiques imprimer pdf période",
+            shortcut="G R",
+        )
+    )
     if can_create_archive(user):
+        commands.append(
+            _command(
+                "Validations",
+                group="Navigation",
+                icon="signature",
+                url=reverse("archives:approvals"),
+                keywords="valider signer visa approbation circuit",
+                shortcut="G V",
+            )
+        )
         commands.append(
             _command(
                 "Nouvelle archive",
@@ -80,6 +102,15 @@ def _commands_for(request):
                 shortcut="G J",
             )
         )
+        commands.append(
+            _command(
+                "Revue des droits",
+                group="Navigation",
+                icon="user",
+                url=reverse("access_review"),
+                keywords="comptes rôles habilitations double authentification inactifs",
+            )
+        )
     commands += [
         _command(
             "Futures améliorations",
@@ -95,6 +126,13 @@ def _commands_for(request):
             url=reverse("profile"),
             keywords="photo avatar compte",
             shortcut="G P",
+        ),
+        _command(
+            "Double authentification",
+            group="Compte",
+            icon="shield",
+            url=reverse("two_factor"),
+            keywords="2fa totp mfa sécurité code application",
         ),
         _command(
             "Changer mon mot de passe",
@@ -157,4 +195,13 @@ def interface(request):
     context["clearance_granted_count"] = len(granted)
     context["command_items"] = _commands_for(request)
     context["can_search_archives"] = has_archive_access(user)
+    context["pending_approvals_count"] = (
+        ApprovalRequest.objects.filter(
+            approver=user,
+            status=ApprovalStatus.PENDING,
+            archive__in=visible_archives_for(user),
+        ).count()
+        if is_approver_role(user)
+        else 0
+    )
     return context

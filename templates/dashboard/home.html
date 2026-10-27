@@ -199,25 +199,34 @@
       {% endif %}
     </section>
 
-    <section class="card span-4" aria-labelledby="quick-title">
+    <section class="card span-4" aria-labelledby="deadlines-title">
       <header class="card-header">
         <div>
-          <h2 class="card-title" id="quick-title">Accès rapides</h2>
-          <p class="card-subtitle">Ou <kbd data-mod-key>Ctrl</kbd> <kbd>K</kbd> depuis n’importe quelle page</p>
+          <h2 class="card-title" id="deadlines-title">Échéances de conservation</h2>
+          <p class="card-subtitle">Révisions et fins de conservation à 90 jours</p>
         </div>
+        {% if archive_policy.can_access %}<a class="section-link" href="{% url 'archives:list' %}?deadline=overdue">Voir{% icon "arrow-right" %}</a>{% endif %}
       </header>
-      <div class="action-group">
-        {% if archive_policy.can_access %}
-          <a class="button button-secondary" href="{% url 'archives:list' %}">{% icon "archive" %}Consulter les archives</a>
-        {% endif %}
-        {% if archive_policy.can_create %}
-          <a class="button button-secondary" href="{% url 'archives:create' %}">{% icon "upload" %}Créer une archive</a>
-        {% endif %}
-        {% if audit_policy.can_view %}
-          <a class="button button-secondary" href="{% url 'audit:list' %}">{% icon "shield" %}Consulter le journal d’audit</a>
-        {% endif %}
-        <a class="button button-secondary" href="{% url 'profile' %}">{% icon "user" %}Mon profil</a>
+      <div class="deadline-counters">
+        <a class="deadline-counter tone-alert" href="{% url 'archives:list' %}?deadline=overdue"><strong>{{ deadlines.overdue }}</strong><span>dépassée{{ deadlines.overdue|pluralize }}</span></a>
+        <a class="deadline-counter tone-warning" href="{% url 'archives:list' %}?deadline=next_30"><strong>{{ deadlines.next_30 }}</strong><span>sous 30 j</span></a>
+        <a class="deadline-counter tone-info" href="{% url 'archives:list' %}?deadline=next_90"><strong>{{ deadlines.next_90 }}</strong><span>sous 90 j</span></a>
       </div>
+      {% if deadlines.upcoming %}
+        <ul class="deadline-list">
+          {% for item in deadlines.upcoming %}
+            <li>
+              <a href="{% url 'archives:detail' item.archive.pk %}">
+                {% seal item.archive.reference 28 %}
+                <span class="deadline-main"><span class="ref">{{ item.archive.reference }}</span><span class="cell-sub">{{ item.kind }}</span></span>
+                <span class="deadline-when{% if item.overdue %} is-overdue{% endif %}">{% if item.overdue %}en retard{% elif item.days == 0 %}aujourd’hui{% else %}J-{{ item.days }}{% endif %}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="card-subtitle">Aucune échéance dans les 90 prochains jours.</p>
+      {% endif %}
     </section>
   </div>
 

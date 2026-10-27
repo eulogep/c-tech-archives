@@ -42,7 +42,7 @@ def env_int(name: str, default: int) -> int:
         raise ImproperlyConfigured(f"La variable d'environnement {name} doit être un entier.") from error
 
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 DJANGO_ENV = os.getenv("DJANGO_ENV", "development").strip().lower()
@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+    "django.contrib.postgres",
     "accounts",
     "archives",
     "audit",

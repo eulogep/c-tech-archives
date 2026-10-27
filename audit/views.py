@@ -1,17 +1,16 @@
 """Consultation métier contrôlée du journal d’audit."""
 
-import csv
 from datetime import date, timedelta
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
-from django.http import StreamingHttpResponse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView
 
 from accounts.models import Role
+from config.exports import csv_response, safe_cell
 
 from .models import AuditAction, AuditLog
 from .presentation import ACTION_ICONS, ACTION_TONES, describe_details
@@ -19,8 +18,6 @@ from .services import record_audit_event
 
 
 EXPORT_ROW_LIMIT = 50_000
-# Préfixes interprétés comme formules par les tableurs (injection CSV).
-FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
 def can_view_audit(user) -> bool:
@@ -134,16 +131,6 @@ class AuditLogListView(AuditAccessMixin, ListView):
         return context
 
 
-def _safe_cell(value) -> str:
-    text = "" if value is None else str(value)
-    return f"'{text}" if text.startswith(FORMULA_PREFIXES) else text
-
-
-class _Echo:
-    def write(self, value):
-        return value
-
-
 class AuditLogExportView(AuditAccessMixin, View):
     """Exporte en CSV les événements filtrés ; l’export est lui-même journalisé."""
 
@@ -156,27 +143,18 @@ class AuditLogExportView(AuditAccessMixin, View):
             request=request,
             details={"source": "web", "row_count": row_count},
         )
-
-        writer = csv.writer(_Echo(), delimiter=";")
-
-        def rows():
-            yield "﻿"
-            yield writer.writerow(
-                ["horodatage", "utilisateur", "action", "archive", "adresse_ip"]
-            )
-            for event in queryset.iterator(chunk_size=2000):
-                yield writer.writerow(
-                    [
-                        timezone.localtime(event.timestamp).isoformat(timespec="seconds"),
-                        _safe_cell(event.actor_identifier),
-                        event.get_action_display(),
-                        _safe_cell(event.archive_reference),
-                        event.ip_address or "",
-                    ]
-                )
-
-        filename = f"journal-audit-{timezone.localdate():%Y%m%d}.csv"
-        response = StreamingHttpResponse(rows(), content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        response["Cache-Control"] = "private, no-store"
-        return response
+        rows = (
+            [
+                timezone.localtime(event.timestamp).isoformat(timespec="seconds"),
+                safe_cell(event.actor_identifier),
+                event.get_action_display(),
+                safe_cell(event.archive_reference),
+                event.ip_address or "",
+            ]
+            for event in queryset.iterator(chunk_size=2000)
+        )
+        return csv_response(
+            "journal-audit",
+            ["horodatage", "utilisateur", "action", "archive", "adresse_ip"],
+            rows,
+        )

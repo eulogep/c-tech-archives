@@ -7,7 +7,7 @@
   <img alt="Django 5.2 LTS" src="https://img.shields.io/badge/Django-5.2%20LTS-0c4b33?logo=django&logoColor=white">
   <img alt="Python 3.12 | 3.13" src="https://img.shields.io/badge/Python-3.12%20%7C%203.13-3776ab?logo=python&logoColor=white">
   <img alt="PostgreSQL 17" src="https://img.shields.io/badge/PostgreSQL-17-4169e1?logo=postgresql&logoColor=white">
-  <img alt="362 tests" src="https://img.shields.io/badge/tests-362%20%E2%9C%93-3ddc97">
+  <img alt="406 tests" src="https://img.shields.io/badge/tests-406%20%E2%9C%93-3ddc97">
   <img alt="pip-audit : 0 vulnérabilité" src="https://img.shields.io/badge/pip--audit-0%20vuln%C3%A9rabilit%C3%A9-3ddc97">
   <img alt="CSP stricte" src="https://img.shields.io/badge/CSP-stricte%2C%20sans%20unsafe--inline-8f88ff">
 </p>
@@ -88,6 +88,37 @@
 
 <p align="center"><img src="docs/assets/mobile.webp" alt="Connexion, tableau de bord et navigation sur mobile" width="100%"></p>
 <p align="center"><sub>Pensé aussi pour le téléphone : tiroir de navigation, carte d’habilitation, indicateurs sur deux colonnes.</sub></p>
+
+## Nouveautés 2.1 : la feuille de route livrée
+
+Cinq des six améliorations soumises au vote des utilisateurs sont désormais disponibles.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/v21-search.webp" alt="Recherche plein texte avec extraits surlignés"></td>
+    <td width="50%"><img src="docs/assets/v21-two-factor.webp" alt="Activation de la double authentification par QR code"></td>
+  </tr>
+  <tr>
+    <td><b>Recherche enrichie.</b> Le contenu des PDF, DOCX, XLSX et TXT est indexé par PostgreSQL : recherche insensible aux accents, tri par pertinence, extraits surlignés, syntaxe <code>"phrase exacte"</code> et <code>-exclusion</code>.</td>
+    <td><b>Sécurité renforcée.</b> Double authentification TOTP (QR code, anti-rejeu, codes de secours à usage unique) et revue des droits pour repérer les comptes privilégiés sans second facteur.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/v21-report.webp" alt="Rapport d’activité imprimable"></td>
+    <td><img src="docs/assets/v21-detail-retention.webp" alt="Fiche d’archive avec calendrier de conservation"></td>
+  </tr>
+  <tr>
+    <td><b>Indicateurs et rapports.</b> Rapport d’activité sur 30, 90 ou 365 jours, imprimable en PDF, et export CSV des archives filtrées, journalisé.</td>
+    <td><b>Calendrier de conservation.</b> Révision et fin de conservation, durées usuelles en un clic, filtre par échéance et alertes sur le tableau de bord.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/v21-approvals.webp" alt="File des validations à traiter"></td>
+    <td><img src="docs/assets/v21-visa.webp" alt="Visa de validation signé sur une fiche d’archive"></td>
+  </tr>
+  <tr>
+    <td><b>Validation et signature.</b> Un agent demande la validation à un administrateur ; personne ne valide sa propre demande, chaque décision est motivée et journalisée.</td>
+    <td><b>Visa signé.</b> La validation porte un visa HMAC-SHA256 sur les métadonnées et l’empreinte du fichier : toute modification ultérieure le rend « dépassé », toute altération du registre le rend « invalide ».</td>
+  </tr>
+</table>
 
 ## Le sceau
 
@@ -183,7 +214,7 @@ Une instance PostgreSQL existante convient : renseignez `POSTGRES_HOST` et `POST
 
 | Indicateur | Valeur |
 |---|---|
-| Tests automatisés | **362**, exécutés en environ 13 s |
+| Tests automatisés | **406**, exécutés en environ 20 s |
 | Vulnérabilités connues (`pip-audit`) | **0** |
 | Politique de contenu | CSP sans `unsafe-inline` ; aucun CDN, police ou script tiers |
 | CI | PostgreSQL 17 × Python 3.12 / 3.13, contrôles de déploiement, build des statiques, `pip-audit` |
@@ -194,11 +225,11 @@ Une instance PostgreSQL existante convient : renseignez `POSTGRES_HOST` et `POST
 
 Les améliorations sont proposées dans l’application, où chaque utilisateur peut voter pour les priorités.
 
-- [ ] **Recherche enrichie** : indexation du contenu des documents et recherche plein texte
-- [ ] **Calendrier de conservation** : échéances de révision et de conservation, alertes
-- [ ] **Sécurité renforcée** : double authentification et revue périodique des droits
-- [ ] **Indicateurs et rapports** : exports et rapports d’activité
-- [ ] **Validation et signature** : circuits d’approbation traçables
+- [x] **Recherche enrichie** : recherche plein texte PostgreSQL dans le contenu des PDF, DOCX, XLSX et TXT, insensible aux accents, avec pertinence et extraits surlignés (l’OCR des images reste à venir)
+- [x] **Calendrier de conservation** : dates de révision et de fin de conservation, durées usuelles en un clic, filtre par échéance, alertes sur le tableau de bord
+- [x] **Sécurité renforcée** : double authentification TOTP avec QR code et codes de secours, revue périodique des droits pour les administrateurs
+- [x] **Indicateurs et rapports** : rapport d’activité imprimable par période, export CSV des archives filtrées
+- [x] **Validation et signature** : demande de validation à un administrateur, décision motivée et journalisée, visa HMAC-SHA256 qui signale toute modification ultérieure (signature électronique simple, non qualifiée)
 - [ ] **Connecteurs métier** : intégrations avec les outils internes
 
 L’historique des versions est dans [`CHANGELOG.md`](CHANGELOG.md).
@@ -217,7 +248,7 @@ L’historique des versions est dans [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Stack
 
-Django 5.2 LTS · PostgreSQL 17 · psycopg 3 · Pillow 13 · WhiteNoise · gunicorn · Django Templates · CSS et JavaScript sans dépendance · Fraunces, Geist et Geist Mono (SIL OFL, auto-hébergées) · GitHub Actions · Render.
+Django 5.2 LTS · PostgreSQL 17 (recherche plein texte) · psycopg 3 · Pillow 13 · pypdf · segno · WhiteNoise · gunicorn · Django Templates · CSS et JavaScript sans dépendance · Fraunces, Geist et Geist Mono (SIL OFL, auto-hébergées) · GitHub Actions · Render.
 
 ## Auteur
 

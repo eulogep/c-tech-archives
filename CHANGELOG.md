@@ -2,6 +2,41 @@
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; les versions suivent le versionnage sémantique.
 
+## [2.1.0] — 2026-10-27 · Feuille de route livrée
+
+Cinq des six améliorations soumises au vote des utilisateurs sont livrées ; elles apparaissent comme « Disponible » dans la page Futures améliorations.
+
+### Recherche enrichie
+
+- Extraction du texte des PDF (pypdf), DOCX, XLSX et TXT au dépôt, bornée en taille, en pages et en caractères ; un document illisible reste archivable.
+- Index PostgreSQL pondéré (référence et titre, puis description et classement, puis contenu), configuration `french`, insensible aux accents ; syntaxe « websearch » (guillemets, exclusion `-`).
+- Tri par pertinence par défaut lors d’une recherche, extraits surlignés et échappés, palette de commandes branchée sur le même moteur.
+- Commande `reindex_archives` (`--missing` au démarrage Render).
+
+### Calendrier de conservation
+
+- Dates de prochaine révision et de fin de conservation, contrôles de cohérence, durées usuelles (+1, +5, +10, +30 ans).
+- Filtre « Échéance de conservation », tri par fin de conservation, section « E. Conservation » sur la fiche avec frise d’avancement.
+- Carte « Échéances de conservation » sur le tableau de bord, limitée au périmètre visible.
+
+### Indicateurs et rapports
+
+- Rapport d’activité imprimable sur 30, 90 ou 365 jours, avec activité du journal pour les administrateurs.
+- Export CSV des archives filtrées, journalisé (`ARCHIVE_EXPORT`), sans empreinte et protégé contre les formules.
+
+### Validation et signature
+
+- Demande de validation d’une archive à un administrateur, par un profil autorisé à la modifier ; une seule demande en attente par archive, jamais à soi-même (contraintes en base).
+- Décision du seul valideur désigné, refus motivé obligatoire, événements `APPROVAL_REQUEST`, `APPROVAL_GRANT` et `APPROVAL_REJECT`.
+- Visa HMAC-SHA256 sur la décision et l’empreinte canonique de l’archive : « valide », « dépassé » si l’archive a changé, « invalide » si le registre a été altéré.
+- File « Validations » avec compteur dans la barre latérale, section « F. Validation et visa » sur la fiche (personnes et commentaires masqués aux consultants).
+
+### Sécurité renforcée
+
+- Double authentification TOTP (RFC 6238, sans dépendance), QR code (`segno`), anti-rejeu, huit codes de secours stockés sous forme d’empreintes et affichés une seule fois.
+- Connexion en deux étapes : le mot de passe seul n’ouvre plus de session, l’étape expire en 5 minutes et les codes erronés sont limités et audités.
+- Revue des droits pour les administrateurs : comptes privilégiés sans second facteur, comptes inactifs depuis 90 jours.
+
 ## [2.0.0] — 2026-10-27
 
 ### Interface « Sceau » (refonte complète)

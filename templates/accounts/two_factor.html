@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Double authentification | C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Espace personnel{% endblock %}
+{% block page_heading %}Double authentification{% endblock %}
+
+{% block content %}
+  <header class="page-header reveal">
+    <div>
+      <p class="page-kicker">Sécurité du compte</p>
+      <h1 id="two-factor-title">Double authentification</h1>
+      <p class="page-description">Un code temporaire, généré par une application comme Google Authenticator, Microsoft Authenticator, 1Password ou Aegis, est demandé après votre mot de passe.</p>
+    </div>
+    <div class="page-actions">
+      <a class="button button-ghost" href="{% url 'profile' %}">{% icon "arrow-left" %}Retour au profil</a>
+    </div>
+  </header>
+
+  {% if new_codes %}
+    <section class="card recovery-card reveal" aria-labelledby="codes-title">
+      <header class="card-header">
+        <div>
+          <h2 class="card-title" id="codes-title">Vos codes de secours</h2>
+          <p class="card-subtitle">Affichés une seule fois. Chaque code permet une connexion si vous perdez votre téléphone ; conservez-les hors ligne.</p>
+        </div>
+        <button class="button button-secondary button-compact" type="button" data-print>{% icon "printer" %}Imprimer</button>
+      </header>
+      <ol class="recovery-codes">
+        {% for code in new_codes %}<li><code>{{ code }}</code></li>{% endfor %}
+      </ol>
+    </section>
+  {% endif %}
+
+  {% if user.totp_enabled %}
+    <div class="dash-grid">
+      <section class="card span-6 two-factor-status is-on reveal reveal-1" aria-labelledby="status-title">
+        <span class="two-factor-badge">{% icon "shield" %}</span>
+        <h2 class="card-title" id="status-title">Protection active</h2>
+        <p class="card-subtitle">Votre compte demande un code à chaque connexion. Codes de secours restants : <strong>{{ codes_left }}</strong>.</p>
+        <form method="post" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="regenerate">
+          <p class="form-field form-field-wide">
+            <label for="id_regen_code">Code actuel</label>
+            <input id="id_regen_code" class="otp-input" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="11" required>
+          </p>
+          <div class="form-actions"><button class="button button-secondary" type="submit">{% icon "key" %}Générer de nouveaux codes de secours</button></div>
+        </form>
+      </section>
+      <section class="card span-6 reveal reveal-2" aria-labelledby="disable-title">
+        <h2 class="card-title" id="disable-title">Désactiver</h2>
+        <p class="card-subtitle">Le mot de passe et un code valide sont exigés. Les codes de secours sont alors révoqués.</p>
+        <form method="post" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="disable">
+          <p class="form-field">
+            <label for="id_disable_password">Mot de passe</label>
+            <input id="id_disable_password" name="password" type="password" autocomplete="current-password" required>
+          </p>
+          <p class="form-field">
+            <label for="id_disable_code">Code ou code de secours</label>
+            <input id="id_disable_code" class="otp-input" name="code" type="text" autocomplete="one-time-code" maxlength="11" required>
+          </p>
+          <div class="form-actions"><button class="button button-danger" type="submit">{% icon "unlock" %}Désactiver la double authentification</button></div>
+        </form>
+      </section>
+    </div>
+  {% else %}
+    <section class="card two-factor-setup reveal reveal-1" aria-labelledby="setup-title">
+      <div class="qr-frame">
+        <img src="{{ qr }}" alt="QR code à scanner avec votre application d’authentification" width="220" height="220">
+      </div>
+      <div class="setup-steps">
+        <h2 class="card-title" id="setup-title">Activer en trois gestes</h2>
+        <ol class="steps">
+          <li><strong>Scannez</strong><span>Ouvrez votre application d’authentification et scannez le QR code.</span></li>
+          <li><strong>Ou saisissez</strong><span>la clé manuellement : <code class="secret-key">{{ secret }}</code></span></li>
+          <li><strong>Confirmez</strong><span>Entrez le code à six chiffres affiché pour terminer.</span></li>
+        </ol>
+        <form method="post" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="enable">
+          <p class="form-field">
+            <label for="id_enable_code">Code de confirmation</label>
+            <input id="id_enable_code" class="otp-input" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123 456" required>
+          </p>
+          <div class="form-actions"><button class="button" type="submit">{% icon "shield" %}Activer la double authentification</button></div>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

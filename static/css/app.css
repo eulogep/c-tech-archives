@@ -3626,6 +3626,447 @@ tr:hover .cell-archive .seal,
 .tone-muted-bg { background: var(--surface-3) !important; color: var(--text-3) !important; }
 .tone-neutral-bg { background: var(--surface-3) !important; color: var(--text-2) !important; }
 
+/* ---------- Extraits de recherche plein texte ---------- */
+.snippet {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  max-width: 460px;
+  margin-top: 0.3rem;
+  color: var(--text-3);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.snippet .icon {
+  margin-top: 0.15rem;
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.snippet mark,
+.palette-item mark {
+  padding: 0 0.15em;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--text);
+  font-weight: 650;
+}
+
+/* ---------- Double authentification et revue des droits ---------- */
+.otp-input {
+  font-family: var(--font-mono);
+  font-size: 1.15rem !important;
+  letter-spacing: 0.25em;
+}
+
+.two-factor-setup {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 2rem;
+}
+
+.qr-frame {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-2);
+}
+
+.setup-steps {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.secret-key {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+
+.two-factor-status {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+
+.two-factor-badge {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.two-factor-badge .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.recovery-card {
+  border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+  background: linear-gradient(180deg, var(--warning-soft), transparent 60%), var(--surface);
+}
+
+.recovery-codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recovery-codes code {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+a.stat-tile {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--duration), transform var(--duration) var(--ease-out);
+}
+
+a.stat-tile:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .two-factor-setup {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
+/* ---------- Validation et visa ---------- */
+.approval-panel {
+  --state-color: var(--text-3);
+}
+
+.approval-panel.tone-valid { --state-color: var(--success); }
+.approval-panel.tone-info { --state-color: var(--info); }
+.approval-panel.tone-warning { --state-color: var(--warning); }
+.approval-panel.tone-alert { --state-color: var(--danger); }
+
+.approval-message {
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.86rem;
+}
+
+.approval-form,
+.approval-request form {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.approval-form label,
+.approval-request label {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.approval-request {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
+.approval-request summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.visa-code {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--text-3);
+  font-size: 0.78rem;
+}
+
+.visa-code code {
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+
+.approval-timeline {
+  margin-top: 1rem;
+}
+
+.approval-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.approval-list > li {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.approval-list > li:last-child {
+  border-bottom: 0;
+}
+
+.approval-archive {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.approval-list .approval-form {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  margin-top: 0;
+}
+
+.nav-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: #ff6b86;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .approval-list .approval-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Feuille de route : améliorations livrées ---------- */
+.roadmap-status.is-delivered {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.roadmap-status.is-delivered .icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.roadmap-item-delivered {
+  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.roadmap-delivered {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--success-soft);
+  color: var(--text-2) !important;
+  font-size: 0.82rem !important;
+}
+
+.roadmap-delivered .icon {
+  margin-top: 0.1rem;
+  color: var(--success);
+}
+
+/* ---------- Calendrier de conservation ---------- */
+.retention-panel {
+  --state-color: var(--text-3);
+}
+
+.retention-panel.tone-valid { --state-color: var(--success); }
+.retention-panel.tone-info { --state-color: var(--info); }
+.retention-panel.tone-warning { --state-color: var(--warning); }
+.retention-panel.tone-alert { --state-color: var(--danger); }
+.retention-panel.tone-unknown { --state-color: var(--text-3); }
+
+.retention-state {
+  margin-bottom: 0.35rem;
+}
+
+.retention-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--state-color) 13%, transparent);
+  color: var(--state-color);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.retention-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.retention-bar {
+  width: 100%;
+  height: 8px;
+  margin-top: 1rem;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.retention-bar .track { fill: var(--chart-track); }
+.retention-bar .value { fill: var(--state-color); }
+
+.retention-scale {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.35rem 0 0.5rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.chip-button {
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--duration), color var(--duration), background var(--duration);
+}
+
+.chip-button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.deadline-counters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.deadline-counter {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: 0.74rem;
+  text-decoration: none;
+  transition: border-color var(--duration), transform var(--duration) var(--ease-out);
+}
+
+.deadline-counter strong {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.deadline-counter:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  color: var(--text-2);
+}
+
+.deadline-counter.tone-alert strong { color: var(--danger); }
+.deadline-counter.tone-warning strong { color: var(--warning); }
+.deadline-counter.tone-info strong { color: var(--info); }
+
+.deadline-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deadline-list a {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+  color: inherit;
+  text-decoration: none;
+}
+
+.deadline-main {
+  display: grid;
+  min-width: 0;
+}
+
+.deadline-when {
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.deadline-when.is-overdue {
+  color: var(--danger);
+}
+
 /* ---------- Formulaire d’archive ---------- */
 .form-layout {
   display: grid;

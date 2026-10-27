@@ -505,6 +505,8 @@
     a: commands.find((command) => command.shortcut === "G A")?.url,
     j: commands.find((command) => command.shortcut === "G J")?.url,
     p: commands.find((command) => command.shortcut === "G P")?.url,
+    r: commands.find((command) => command.shortcut === "G R")?.url,
+    v: commands.find((command) => command.shortcut === "G V")?.url,
   };
   let awaitingGo = false;
   let goTimer = null;
@@ -573,7 +575,6 @@
     form.addEventListener("submit", () => {
       $$("input, select", form).forEach((field) => {
         if (field.name && !field.value) field.disabled = true;
-        if (field.name === "sort" && field.value === "recent") field.disabled = true;
       });
     })
   );
@@ -682,6 +683,20 @@
       }, 180);
     });
   }
+
+  /* Calendrier de conservation : durées usuelles depuis la date du document. */
+  const retentionTarget = $("[data-retention-target]");
+  $$("[data-retention-years]").forEach((button) =>
+    button.addEventListener("click", () => {
+      if (!retentionTarget) return;
+      const source = $("#id_document_date");
+      const base = source && source.value ? new Date(`${source.value}T12:00:00`) : new Date();
+      base.setFullYear(base.getFullYear() + Number.parseInt(button.dataset.retentionYears, 10));
+      retentionTarget.value = base.toISOString().slice(0, 10);
+      retentionTarget.dispatchEvent(new Event("input", { bubbles: true }));
+      retentionTarget.focus();
+    })
+  );
 
   /* Étapes du formulaire d’archive : section courante. */
   const stepLinks = $$("[data-step-link]");

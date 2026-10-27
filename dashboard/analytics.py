@@ -246,3 +246,56 @@ def greeting_for(moment=None):
     if 12 <= hour < 18:
         return "Bon après-midi"
     return "Bonsoir"
+
+
+REPORT_PERIODS = {30: "30 derniers jours", 90: "90 derniers jours", 365: "12 derniers mois"}
+
+
+def activity_report(visible_archives, days, include_audit):
+    """Rapport d’activité d’une période, calculé sur le périmètre visible."""
+    days = days if days in REPORT_PERIODS else 30
+    end = timezone.localdate()
+    start = end - timedelta(days=days - 1)
+    period_archives = visible_archives.filter(created_at__date__gte=start)
+    visible_levels = set(visible_archives.values_list("confidentiality_level", flat=True).distinct())
+
+    by_level = {
+        row["confidentiality_level"]: row["total"]
+        for row in period_archives.values("confidentiality_level").annotate(total=Count("pk"))
+    }
+    checks = AuditLog.objects.filter(
+        action=AuditAction.ARCHIVE_INTEGRITY_CHECK,
+        archive__in=visible_archives,
+        timestamp__date__gte=start,
+    )
+    report = {
+        "days": days,
+        "label": REPORT_PERIODS[days],
+        "start": start,
+        "end": end,
+        "created": period_archives.count(),
+        "total": visible_archives.count(),
+        "by_service": list(
+            period_archives.values("service__name")
+            .annotate(total=Count("pk"))
+            .order_by("-total", "service__name")
+        ),
+        "by_level": [
+            {"value": value.lower(), "label": label, "total": by_level.get(value, 0)}
+            for value, label in ConfidentialityLevel.choices
+            if value in visible_levels or by_level.get(value)
+        ],
+        "checks": checks.count(),
+        "alerts": checks.filter(details__result__in=INTEGRITY_ALERT_RESULTS).count(),
+    }
+    if include_audit:
+        events = AuditLog.objects.filter(timestamp__date__gte=start)
+        report["audit"] = {
+            "events": events.count(),
+            "actors": events.values("actor_id").distinct().count(),
+            "by_action": [
+                {"label": AuditAction(row["action"]).label, "total": row["total"]}
+                for row in events.values("action").annotate(total=Count("pk")).order_by("-total")
+            ],
+        }
+    return report

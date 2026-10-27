@@ -17,6 +17,14 @@ class AuditAction(models.TextChoices):
     ARCHIVE_PREVIEW = "ARCHIVE_PREVIEW", "Aperçu d’archive"
     AUDIT_EXPORT = "AUDIT_EXPORT", "Export du journal d’audit"
     PASSWORD_CHANGE = "PASSWORD_CHANGE", "Changement de mot de passe"
+    ARCHIVE_EXPORT = "ARCHIVE_EXPORT", "Export des archives"
+    TWO_FACTOR_ENABLE = "TWO_FACTOR_ENABLE", "Activation de la double authentification"
+    TWO_FACTOR_DISABLE = "TWO_FACTOR_DISABLE", "Désactivation de la double authentification"
+    TWO_FACTOR_FAILURE = "TWO_FACTOR_FAILURE", "Échec de double authentification"
+    RECOVERY_CODE_USED = "RECOVERY_CODE_USED", "Code de secours utilisé"
+    APPROVAL_REQUEST = "APPROVAL_REQUEST", "Demande de validation"
+    APPROVAL_GRANT = "APPROVAL_GRANT", "Validation accordée"
+    APPROVAL_REJECT = "APPROVAL_REJECT", "Validation refusée"
 
 
 class AuditLog(models.Model):

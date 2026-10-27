@@ -21,6 +21,7 @@ from audit.services import get_client_ip, record_audit_event
 
 from .forms import EmailAuthenticationForm, ProfileAvatarForm, SignUpForm
 from .models import FutureImprovementFeature, FutureImprovementVote
+from .security_views import start_pending_login
 from .throttling import (
     format_wait,
     login_lockout_remaining,
@@ -39,32 +40,42 @@ FUTURE_IMPROVEMENTS = (
     {
         "feature": FutureImprovementFeature.SEARCH_OCR,
         "description": "Indexation du contenu numérisé et filtres avancés pour retrouver plus vite un document.",
-        "status": "À l’étude",
+        "status": "Disponible",
         "icon": "search",
+        "delivered": "Recherche plein texte dans les PDF, DOCX, XLSX et TXT, insensible aux accents, avec extraits. L’OCR des images reste à venir.",
+        "link": "archives:list",
     },
     {
         "feature": FutureImprovementFeature.SIGNATURE,
         "description": "Circuits de validation traçables pour formaliser les approbations documentaires.",
-        "status": "Prévu",
+        "status": "Disponible",
         "icon": "signature",
+        "delivered": "Demande de validation à un administrateur, décision motivée et journalisée, visa HMAC qui signale toute modification ultérieure.",
+        "link": "archives:approvals",
     },
     {
         "feature": FutureImprovementFeature.RETENTION,
         "description": "Alertes sur les échéances d’archivage, de révision et de conservation des dossiers.",
-        "status": "Prévu",
+        "status": "Disponible",
         "icon": "calendar",
+        "delivered": "Dates de révision et de fin de conservation, filtre par échéance et alertes sur le tableau de bord.",
+        "link": "home",
     },
     {
         "feature": FutureImprovementFeature.ANALYTICS,
         "description": "Tableaux de bord exportables pour suivre l’activité, les accès et le cycle de vie des archives.",
-        "status": "À l’étude",
+        "status": "Disponible",
         "icon": "chart",
+        "delivered": "Rapport d’activité imprimable par période et export CSV des archives filtrées, dans le seul périmètre visible.",
+        "link": "report",
     },
     {
         "feature": FutureImprovementFeature.SECURITY,
         "description": "Double authentification et revue périodique des droits pour protéger davantage les accès.",
-        "status": "À l’étude",
+        "status": "Disponible",
         "icon": "shield",
+        "delivered": "Double authentification TOTP avec codes de secours, et revue des droits pour les administrateurs.",
+        "link": "two_factor",
     },
     {
         "feature": FutureImprovementFeature.CONNECTORS,
@@ -111,6 +122,11 @@ class ThrottledLoginView(auth_views.LoginView):
 
     def form_valid(self, form):
         reset_login_failures(normalize_identifier(form.cleaned_data.get("username")))
+        user = form.get_user()
+        if user.totp_enabled:
+            # Mot de passe correct, mais la session n’est ouverte qu’après le second facteur.
+            start_pending_login(self.request, user, self.get_success_url())
+            return redirect("login_verify")
         return super().form_valid(form)
 
     def _render_locked(self, identifier, seconds):

@@ -43,6 +43,7 @@ class ArchiveAdmin(admin.ModelAdmin):
         "confidentiality_level",
         "uploaded_by",
         "document_date",
+        "retention_until",
         "archived_at",
     )
     list_filter = (

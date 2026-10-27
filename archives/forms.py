@@ -6,6 +6,7 @@ from django import forms
 from django.conf import settings
 from django.db.models import Q
 
+from .retention import DEADLINE_FILTERS
 from .permissions import (
     can_assign_confidentiality,
     visible_archives_for,
@@ -40,6 +41,8 @@ class ArchiveForm(forms.ModelForm):
             "document_date",
             "status",
             "confidentiality_level",
+            "review_date",
+            "retention_until",
             "file",
         )
         widgets = {
@@ -47,6 +50,8 @@ class ArchiveForm(forms.ModelForm):
                 attrs={"autocomplete": "off", "spellcheck": "false", "data-seal-source": ""}
             ),
             "document_date": forms.DateInput(attrs={"type": "date"}),
+            "review_date": forms.DateInput(attrs={"type": "date"}),
+            "retention_until": forms.DateInput(attrs={"type": "date", "data-retention-target": ""}),
             "description": forms.Textarea(attrs={"rows": 4}),
             "status": forms.RadioSelect,
             "confidentiality_level": forms.RadioSelect,
@@ -92,6 +97,23 @@ class ArchiveForm(forms.ModelForm):
             ]
         if self.instance and self.instance.pk:
             self.fields.pop("file", None)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        document_date = cleaned_data.get("document_date")
+        review_date = cleaned_data.get("review_date")
+        retention_until = cleaned_data.get("retention_until")
+        if document_date and retention_until and retention_until < document_date:
+            self.add_error(
+                "retention_until",
+                "La fin de conservation ne peut pas précéder la date du document.",
+            )
+        if review_date and retention_until and review_date > retention_until:
+            self.add_error(
+                "review_date",
+                "La révision doit intervenir avant la fin de conservation.",
+            )
+        return cleaned_data
 
     def clean_confidentiality_level(self):
         confidentiality_level = self.cleaned_data["confidentiality_level"]
@@ -204,6 +226,11 @@ class ArchiveSearchForm(forms.Form):
         label="Date du document jusqu’au",
         required=False,
         widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    deadline = forms.ChoiceField(
+        label="Échéance de conservation",
+        choices=[("", "Toutes les échéances"), *DEADLINE_FILTERS.items()],
+        required=False,
     )
 
     def __init__(self, *args, user=None, **kwargs):
