@@ -1,0 +1,14 @@
+# Versions exactes validées (tests, pip-audit : 0 vulnérabilité connue au 2026-10-27).
+# requirements.txt fixe les bornes ; ce fichier fige l'installation reproductible :
+#   pip install -r requirements.txt -c constraints.txt
+asgiref==3.13.0
+Django==5.2.18
+gunicorn==23.0.0
+packaging==26.3
+pillow==13.0.0
+psycopg==3.2.13
+psycopg-binary==3.2.13
+python-dotenv==1.2.4
+sqlparse==0.6.0
+typing_extensions==4.16.0
+whitenoise==6.12.0
