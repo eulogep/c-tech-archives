@@ -2,7 +2,7 @@
 
 ## Réponse générale à retenir
 
-> Non, l’application n’est pas « totalement sécurisée » : aucun système réaliste ne doit être présenté ainsi. Le MVP applique des contrôles mesurables et testés — authentification, autorisation serveur, stockage privé, validation des fichiers, CSRF, ORM, audit et contrôle d’intégrité — tout en documentant clairement les limites restantes, notamment l’antivirus, le brute-force, l’immutabilité externe des logs et l’infrastructure de production.
+> Non, l’application n’est pas « totalement sécurisée » : aucun système réaliste ne doit être présenté ainsi. Le MVP applique des contrôles mesurables et testés — authentification, autorisation serveur, stockage privé, validation des fichiers, CSRF, ORM, audit et contrôle d’intégrité — tout en documentant clairement les limites restantes, notamment l’antivirus, le credential stuffing réparti, l’immutabilité externe des logs et l’infrastructure de production.
 
 ## Les onze points à savoir expliquer
 
@@ -18,7 +18,7 @@
 | 8. XSS | Les templates Django échappent les métadonnées et les requêtes. Les contenus `<script>` sont affichés comme texte, pas exécutés. |
 | 9. Audit append-only | Les événements métier sont créés par un service central. L’interface audit est réservée à l’Administrateur et Django Admin interdit ajout, modification et suppression. |
 | 10. SHA-256 | Le checksum est calculé après stockage du fichier. Une vérification compare le fichier actuel à cette référence ; un mismatch ne remplace jamais la référence historique. |
-| 11. Limites | Pas de MFA, antivirus, rate limiting intégré, signature numérique, WORM, SIEM ou durcissement reverse proxy complet dans le MVP. |
+| 11. Limites | Pas de MFA, antivirus, protection distribuée contre le credential stuffing (verrouillage par compte seulement), signature numérique, WORM, SIEM ou durcissement reverse proxy complet dans le MVP. |
 
 ## Trois questions fréquentes
 
@@ -36,4 +36,4 @@ Parce que l’application doit accepter uniquement les noms d’hôtes réelleme
 
 ### Que faut-il faire avant une vraie mise en production ?
 
-Configurer les secrets et hôtes réels hors Git, activer HTTPS, cookies secure et HSTS avec prudence, régler les limites du reverse proxy, ajouter un audit de dépendances CI, décider d’une protection anti-brute-force, puis valider sauvegardes, monitoring et gestion des incidents.
+Configurer les secrets et hôtes réels hors Git, activer HTTPS, cookies secure et HSTS avec prudence, régler les limites du reverse proxy, conserver l’audit de dépendances de la CI, compléter le verrouillage par compte par une protection au niveau du proxy, puis valider sauvegardes, monitoring et gestion des incidents.

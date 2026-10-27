@@ -1,7 +1,15 @@
 """Bootstrap explicite et sécurisé des comptes privilégiés C-Tech.
 
-Cette commande ne s’exécute jamais au démarrage de l’application. Les identités et
-mots de passe sont fournis uniquement par les variables d’environnement requises.
+Les identités et mots de passe sont fournis uniquement par les variables
+d’environnement requises. Deux modes :
+
+- réconciliation (par défaut) : crée les comptes manquants et réaligne les
+  comptes existants, mot de passe et activation compris ;
+- ``--create-only`` (utilisé au démarrage Render) : crée les comptes manquants
+  sans jamais modifier un compte existant. Un administrateur désactivé reste
+  désactivé et un mot de passe changé n’est pas écrasé à chaque redémarrage.
+  ``CTECH_BOOTSTRAP_RECONCILE=true`` rétablit ponctuellement la réconciliation
+  sur un hébergement sans shell.
 """
 
 from __future__ import annotations
@@ -10,6 +18,7 @@ import os
 from dataclasses import dataclass
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.core.validators import validate_email
@@ -72,6 +81,21 @@ def _validate_email(email: str, variable_name: str) -> None:
         raise CommandError(f"Invalid value for environment variable: {variable_name}") from error
 
 
+def _validate_password_strength(password: str, variable_name: str, user) -> None:
+    """Applique AUTH_PASSWORD_VALIDATORS sans jamais afficher le mot de passe."""
+
+    try:
+        validate_password(password, user)
+    except ValidationError as error:
+        raise CommandError(
+            f"Password from environment variable is too weak: {variable_name}"
+        ) from error
+
+
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _validate_username_length(email: str, variable_name: str, user_model) -> None:
     """Vérifie que l’email peut être utilisé tel quel comme username Django."""
 
@@ -90,8 +114,40 @@ class Command(BaseCommand):
         "variables without printing credentials."
     )
 
-    @transaction.atomic
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--create-only",
+            action="store_true",
+            help="Create missing accounts but never modify existing ones.",
+        )
+        parser.add_argument(
+            "--allow-missing",
+            action="store_true",
+            help="Skip with a warning instead of failing when variables are missing.",
+        )
+
     def handle(self, *args, **options):
+        create_only = options["create_only"] and not _env_flag("CTECH_BOOTSTRAP_RECONCILE")
+        try:
+            created_count, updated_count, skipped_count = self._bootstrap(create_only)
+        except CommandError as error:
+            if options["allow_missing"] and str(error).startswith(
+                "Missing required environment variable"
+            ):
+                self.stderr.write(f"Privileged account bootstrap skipped: {error}")
+                return
+            raise
+
+        mode = "create-only" if create_only else "reconcile"
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Privileged accounts bootstrapped ({mode}): {created_count} created, "
+                f"{updated_count} reconciled, {skipped_count} left unchanged."
+            )
+        )
+
+    @transaction.atomic
+    def _bootstrap(self, create_only: bool):
         """Applique de manière atomique la configuration attendue aux deux comptes."""
 
         user_model = get_user_model()
@@ -110,6 +166,7 @@ class Command(BaseCommand):
 
         created_count = 0
         updated_count = 0
+        skipped_count = 0
 
         for spec, email, password in configured_accounts:
             username = email
@@ -124,6 +181,9 @@ class Command(BaseCommand):
             if user is None:
                 user = user_model(email=email, username=username)
                 created_count += 1
+            elif create_only:
+                skipped_count += 1
+                continue
             else:
                 updated_count += 1
 
@@ -144,6 +204,7 @@ class Command(BaseCommand):
                     changed_fields.append(field_name)
 
             if not user.check_password(password):
+                _validate_password_strength(password, spec.password_variable, user)
                 user.set_password(password)
                 changed_fields.append("password")
 
@@ -152,8 +213,4 @@ class Command(BaseCommand):
             elif changed_fields:
                 user.save(update_fields=changed_fields)
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Privileged accounts bootstrapped: {created_count} created, {updated_count} reconciled."
-            )
-        )
+        return created_count, updated_count, skipped_count

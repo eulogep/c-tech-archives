@@ -1,138 +1,287 @@
 {% extends "base.html" %}
 
 {% block title %}Tableau de bord | C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Espace documentaire{% endblock %}
+{% block page_heading %}Tableau de bord{% endblock %}
 
 {% block content %}
-  <section class="welcome-hero" aria-labelledby="welcome-title" data-welcome-hero>
-    <div class="welcome-hero-copy">
-      <div class="welcome-brand" aria-label="C-Tech Archives">
-        <span class="welcome-logo-mark" aria-hidden="true"><span>C</span><span>T</span></span>
-        <span class="welcome-logo-copy"><strong>C-Tech</strong><small>Archives · sécuriser la mémoire utile</small></span>
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#8f88ff" stop-opacity=".32"/>
+        <stop offset="1" stop-color="#8f88ff" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="rank-gradient" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#6d5efc"/>
+        <stop offset="1" stop-color="#22c3a6"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <section class="hero reveal" aria-labelledby="welcome-title" data-welcome-hero>
+    <div class="hero-copy">
+      <p class="page-kicker">{{ greeting }} · Espace sécurisé</p>
+      <h1 id="welcome-title" class="hero-title">Bienvenue, {{ user.get_full_name|default:user.username }}<em>votre coffre est prêt.</em></h1>
+      <p class="hero-lead">
+        {% if archive_count %}
+          {{ archive_count }} archive{{ archive_count|pluralize }} accessible{{ archive_count|pluralize }} dans votre périmètre, dont {{ integrity.sealed }} scellée{{ integrity.sealed|pluralize }} par empreinte SHA-256. Les chiffres ci-dessous ne reflètent que ce que votre rôle autorise.
+        {% else %}
+          Votre espace documentaire est prêt. Retrouvez vos archives, suivez les actions autorisées et découvrez les fonctionnalités essentielles de C-Tech Archives.
+        {% endif %}
+      </p>
+      <div class="hero-actions">
+        <button class="button" type="button" data-guide-launcher>{% icon "compass" %}Découvrir l’interface</button>
+        {% if archive_policy.can_create %}
+          <a class="button button-secondary" href="{% url 'archives:create' %}">{% icon "plus" %}Nouvelle archive</a>
+        {% endif %}
+        <a class="button button-secondary" href="{% url 'future_improvements' %}">{% icon "sparkles" %}Voir les futures améliorations</a>
       </div>
-      <p class="page-kicker">Espace sécurisé</p>
-      <h1 id="welcome-title">Bienvenue, {{ user.get_full_name|default:user.username }}</h1>
-      <p class="welcome-lead">Votre espace documentaire est prêt. Retrouvez vos archives, suivez les actions autorisées et découvrez les fonctionnalités essentielles de C-Tech Archives.</p>
-      <div class="welcome-actions">
-        <button class="button" type="button" data-guide-launcher>Découvrir l’interface</button>
-        <a class="button button-secondary" href="{% url 'future_improvements' %}">Voir les futures améliorations</a>
-      </div>
+      <p class="hero-date">{% icon "calendar" %}{{ today|date:"l j F Y"|capfirst }}</p>
     </div>
-    <div class="welcome-orbit" aria-hidden="true">
-      <span class="orbit-core">CT</span>
-      <span class="orbit-dot orbit-dot-one"></span>
-      <span class="orbit-dot orbit-dot-two"></span>
-      <span class="orbit-dot orbit-dot-three"></span>
+
+    <div class="hero-visual" aria-hidden="true">
+      <svg class="hero-orbit" viewBox="0 0 120 120" focusable="false">
+        <defs>
+          <linearGradient id="hero-ring-gradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#c9c5ff"/>
+            <stop offset="1" stop-color="#8ef0c9"/>
+          </linearGradient>
+        </defs>
+        <circle class="orbit-dashes" cx="60" cy="60" r="58.5"/>
+        <circle class="ring-track" cx="60" cy="60" r="52"/>
+        <circle class="ring-value" cx="60" cy="60" r="52" stroke-dasharray="{{ integrity.ring_dasharray }}"/>
+        <g class="orbit-carrier"><circle class="orbit-dot" cx="60" cy="1.5" r="1.6"/></g>
+        <g class="orbit-carrier reverse"><circle class="orbit-dot" cx="118.5" cy="60" r="1.1"/></g>
+      </svg>
+      <div class="hero-seal-core">{% seal user.username 180 %}</div>
+      <div class="hero-metric"><strong>{{ integrity.coverage }} %</strong><span>archives scellées</span></div>
     </div>
   </section>
 
-  <section class="panel dashboard-panel" aria-labelledby="dashboard-title">
-    <header class="page-header">
-      <div>
-        <p class="page-kicker">Espace documentaire</p>
-        <h1 id="dashboard-title">Tableau de bord</h1>
-        <p class="page-description">Bienvenue, <strong>{{ user.username }}</strong>. Cette synthèse présente uniquement les données accessibles dans votre périmètre.</p>
+  <section class="kpi-grid metric-grid reveal reveal-1" aria-label="Indicateurs documentaires">
+    <article class="kpi metric-card">
+      <div class="kpi-head"><span class="kpi-label metric-label">Archives visibles</span><span class="kpi-icon">{% icon "archive" %}</span></div>
+      <div class="kpi-body">
+        <strong class="kpi-value metric-value" data-count="{{ archive_count }}">{{ archive_count }}</strong>
+        <svg class="sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <polygon points="{{ monthly.sparkline }} 100,30 0,30"/>
+          <polyline points="{{ monthly.sparkline }}"/>
+        </svg>
       </div>
-      {% if archive_policy.can_create %}
-        <a class="button" href="{% url 'archives:create' %}">Nouvelle archive</a>
-      {% endif %}
-    </header>
+      <span class="kpi-foot">
+        {% if monthly.current > monthly.previous %}<span class="trend-up">+{{ monthly.current }}</span> ce mois-ci
+        {% elif monthly.current %}{{ monthly.current }} ce mois-ci
+        {% else %}{{ monthly.total }} sur douze mois{% endif %}
+      </span>
+    </article>
+    <article class="kpi metric-card">
+      <div class="kpi-head"><span class="kpi-label metric-label">Archives actives</span><span class="kpi-icon tone-success">{% icon "check-circle" %}</span></div>
+      <strong class="kpi-value metric-value" data-count="{{ active_archive_count }}">{{ active_archive_count }}</strong>
+      <span class="kpi-foot">En circulation documentaire</span>
+    </article>
+    <article class="kpi metric-card">
+      <div class="kpi-head"><span class="kpi-label metric-label">Archives archivées</span><span class="kpi-icon tone-muted">{% icon "layers" %}</span></div>
+      <strong class="kpi-value metric-value" data-count="{{ archived_archive_count }}">{{ archived_archive_count }}</strong>
+      <span class="kpi-foot">Conservées hors circulation</span>
+    </article>
+    <article class="kpi metric-card">
+      <div class="kpi-head"><span class="kpi-label metric-label">Services actifs</span><span class="kpi-icon tone-info">{% icon "building" %}</span></div>
+      <strong class="kpi-value metric-value" data-count="{{ active_service_count }}">{{ active_service_count }}</strong>
+      <span class="kpi-foot">Producteurs d’archives</span>
+    </article>
+    <article class="kpi metric-card">
+      <div class="kpi-head"><span class="kpi-label metric-label">Catégories actives</span><span class="kpi-icon tone-warning">{% icon "tag" %}</span></div>
+      <strong class="kpi-value metric-value" data-count="{{ active_category_count }}">{{ active_category_count }}</strong>
+      <span class="kpi-foot">Plan de classement</span>
+    </article>
+    <article class="kpi metric-card">
+      <div class="kpi-head"><span class="kpi-label metric-label">Types documentaires actifs</span><span class="kpi-icon">{% icon "folder" %}</span></div>
+      <strong class="kpi-value metric-value" data-count="{{ active_document_type_count }}">{{ active_document_type_count }}</strong>
+      <span class="kpi-foot">Typologie métier</span>
+    </article>
+  </section>
 
-    <div class="metric-grid" aria-label="Indicateurs documentaires">
-      <article class="metric-card">
-        <span class="metric-label">Archives visibles</span>
-        <strong class="metric-value">{{ archive_count }}</strong>
-      </article>
-      <article class="metric-card">
-        <span class="metric-label">Archives actives</span>
-        <strong class="metric-value">{{ active_archive_count }}</strong>
-      </article>
-      <article class="metric-card">
-        <span class="metric-label">Archives archivées</span>
-        <strong class="metric-value">{{ archived_archive_count }}</strong>
-      </article>
-      <article class="metric-card">
-        <span class="metric-label">Services actifs</span>
-        <strong class="metric-value">{{ active_service_count }}</strong>
-      </article>
-      <article class="metric-card">
-        <span class="metric-label">Catégories actives</span>
-        <strong class="metric-value">{{ active_category_count }}</strong>
-      </article>
-      <article class="metric-card">
-        <span class="metric-label">Types documentaires actifs</span>
-        <strong class="metric-value">{{ active_document_type_count }}</strong>
-      </article>
-    </div>
-
-    <section class="section-block" aria-labelledby="recent-archives-title">
-      <div class="section-header">
-        <h2 id="recent-archives-title">Dernières archives visibles</h2>
-        <a href="{% url 'archives:list' %}">Voir toutes les archives</a>
-      </div>
-      {% if recent_archives %}
-        <div class="table-responsive" tabindex="0" aria-label="Dernières archives visibles, défilement horizontal disponible sur petit écran">
-          <table class="data-table data-table-compact">
-            <thead>
-              <tr>
-                <th scope="col">Référence</th>
-                <th scope="col">Titre</th>
-                <th scope="col">Confidentialité</th>
-                <th scope="col">Statut</th>
-                <th scope="col">Date</th>
-                <th scope="col"><span class="visually-hidden">Action</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for archive in recent_archives %}
-                <tr>
-                  <td><a class="table-link" href="{% url 'archives:detail' archive.pk %}">{{ archive.reference }}</a></td>
-                  <td>{{ archive.title }}</td>
-                  <td><span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span></td>
-                  <td><span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span></td>
-                  <td>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}{{ archive.created_at|date:"d/m/Y" }}{% endif %}</td>
-                  <td><a class="button button-secondary button-compact" href="{% url 'archives:detail' archive.pk %}">Consulter<span class="visually-hidden"> {{ archive.reference }}</span></a></td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <div class="dash-grid reveal reveal-2">
+    <section class="card span-8" aria-labelledby="flow-title">
+      <header class="card-header">
+        <div>
+          <h2 class="card-title" id="flow-title">Flux d’archivage</h2>
+          <p class="card-subtitle">Archives enregistrées sur douze mois · {{ monthly.total }} au total</p>
         </div>
+        <span class="badge badge-plain badge-role">Pic : {{ monthly.peak }}</span>
+      </header>
+      <svg class="bar-chart" viewBox="0 0 360 128" role="img" aria-labelledby="flow-title flow-desc" focusable="false">
+        <desc id="flow-desc">Histogramme mensuel des archives visibles. Le détail chiffré figure dans le tableau qui suit.</desc>
+        <line class="baseline" x1="0" y1="{{ monthly.baseline }}" x2="360" y2="{{ monthly.baseline }}"/>
+        {% for point in monthly.points %}
+          <g>
+            <title>{{ point.label }} {{ point.year }} : {{ point.value }} archive{{ point.value|pluralize }}</title>
+            <rect class="bar-track" x="{{ point.x }}" y="8" width="{{ point.width }}" height="104" rx="5"/>
+            <rect class="bar{% if point.is_current %} is-current{% endif %}" x="{{ point.x }}" y="{{ point.y }}" width="{{ point.width }}" height="{{ point.height }}" rx="5"/>
+            <text class="bar-value" x="{{ point.center }}" y="{{ point.label_y }}">{{ point.value }}</text>
+            <text class="bar-label" x="{{ point.center }}" y="125">{{ point.label }}</text>
+          </g>
+        {% endfor %}
+      </svg>
+      <table class="visually-hidden">
+        <caption>Archives enregistrées par mois</caption>
+        <thead><tr><th scope="col">Mois</th><th scope="col">Archives</th></tr></thead>
+        <tbody>{% for point in monthly.points %}<tr><td>{{ point.label }} {{ point.year }}</td><td>{{ point.value }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </section>
+
+    <section class="card span-4" aria-labelledby="donut-title">
+      <header class="card-header">
+        <div>
+          <h2 class="card-title" id="donut-title">Confidentialité</h2>
+          <p class="card-subtitle">Limité aux niveaux de votre habilitation</p>
+        </div>
+      </header>
+      <div class="donut-wrap">
+        <svg class="donut" viewBox="0 0 100 100" role="img" aria-label="Répartition des archives visibles par niveau de confidentialité" focusable="false">
+          <circle class="donut-track" cx="50" cy="50" r="{{ donut.radius }}"/>
+          {% for segment in donut.segments %}
+            {% if segment.count %}<circle class="donut-seg seg-{{ segment.value }}" cx="50" cy="50" r="{{ donut.radius }}" stroke-dasharray="{{ segment.dasharray }}" stroke-dashoffset="{{ segment.dashoffset }}"><title>{{ segment.label }} : {{ segment.count }}</title></circle>{% endif %}
+          {% endfor %}
+          <text class="donut-total" x="50" y="53">{{ donut.total }}</text>
+          <text class="donut-caption" x="50" y="64">archives</text>
+        </svg>
+        <ul class="legend">
+          {% for segment in donut.segments %}
+            <li class="level-{{ segment.value }}"><span class="level-dot"></span><span>{{ segment.label }}</span><span><strong>{{ segment.count }}</strong> <small>{{ segment.percent }} %</small></span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+
+    <section class="card span-4" aria-labelledby="integrity-title">
+      <header class="card-header">
+        <div>
+          <h2 class="card-title" id="integrity-title">Intégrité des fichiers</h2>
+          <p class="card-subtitle">Couverture des empreintes SHA-256</p>
+        </div>
+      </header>
+      <div class="integrity-card">
+        <svg class="integrity-ring" viewBox="0 0 120 120" role="img" aria-label="{{ integrity.coverage }} % des archives visibles disposent d’une empreinte" focusable="false">
+          <circle class="track" cx="60" cy="60" r="52"/>
+          <circle class="value" cx="60" cy="60" r="52" stroke-dasharray="{{ integrity.ring_dasharray }}"/>
+          <text x="60" y="64">{{ integrity.coverage }}%</text>
+          <text class="caption" x="60" y="78">scellées</text>
+        </svg>
+        <ul class="stat-list">
+          <li><span>Fichiers scellés</span><strong>{{ integrity.sealed }}</strong></li>
+          <li><span>Sans empreinte</span><strong>{{ integrity.unsealed }}</strong></li>
+          <li><span>Sans fichier</span><strong>{{ integrity.without_file }}</strong></li>
+          <li><span>Contrôles (30 j)</span><strong>{{ integrity.checks_30d }}</strong></li>
+          <li class="{% if integrity.alerts_30d %}is-alert{% endif %}"><span>Alertes (30 j)</span><strong>{{ integrity.alerts_30d }}</strong></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card span-4" aria-labelledby="services-title">
+      <header class="card-header">
+        <div>
+          <h2 class="card-title" id="services-title">Services les plus actifs</h2>
+          <p class="card-subtitle">Selon les archives visibles</p>
+        </div>
+      </header>
+      {% if services_ranking %}
+        <ol class="rank-list">
+          {% for service in services_ranking %}
+            <li class="rank-row">
+              <div class="rank-row-head"><span>{{ service.name }}</span><strong>{{ service.total }}</strong></div>
+              <svg class="rank-bar" viewBox="0 0 100 7" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="track" width="100" height="7" rx="3.5"/><rect class="value" width="{{ service.width }}" height="7" rx="3.5"/></svg>
+            </li>
+          {% endfor %}
+        </ol>
       {% else %}
-        <div class="empty-state empty-state-compact">
-          <h2>Aucune archive visible</h2>
-          <p>Aucune archive n’est actuellement accessible dans votre périmètre.</p>
+        <p class="card-subtitle">Aucun service représenté pour le moment.</p>
+      {% endif %}
+    </section>
+
+    <section class="card span-4" aria-labelledby="quick-title">
+      <header class="card-header">
+        <div>
+          <h2 class="card-title" id="quick-title">Accès rapides</h2>
+          <p class="card-subtitle">Ou <kbd data-mod-key>Ctrl</kbd> <kbd>K</kbd> depuis n’importe quelle page</p>
+        </div>
+      </header>
+      <div class="action-group">
+        {% if archive_policy.can_access %}
+          <a class="button button-secondary" href="{% url 'archives:list' %}">{% icon "archive" %}Consulter les archives</a>
+        {% endif %}
+        {% if archive_policy.can_create %}
+          <a class="button button-secondary" href="{% url 'archives:create' %}">{% icon "upload" %}Créer une archive</a>
+        {% endif %}
+        {% if audit_policy.can_view %}
+          <a class="button button-secondary" href="{% url 'audit:list' %}">{% icon "shield" %}Consulter le journal d’audit</a>
+        {% endif %}
+        <a class="button button-secondary" href="{% url 'profile' %}">{% icon "user" %}Mon profil</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="dash-grid reveal reveal-3">
+    <section class="card card-flush {% if audit_policy.can_view %}span-7{% else %}span-12{% endif %}" aria-labelledby="recent-archives-title">
+      <header class="card-header section-header">
+        <div>
+          <h2 class="card-title" id="recent-archives-title">Dernières archives visibles</h2>
+          <p class="card-subtitle">Les cinq derniers dossiers de votre périmètre</p>
+        </div>
+        <a class="section-link" href="{% url 'archives:list' %}">Voir toutes les archives{% icon "arrow-right" %}</a>
+      </header>
+      {% if recent_archives %}
+        <ul class="archive-strip">
+          {% for archive in recent_archives %}
+            <li>
+              <a class="strip-link" href="{% url 'archives:detail' archive.pk %}">
+                {% seal archive.reference 40 %}
+                <span class="strip-main">
+                  <span class="ref">{{ archive.reference }}</span>
+                  <strong>{{ archive.title }}</strong>
+                  <span class="cell-sub">{{ archive.service.name }} · {{ archive.document_type.name }}</span>
+                </span>
+                <span class="strip-side">
+                  <span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span>
+                  <span class="cell-sub">{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}{{ archive.created_at|date:"d/m/Y" }}{% endif %}</span>
+                </span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="card-body">
+          <div class="empty-state empty-state-compact">
+            {% icon "archive" "icon-lg" %}
+            <h2>Aucune archive visible</h2>
+            <p>Aucune archive n’est actuellement accessible dans votre périmètre.</p>
+          </div>
         </div>
       {% endif %}
     </section>
 
     {% if audit_policy.can_view %}
-      <section class="section-block" aria-labelledby="recent-activity-title">
-        <div class="section-header">
-          <h2 id="recent-activity-title">Activité récente</h2>
-          <a href="{% url 'audit:list' %}">Voir le journal d’audit</a>
-        </div>
-        {% if recent_audit_events %}
-          <div class="table-responsive" tabindex="0" aria-label="Activité récente, défilement horizontal disponible sur petit écran">
-            <table class="data-table data-table-compact">
-              <thead>
-                <tr>
-                  <th scope="col">Action</th>
-                  <th scope="col">Archive</th>
-                  <th scope="col">Utilisateur</th>
-                  <th scope="col">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for event in recent_audit_events %}
-                  <tr>
-                    <td><span class="audit-badge audit-badge-{{ event.action|lower }}">{{ event.get_action_display }}</span></td>
-                    <td>{{ event.archive_reference|default:"—" }}</td>
-                    <td>{{ event.actor_identifier }}</td>
-                    <td>{{ event.timestamp|date:"d/m/Y H:i" }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+      <section class="card span-5" aria-labelledby="recent-activity-title">
+        <header class="card-header section-header">
+          <div>
+            <h2 class="card-title" id="recent-activity-title">Activité récente</h2>
+            <p class="card-subtitle">Dernières traces du journal</p>
           </div>
+          <a class="section-link" href="{% url 'audit:list' %}">Voir le journal d’audit{% icon "arrow-right" %}</a>
+        </header>
+        {% if recent_audit_events %}
+          <ul class="feed">
+            {% for event in recent_audit_events %}
+              <li class="feed-item">
+                <span class="avatar avatar-sm tone-{{ event.actor_identifier|tone_of }}" aria-hidden="true">{{ event.actor.get_full_name|default:event.actor_identifier|initials }}</span>
+                <span class="feed-text">
+                  <span><strong>{{ event.actor_identifier }}</strong></span>
+                  <span><span class="audit-badge audit-badge-{{ event.action|lower }}">{{ event.get_action_display }}</span>{% if event.archive_reference %} · <span class="mono">{{ event.archive_reference }}</span>{% endif %}</span>
+                </span>
+                <time class="feed-time" datetime="{{ event.timestamp|date:'c' }}" title="{{ event.timestamp|date:'d/m/Y H:i' }}">{{ event.timestamp|naturaltime }}</time>
+              </li>
+            {% endfor %}
+          </ul>
         {% else %}
           <div class="empty-state empty-state-compact">
             <h2>Aucune activité récente</h2>
@@ -140,51 +289,62 @@
           </div>
         {% endif %}
       </section>
+
+      <section class="card span-7" aria-labelledby="pulse-title">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title" id="pulse-title">Pouls du journal</h2>
+            <p class="card-subtitle">{{ heatmap.total }} événement{{ heatmap.total|pluralize }} sur {{ heatmap.weeks }} semaines · {{ heatmap.active_days }} jour{{ heatmap.active_days|pluralize }} actif{{ heatmap.active_days|pluralize }}</p>
+          </div>
+          <span class="heat-legend" aria-hidden="true">Moins
+            <svg width="70" height="12" viewBox="0 0 70 12"><rect class="heat-0" width="12" height="12" rx="3"/><rect class="heat-1" x="14.5" width="12" height="12" rx="3"/><rect class="heat-2" x="29" width="12" height="12" rx="3"/><rect class="heat-3" x="43.5" width="12" height="12" rx="3"/><rect class="heat-4" x="58" width="12" height="12" rx="3"/></svg>
+            Plus</span>
+        </header>
+        <svg class="heatmap" viewBox="0 0 {{ heatmap.width }} {{ heatmap.height }}" role="img" aria-label="Volume quotidien d’événements d’audit sur {{ heatmap.weeks }} semaines" focusable="false">
+          {% for month in heatmap.months %}<text class="heat-axis" x="{{ month.x }}" y="{{ heatmap.month_y }}">{{ month.label }}</text>{% endfor %}
+          {% for weekday in heatmap.weekdays %}<text class="heat-axis" x="0" y="{{ weekday.y }}">{{ weekday.label }}</text>{% endfor %}
+          {% for cell in heatmap.cells %}
+            <rect class="heat-{{ cell.level }}" x="{{ cell.x }}" y="{{ cell.y }}" width="{{ heatmap.cell }}" height="{{ heatmap.cell }}" rx="2.5"><title>{{ cell.day|date:"l j F" }} : {{ cell.value }} événement{{ cell.value|pluralize }}</title></rect>
+          {% endfor %}
+        </svg>
+      </section>
+
+      <section class="card span-5" aria-labelledby="actions-title">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title" id="actions-title">Actions les plus fréquentes</h2>
+            <p class="card-subtitle">Trente derniers jours, tous utilisateurs</p>
+          </div>
+        </header>
+        {% if action_ranking %}
+          <ol class="rank-list">
+            {% for action in action_ranking %}
+              <li class="rank-row">
+                <div class="rank-row-head"><span>{{ action.label }}</span><strong>{{ action.total }}</strong></div>
+                <svg class="rank-bar" viewBox="0 0 100 7" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="track" width="100" height="7" rx="3.5"/><rect class="value" width="{{ action.width }}" height="7" rx="3.5"/></svg>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <p class="card-subtitle">Aucune action enregistrée sur la période.</p>
+        {% endif %}
+      </section>
     {% endif %}
+  </div>
 
-    <div class="section-block">
-      <div class="section-header">
-        <h2>Accès rapides</h2>
+  <section class="card onboarding-summary reveal reveal-4" aria-labelledby="summary-title">
+    <header class="card-header">
+      <div>
+        <p class="page-kicker">Repères rapides</p>
+        <h2 class="card-title" id="summary-title">Commencez en trois étapes</h2>
       </div>
-      <div class="action-group">
-        {% if archive_policy.can_access %}
-          <a class="button button-secondary" href="{% url 'archives:list' %}">Consulter les archives</a>
-        {% endif %}
-        {% if archive_policy.can_create %}
-          <a class="button button-secondary" href="{% url 'archives:create' %}">Créer une archive</a>
-        {% endif %}
-        {% if audit_policy.can_view %}
-          <a class="button button-secondary" href="{% url 'audit:list' %}">Consulter le journal d’audit</a>
-        {% endif %}
-      </div>
-    </div>
-
-    <p class="notice">Les métadonnées et actions détaillées restent accessibles selon les droits de l’utilisateur. La navigation facilite l’usage ; les autorisations restent contrôlées côté serveur.</p>
-  </section>
-
-  <section class="onboarding-summary" aria-labelledby="summary-title">
-    <div>
-      <p class="page-kicker">Repères rapides</p>
-      <h2 id="summary-title">Commencez en trois étapes</h2>
-    </div>
-    <ol class="onboarding-steps">
-      <li><strong>1. Consultez</strong><span>Accédez aux archives disponibles selon vos autorisations.</span></li>
-      <li><strong>2. Agissez</strong><span>Créez ou mettez à jour les dossiers si votre rôle le permet.</span></li>
-      <li><strong>3. Contrôlez</strong><span>Vérifiez l’intégrité, les traces d’audit et les prochains axes d’évolution.</span></li>
+    </header>
+    <ol class="steps onboarding-steps">
+      <li><strong>Consultez</strong><span>Accédez aux archives disponibles selon vos autorisations.</span></li>
+      <li><strong>Agissez</strong><span>Créez ou mettez à jour les dossiers si votre rôle le permet.</span></li>
+      <li><strong>Contrôlez</strong><span>Vérifiez l’intégrité, les traces d’audit et les prochains axes d’évolution.</span></li>
     </ol>
   </section>
 
-  <dialog class="onboarding-dialog" data-onboarding-dialog aria-labelledby="guide-title">
-    <div class="guide-progress" aria-hidden="true"><span data-guide-progress></span></div>
-    <div class="guide-content" data-guide-content>
-      <p class="page-kicker" data-guide-step-label>Guide d’utilisation · étape 1 sur 4</p>
-      <h2 id="guide-title" data-guide-title>Bienvenue dans C-Tech Archives</h2>
-      <p data-guide-description>Ce guide vous présente les actions principales accessibles avec votre rôle.</p>
-    </div>
-    <div class="guide-actions">
-      <button class="button button-secondary" type="button" data-guide-close>Plus tard</button>
-      <button class="button button-secondary" type="button" data-guide-previous disabled>Précédent</button>
-      <button class="button" type="button" data-guide-next>Suivant</button>
-    </div>
-  </dialog>
+  <p class="notice">{% icon "shield" %}<span>Les métadonnées et actions détaillées restent accessibles selon les droits de l’utilisateur. La navigation facilite l’usage ; les autorisations restent contrôlées côté serveur.</span></p>
 {% endblock %}

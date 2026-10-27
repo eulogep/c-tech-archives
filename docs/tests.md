@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Les tests démontrent que les fonctionnalités et contrôles de sécurité réellement annoncés fonctionnent. Les tests automatisés utilisent le framework de tests Django. Ils sont exécutés à la clôture de chaque ticket et avant toute intégration vers `develop` ou `main`. La suite finale contient 255 scénarios ; sa synthèse est disponible dans [`final-test-matrix.md`](final-test-matrix.md).
+Les tests démontrent que les fonctionnalités et contrôles de sécurité réellement annoncés fonctionnent. Les tests automatisés utilisent le framework de tests Django. Ils sont exécutés à la clôture de chaque ticket et avant toute intégration vers `develop` ou `main`. La suite contient 362 scénarios (version 2.0) ; sa synthèse est disponible dans [`final-test-matrix.md`](final-test-matrix.md).
 
 ## Niveaux de test
 

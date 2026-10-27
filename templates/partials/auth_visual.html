@@ -1,0 +1,38 @@
+<aside class="auth-visual" aria-hidden="true">
+  <a class="auth-brand" href="{% url 'login' %}" tabindex="-1">
+    {% brand_seal 46 %}
+    <span><strong>C-Tech Archives</strong><span>Coffre documentaire</span></span>
+  </a>
+
+  <div class="vault">
+    <svg viewBox="0 0 200 200" focusable="false">
+      <defs>
+        <linearGradient id="vault-gradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#c9c5ff"/>
+          <stop offset="1" stop-color="#8ef0c9"/>
+        </linearGradient>
+      </defs>
+      <circle class="v-ring" cx="100" cy="100" r="98"/>
+      <circle class="v-ring" cx="100" cy="100" r="80"/>
+      <circle class="v-ring" cx="100" cy="100" r="62"/>
+      <circle class="v-ticks" cx="100" cy="100" r="90"/>
+      <circle class="v-arc" cx="100" cy="100" r="72" stroke-dasharray="110 343"/>
+      <circle class="v-arc slow" cx="100" cy="100" r="54" stroke-dasharray="48 291"/>
+      <g class="v-orbit"><circle class="v-node" cx="100" cy="2" r="2.6"/></g>
+      <g class="v-orbit b"><circle class="v-node" cx="180" cy="100" r="1.8"/></g>
+    </svg>
+    <div class="vault-core">{% brand_seal 160 %}</div>
+    <span class="vault-doc d1">{% icon "check-circle" %}CT-2026-0042 · scellée</span>
+    <span class="vault-doc d2">{% icon "fingerprint" %}Empreinte SHA-256 conforme</span>
+    <span class="vault-doc d3">{% icon "lock" %}Accès selon l’habilitation</span>
+  </div>
+
+  <div class="auth-pitch">
+    <h2>La mémoire de C-Tech, <em>scellée</em> et traçable.</h2>
+    <ul class="auth-features">
+      <li>{% icon "shield" %}Accès par rôle, refusé par défaut</li>
+      <li>{% icon "fingerprint" %}Intégrité SHA-256</li>
+      <li>{% icon "history" %}Journal d’audit inaltérable</li>
+    </ul>
+  </div>
+</aside>
