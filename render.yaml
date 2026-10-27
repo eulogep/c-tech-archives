@@ -3,7 +3,11 @@ services:
     name: c-tech-archives
     runtime: python
     buildCommand: "./build.sh"
-    startCommand: "python manage.py migrate --noinput && python manage.py bootstrap_default_admins && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
+    # createcachetable : table partagée par les workers pour la limitation des
+    # tentatives. Le bootstrap ne fait que créer les comptes manquants : il ne
+    # réactive ni ne réinitialise jamais un compte existant au redémarrage.
+    startCommand: "python manage.py migrate --noinput && python manage.py createcachetable && python manage.py bootstrap_default_admins --create-only --allow-missing && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-2} --timeout 60 --access-logfile -"
+    healthCheckPath: /healthz/
     plan: free
     region: frankfurt
     envVars:
@@ -61,6 +65,12 @@ services:
         sync: false
       - key: CTECH_EULOGE_PASSWORD
         sync: false
+      # Mettre à true le temps d’un redéploiement pour réaligner les comptes
+      # privilégiés (mot de passe, activation) sur ces variables, puis retirer.
+      - key: CTECH_BOOTSTRAP_RECONCILE
+        value: "false"
+      - key: DJANGO_LOG_LEVEL
+        value: INFO
 
 databases:
   - name: ctech-postgres-db

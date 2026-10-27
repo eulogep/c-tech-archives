@@ -1,0 +1,22 @@
+{% if is_paginated %}
+  <nav class="pagination" aria-label="{{ label }}">
+    <span class="pagination-status">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+    <div class="pagination-pages">
+      {% if page_obj.has_previous %}
+        <a class="page-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" rel="prev" aria-label="Page précédente">{% icon "chevron-left" %}</a>
+      {% endif %}
+      {% for number in page_links %}
+        {% if number == page_obj.paginator.ELLIPSIS %}
+          <span class="page-gap" aria-hidden="true">…</span>
+        {% elif number == page_obj.number %}
+          <span class="page-link" aria-current="page">{{ number }}</span>
+        {% else %}
+          <a class="page-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ number }}" aria-label="Page {{ number }}">{{ number }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <a class="page-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}" rel="next" aria-label="Page suivante">{% icon "chevron-right" %}</a>
+      {% endif %}
+    </div>
+  </nav>
+{% endif %}

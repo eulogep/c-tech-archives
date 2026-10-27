@@ -14,6 +14,9 @@ class AuditAction(models.TextChoices):
     ARCHIVE_VIEW = "ARCHIVE_VIEW", "Consultation d’archive"
     ARCHIVE_DOWNLOAD = "ARCHIVE_DOWNLOAD", "Téléchargement d’archive"
     ARCHIVE_INTEGRITY_CHECK = "ARCHIVE_INTEGRITY_CHECK", "Vérification d’intégrité"
+    ARCHIVE_PREVIEW = "ARCHIVE_PREVIEW", "Aperçu d’archive"
+    AUDIT_EXPORT = "AUDIT_EXPORT", "Export du journal d’audit"
+    PASSWORD_CHANGE = "PASSWORD_CHANGE", "Changement de mot de passe"
 
 
 class AuditLog(models.Model):
@@ -46,6 +49,10 @@ class AuditLog(models.Model):
 
     class Meta:
         ordering = ["-timestamp", "-pk"]
+        indexes = [
+            models.Index(fields=["-timestamp", "-id"], name="audit_timestamp_idx"),
+            models.Index(fields=["action", "-timestamp"], name="audit_action_timestamp_idx"),
+        ]
         verbose_name = "événement d’audit"
         verbose_name_plural = "événements d’audit"
 

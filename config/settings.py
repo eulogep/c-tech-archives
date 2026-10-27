@@ -5,6 +5,7 @@ Le fichier local .env est réservé au développement et n'est jamais versionné
 """
 
 import os
+import sys
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -41,6 +42,9 @@ def env_int(name: str, default: int) -> int:
         raise ImproperlyConfigured(f"La variable d'environnement {name} doit être un entier.") from error
 
 
+APP_VERSION = "2.0.0"
+RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
+
 DJANGO_ENV = os.getenv("DJANGO_ENV", "development").strip().lower()
 if DJANGO_ENV not in {"development", "test", "production"}:
     raise ImproperlyConfigured("DJANGO_ENV doit valoir development, test ou production.")
@@ -70,6 +74,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     "accounts",
     "archives",
     "audit",
@@ -85,6 +90,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.middleware.SecurityHeadersMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -102,6 +108,11 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "archives.context_processors.archive_policy",
                 "audit.context_processors.audit_policy",
+                "config.context_processors.interface",
+            ],
+            "builtins": [
+                "archives.templatetags.archive_ui",
+                "django.contrib.humanize.templatetags.humanize",
             ],
         },
     },
@@ -132,14 +143,27 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "fr"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Paris"
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Depuis Django 5.1, seul STORAGES est lu : l’ancien STATICFILES_STORAGE était
+# ignoré silencieusement. Le manifeste haché n’existe qu’après collectstatic,
+# il est donc réservé à la production.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if DJANGO_ENV == "production"
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        )
+    },
+}
+WHITENOISE_MAX_AGE = 31536000 if DJANGO_ENV == "production" else 0
 
 
 MEDIA_URL = "/media/"
@@ -160,9 +184,22 @@ ARCHIVE_ALLOWED_EXTENSIONS = env_list(
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
+# Les empreintes de mots de passe coûteuses n’apportent rien aux tests et
+# représentaient 90 % de leur durée ; la production garde le hasher par défaut.
+if RUNNING_TESTS:
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
 # Authentification par session Django du MVP.
 AUTHENTICATION_BACKENDS = ["accounts.backends.EmailBackend"]
 LOGIN_URL = "/accounts/login/"
+SESSION_COOKIE_AGE = env_int("DJANGO_SESSION_COOKIE_AGE", 8 * 60 * 60)
+
+# Limitation des tentatives : par identifiant pour la connexion (une IP derrière
+# le proxy Render est partagée), par adresse pour l’inscription.
+AUTH_LOGIN_FAILURE_LIMIT = env_int("CTECH_LOGIN_FAILURE_LIMIT", 5)
+AUTH_LOGIN_LOCKOUT_SECONDS = env_int("CTECH_LOGIN_LOCKOUT_SECONDS", 15 * 60)
+AUTH_SIGNUP_LIMIT = env_int("CTECH_SIGNUP_LIMIT", 10)
+AUTH_SIGNUP_WINDOW_SECONDS = env_int("CTECH_SIGNUP_WINDOW_SECONDS", 60 * 60)
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
@@ -176,6 +213,8 @@ CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", default=not DEBUG)
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", default=not DEBUG)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+SECURE_REDIRECT_EXEMPT = [r"^healthz/?$"]
 X_FRAME_OPTIONS = "DENY"
 
 # HSTS ne doit être activé qu'une fois HTTPS opérationnel sur le domaine final.
@@ -188,3 +227,52 @@ SECURE_HSTS_PRELOAD = env_bool("DJANGO_SECURE_HSTS_PRELOAD", default=False)
 # Ne faire confiance au proxy HTTPS que si l'infrastructure le documente explicitement.
 if env_bool("DJANGO_USE_X_FORWARDED_PROTO", default=False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Le cache porte la limitation des tentatives : en production il doit être
+# partagé entre les workers gunicorn, d’où la table créée par createcachetable.
+CACHE_BACKEND = os.getenv(
+    "DJANGO_CACHE_BACKEND", "database" if DJANGO_ENV == "production" else "locmem"
+).strip().lower()
+if CACHE_BACKEND not in {"database", "locmem"}:
+    raise ImproperlyConfigured("DJANGO_CACHE_BACKEND doit valoir database ou locmem.")
+CACHES = {
+    "default": (
+        {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "ctech_cache",
+        }
+        if CACHE_BACKEND == "database"
+        else {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "ctech-local",
+        }
+    )
+}
+
+# Sans LOGGING, Django n’écrit rien sur la console quand DEBUG est faux : une
+# erreur 500 en production ne laissait aucune trace dans les journaux Render.
+LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "INFO").strip().upper()
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "plain"},
+    },
+    "root": {"handlers": ["console"], "level": "WARNING"},
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "CRITICAL" if RUNNING_TESTS else "ERROR",
+            "propagate": False,
+        },
+        "django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "ctech": {
+            "handlers": ["console"],
+            "level": "CRITICAL" if RUNNING_TESTS else LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}

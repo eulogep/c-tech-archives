@@ -1,119 +1,216 @@
-{% load static %}
-<!doctype html>
+{% load static %}<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#112948">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f3f1eb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#08090f" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="C-Tech Archives — coffre documentaire sécurisé : archives, intégrité SHA-256 et traçabilité.">
+  <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}C-Tech Archives{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+  <link rel="preload" href="{% static 'fonts/geist-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{% static 'fonts/fraunces-latin-opsz-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/theme-init.js' %}"></script>
+  <script src="{% static 'js/app.js' %}" defer></script>
+  {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{% if user.is_authenticated %}is-app{% else %}is-auth{% endif %}"{% if user.is_authenticated %}{% if can_search_archives %} data-search-url="{% url 'archives:quick_search' %}"{% endif %}{% if archive_policy.can_create %} data-create-url="{% url 'archives:create' %}"{% endif %}{% endif %}>
+  {% include "partials/icons.html" %}
   <a class="skip-link" href="#main-content">Aller au contenu principal</a>
+
+  {% if messages %}
+    <div class="toast-stack" aria-live="polite" data-toasts>
+      {% for message in messages %}
+        <p class="message {{ message.tags }}"{% if message.tags == 'error' %} role="alert"{% else %} role="status"{% endif %}>
+          {% if message.tags == 'success' %}{% icon "check-circle" %}{% elif message.tags == 'error' %}{% icon "alert" %}{% elif message.tags == 'warning' %}{% icon "alert" %}{% else %}{% icon "info" %}{% endif %}
+          <span>{{ message }}</span>
+          <button class="message-close" type="button" data-toast-close aria-label="Fermer la notification">{% icon "x" %}</button>
+        </p>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   {% if user.is_authenticated %}
     <div class="app-shell">
-      <aside class="sidebar">
+      <aside class="sidebar" id="sidebar" aria-label="Barre latérale">
         <a class="brand" href="{% url 'home' %}" aria-label="C-Tech Archives, tableau de bord">
-          <span class="brand-mark" aria-hidden="true">CT</span>
+          {% brand_seal 42 "brand-seal" %}
           <span class="brand-copy">
             <span class="brand-name">C-Tech Archives</span>
-            <span class="brand-tagline">Gestion documentaire sécurisée</span>
+            <span class="brand-tagline">Coffre documentaire</span>
           </span>
         </a>
 
         <nav class="sidebar-nav" aria-label="Navigation principale">
-          <a href="{% url 'home' %}" {% if request.resolver_match.url_name == 'home' %}class="active" aria-current="page"{% endif %}>
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-            <span>Tableau de bord</span>
-          </a>
-          {% if archive_policy.can_access %}
-            <a href="{% url 'archives:list' %}" {% if request.resolver_match.app_name == 'archives' and request.resolver_match.url_name != 'create' %}class="active" aria-current="page"{% endif %}>
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-              <span>Archives</span>
+          <div class="nav-group">
+            <span class="nav-group-label">Espace</span>
+            <a class="nav-link{% if request.resolver_match.url_name == 'home' %} active{% endif %}" href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>
+              {% icon "grid" %}<span>Tableau de bord</span><kbd class="nav-shortcut">G D</kbd>
             </a>
-          {% endif %}
-          {% if archive_policy.can_create %}
-            <a href="{% url 'archives:create' %}" {% if request.resolver_match.url_name == 'create' %}class="active" aria-current="page"{% endif %}>
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              <span>Nouvelle archive</span>
-            </a>
-          {% endif %}
+            {% if archive_policy.can_access %}
+              <a class="nav-link{% if request.resolver_match.app_name == 'archives' and request.resolver_match.url_name != 'create' %} active{% endif %}" href="{% url 'archives:list' %}"{% if request.resolver_match.app_name == 'archives' and request.resolver_match.url_name != 'create' %} aria-current="page"{% endif %}>
+                {% icon "archive" %}<span>Archives</span><kbd class="nav-shortcut">G A</kbd>
+              </a>
+            {% endif %}
+            {% if archive_policy.can_create %}
+              <a class="nav-link{% if request.resolver_match.url_name == 'create' %} active{% endif %}" href="{% url 'archives:create' %}"{% if request.resolver_match.url_name == 'create' %} aria-current="page"{% endif %}>
+                {% icon "plus" %}<span>Nouvelle archive</span><kbd class="nav-shortcut">N</kbd>
+              </a>
+            {% endif %}
+          </div>
+
           {% if audit_policy.can_view %}
-            <a href="{% url 'audit:list' %}" {% if request.resolver_match.app_name == 'audit' %}class="active" aria-current="page"{% endif %}>
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-              <span>Journal d’audit</span>
-            </a>
+            <div class="nav-group">
+              <span class="nav-group-label">Contrôle</span>
+              <a class="nav-link{% if request.resolver_match.app_name == 'audit' %} active{% endif %}" href="{% url 'audit:list' %}"{% if request.resolver_match.app_name == 'audit' %} aria-current="page"{% endif %}>
+                {% icon "shield" %}<span>Journal d’audit</span><kbd class="nav-shortcut">G J</kbd>
+              </a>
+            </div>
           {% endif %}
-          <a href="{% url 'future_improvements' %}" {% if request.resolver_match.url_name == 'future_improvements' %}class="active" aria-current="page"{% endif %}>
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m12 3-1.8 5.2L5 10l5.2 1.8L12 17l1.8-5.2L19 10l-5.2-1.8L12 3Zm6 12-.9 2.1L15 18l2.1.9L18 21l.9-2.1L21 18l-2.1-.9L18 15ZM5 16l-.7 1.3L3 18l1.3.7L5 20l.7-1.3L7 18l-1.3-.7L5 16Z" /></svg>
-            <span>Futures améliorations</span>
-          </a>
+
+          <div class="nav-group">
+            <span class="nav-group-label">Plateforme</span>
+            <a class="nav-link{% if request.resolver_match.url_name == 'future_improvements' %} active{% endif %}" href="{% url 'future_improvements' %}"{% if request.resolver_match.url_name == 'future_improvements' %} aria-current="page"{% endif %}>
+              {% icon "sparkles" %}<span>Futures améliorations</span>
+            </a>
+            <a class="nav-link{% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'password_change' %} active{% endif %}" href="{% url 'profile' %}"{% if request.resolver_match.url_name == 'profile' %} aria-current="page"{% endif %}>
+              {% icon "user" %}<span>Mon profil</span><kbd class="nav-shortcut">G P</kbd>
+            </a>
+          </div>
         </nav>
 
-        <p class="sidebar-note">Les droits d’accès sont vérifiés côté serveur pour chaque action.</p>
+        <section class="clearance" aria-labelledby="clearance-title">
+          <div class="clearance-head">
+            <span class="clearance-title" id="clearance-title">Habilitation</span>
+            <span class="clearance-score">{{ clearance_granted_count }}/3</span>
+          </div>
+          <div class="clearance-meter" aria-hidden="true">
+            {% for level in clearance_levels %}<span class="level-{{ level.value|lower }}{% if level.granted %} is-granted{% endif %}"></span>{% endfor %}
+          </div>
+          <ul class="clearance-levels">
+            {% for level in clearance_levels %}
+              <li class="{% if level.granted %}is-granted{% endif %}">
+                {% if level.granted %}{% icon "unlock" %}{% else %}{% icon "lock" %}{% endif %}
+                {{ level.label }}{% if not level.granted %}<span class="visually-hidden"> (non accessible)</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+
+        <div class="sidebar-footer">
+          <span class="sidebar-version">v{{ app_version }} · contrôle serveur</span>
+          <button class="sidebar-collapse" type="button" data-sidebar-toggle aria-label="Réduire ou déployer la barre latérale" aria-controls="sidebar">{% icon "chevron-left" %}</button>
+        </div>
       </aside>
+      <div class="sidebar-scrim" data-nav-close></div>
 
       <div class="app-main">
         <header class="topbar">
-          <span class="topbar-context">Plateforme sécurisée de gestion documentaire</span>
+          <button class="icon-button topbar-menu" type="button" data-nav-open aria-label="Ouvrir la navigation" aria-controls="sidebar">{% icon "menu" %}</button>
+          <div class="topbar-title">
+            <span class="topbar-eyebrow">{% block page_eyebrow %}Plateforme sécurisée de gestion documentaire{% endblock %}</span>
+            <span class="topbar-heading">{% block page_heading %}C-Tech Archives{% endblock %}</span>
+          </div>
+          <button class="search-trigger" type="button" data-palette-open aria-haspopup="dialog" aria-label="Ouvrir la palette de commandes">
+            {% icon "search" %}<span>Rechercher, naviguer, agir…</span><span class="kbd" data-mod-key>Ctrl</span><span class="kbd">K</span>
+          </button>
           <div class="topbar-actions">
-            <button class="guide-launcher" type="button" data-guide-launcher aria-haspopup="dialog">Guide d’utilisation</button>
-            <div class="user-menu">
-            <a class="topbar-avatar-link" href="{% url 'profile' %}" aria-label="Ouvrir mon profil">
-              {% if user.has_profile_avatar %}
-                <img
-                  class="topbar-avatar"
-                  src="{% url 'profile_avatar' user.pk %}"
-                  alt="Photo de profil de {{ user.get_full_name|default:user.username }}"
-                  width="40"
-                  height="40"
-                >
-              {% else %}
-                <span class="topbar-avatar-placeholder" aria-hidden="true">{{ user.username|slice:":1"|upper }}</span>
-              {% endif %}
-            </a>
-            <div class="user-identity">
-              <a class="user-name" href="{% url 'profile' %}">{{ user.username }}</a>
-              <div class="user-badges">
-                <span class="badge badge-role">{{ user.get_role_display }}</span>
-                {% if user.is_superuser %}
-                  <span class="badge badge-tech">Superutilisateur technique</span>
-                {% endif %}
+            <button class="icon-button" type="button" data-theme-toggle aria-label="Basculer le thème clair ou sombre" data-tip="Thème">
+              {% icon "sun" "theme-icon-light" %}{% icon "moon" "theme-icon-dark" %}
+            </button>
+            <button class="icon-button guide-launcher" type="button" data-guide-launcher aria-haspopup="dialog" data-tip="Guide">
+              {% icon "compass" %}<span class="visually-hidden">Guide d’utilisation</span>
+            </button>
+            <details class="user-menu" data-user-menu>
+              <summary aria-label="Menu du compte">
+                {% include "partials/avatar.html" with person=user size="sm" %}
+                <span class="user-summary-name">{{ user.get_full_name|default:user.username }}</span>
+                {% icon "chevron-down" %}
+              </summary>
+              <div class="user-menu-panel">
+                <div class="menu-header">
+                  {% include "partials/avatar.html" with person=user size="lg" describe=True %}
+                  <div class="menu-identity">
+                    <strong>{{ user.get_full_name|default:user.username }}</strong>
+                    <span class="user-name">{{ user.username }}</span>
+                  </div>
+                </div>
+                <div class="menu-badges user-badges">
+                  <span class="badge badge-role">{{ user.get_role_display }}</span>
+                  {% if user.is_superuser %}
+                    <span class="badge badge-tech">Superutilisateur technique</span>
+                  {% endif %}
+                </div>
+                <div class="menu-separator"></div>
+                <a class="menu-link" href="{% url 'profile' %}">{% icon "user" %}Mon profil</a>
+                <a class="menu-link" href="{% url 'password_change' %}">{% icon "key" %}Mot de passe</a>
+                <button class="menu-link" type="button" data-shortcuts-open>{% icon "keyboard" %}Raccourcis clavier</button>
+                <div class="menu-separator"></div>
+                <form class="logout-form" method="post" action="{% url 'logout' %}">
+                  {% csrf_token %}
+                  <button type="submit">Déconnexion</button>
+                </form>
               </div>
-            </div>
-              <form class="logout-form" method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button class="button button-secondary button-compact" type="submit">Déconnexion</button>
-              </form>
-            </div>
+            </details>
           </div>
         </header>
-        <main id="main-content" class="page-container">
+
+        <main id="main-content" class="page" tabindex="-1">
   {% else %}
     <main id="main-content" class="auth-main">
-      <div class="page-container">
   {% endif %}
-
-        {% if messages %}
-          <div class="message-stack" aria-live="polite">
-            {% for message in messages %}
-              <p class="message {{ message.tags }}"{% if message.tags == 'error' %} role="alert"{% else %} role="status"{% endif %}>{{ message }}</p>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% block content %}{% endblock %}
-
+          {% block content %}{% endblock %}
   {% if user.is_authenticated %}
         </main>
+
+        <footer class="app-footer">
+          <span>{% icon "shield" %}Chaque accès est vérifié côté serveur et tracé.</span>
+          <span>C-Tech Archives · v{{ app_version }}</span>
+        </footer>
       </div>
     </div>
-  {% else %}
+
+    <dialog class="palette" data-palette aria-label="Palette de commandes">
+      <div class="palette-search">
+        {% icon "search" %}
+        <input type="text" data-palette-input role="combobox" aria-expanded="true" aria-controls="palette-results" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="{% if can_search_archives %}Rechercher une archive, une page, une action…{% else %}Rechercher une page ou une action…{% endif %}" aria-label="Rechercher">
+        <kbd>Échap</kbd>
       </div>
+      <div class="palette-results" id="palette-results" role="listbox" aria-label="Résultats" data-palette-results></div>
+      <div class="palette-footer" aria-hidden="true">
+        <span><kbd>↑</kbd><kbd>↓</kbd> naviguer</span>
+        <span><kbd>↵</kbd> ouvrir</span>
+        <span><kbd>Échap</kbd> fermer</span>
+      </div>
+    </dialog>
+
+    <dialog class="sheet" data-shortcuts aria-labelledby="shortcuts-title">
+      <div class="sheet-header">
+        <div>
+          <p class="page-kicker">Productivité</p>
+          <h2 id="shortcuts-title">Raccourcis clavier</h2>
+        </div>
+        <button class="icon-button" type="button" data-dialog-close aria-label="Fermer">{% icon "x" %}</button>
+      </div>
+      <dl class="shortcut-list">
+        <div><dt>Palette de commandes</dt><dd><kbd data-mod-key>Ctrl</kbd><kbd>K</kbd></dd></div>
+        <div><dt>Rechercher dans la page</dt><dd><kbd>/</kbd></dd></div>
+        {% for item in command_items %}{% if item.shortcut %}
+          <div><dt>{{ item.label }}</dt><dd>{% for key in item.shortcut.split %}<kbd>{{ key }}</kbd>{% endfor %}</dd></div>
+        {% endif %}{% endfor %}
+      </dl>
+    </dialog>
+
+    {% include "partials/onboarding.html" %}
+    {{ command_items|json_script:"command-items" }}
+    <script src="{% static 'js/onboarding.js' %}" defer></script>
+  {% else %}
     </main>
   {% endif %}
-  {% if user.is_authenticated %}
-    <script src="{% static 'js/onboarding.js' %}" defer></script>
-  {% endif %}
+  {% block scripts %}{% endblock %}
 </body>
 </html>

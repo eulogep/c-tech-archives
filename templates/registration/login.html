@@ -3,44 +3,57 @@
 {% block title %}Connexion | C-Tech Archives{% endblock %}
 
 {% block content %}
-  <section class="login-card" aria-labelledby="login-title">
-    <div class="login-brand">
-      <span class="brand-mark" aria-hidden="true">CT</span>
-      <div>
-        <strong>C-Tech Archives</strong>
-        <div class="muted">Plateforme sécurisée de gestion documentaire</div>
+  <div class="auth-layout">
+    {% include "partials/auth_visual.html" %}
+
+    <section class="auth-panel" aria-labelledby="login-title">
+      <div class="login-card auth-card">
+        <a class="auth-brand auth-mobile-brand" href="{% url 'login' %}">
+          {% brand_seal 44 %}
+          <span><strong>C-Tech Archives</strong><span>Coffre documentaire</span></span>
+        </a>
+
+        <p class="page-kicker">Accès sécurisé</p>
+        <h1 id="login-title">Connexion à votre espace</h1>
+        <p class="page-description">Utilisez votre adresse e-mail et votre mot de passe pour accéder à l’espace correspondant à vos autorisations.</p>
+
+        {% if lockout_message %}
+          <div class="alert alert-warning" role="alert">{% icon "lock" %}<span>{{ lockout_message }}</span></div>
+        {% elif form.non_field_errors %}
+          <div class="alert errors" role="alert">{% icon "alert" %}<span>Identifiants invalides.</span></div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+          {% endif %}
+          <div class="form-field">
+            <label for="{{ form.username.id_for_label }}">Adresse e-mail</label>
+            <div class="input-with-icon">
+              {% icon "mail" %}
+              {{ form.username }}
+            </div>
+            {% for error in form.username.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.password.id_for_label }}">Mot de passe</label>
+            <div class="password-field input-with-icon">
+              {% icon "key" %}
+              {{ form.password }}
+              <button class="password-toggle" type="button" data-password-toggle="{{ form.password.id_for_label }}" aria-pressed="false" aria-label="Afficher le mot de passe">{% icon "eye" "icon-eye" %}{% icon "eye-off" "icon-eye-off" %}</button>
+            </div>
+            {% for error in form.password.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="auth-actions">
+            <button class="button" type="submit">Se connecter{% icon "arrow-right" %}</button>
+            <div class="auth-divider">Pas encore de compte ?</div>
+            <a class="button button-secondary" href="{% url 'signup' %}">Créer le compte</a>
+          </div>
+        </form>
+
+        <p class="login-security-note">{% icon "shield" %}<span>L’inscription crée un compte Consultant. Les droits administrateur sont attribués séparément par un administrateur autorisé. Après plusieurs échecs, le compte est verrouillé temporairement.</span></p>
       </div>
-    </div>
-
-    <p class="page-kicker">Accès sécurisé</p>
-    <h1 id="login-title">Connexion à votre espace</h1>
-    <p class="page-description">Utilisez votre adresse e-mail et votre mot de passe pour accéder à l’espace correspondant à vos autorisations.</p>
-
-    {% if form.non_field_errors %}
-      <div class="errors" role="alert">Identifiants invalides.</div>
-    {% endif %}
-
-    <form method="post" novalidate>
-      {% csrf_token %}
-      {% if next %}
-        <input type="hidden" name="next" value="{{ next }}">
-      {% endif %}
-      <p class="form-field">
-        <label for="{{ form.username.id_for_label }}">Adresse e-mail</label>
-        {{ form.username }}
-        {% for error in form.username.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
-      </p>
-      <p class="form-field">
-        <label for="{{ form.password.id_for_label }}">Mot de passe</label>
-        {{ form.password }}
-        {% for error in form.password.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
-      </p>
-      <div class="auth-actions">
-        <button class="button" type="submit">Se connecter</button>
-        <a class="button button-secondary" href="{% url 'signup' %}">Créer le compte</a>
-      </div>
-    </form>
-
-    <p class="login-security-note">L’inscription crée un compte Consultant. Les droits administrateur sont attribués séparément par un administrateur autorisé.</p>
-  </section>
+    </section>
+  </div>
 {% endblock %}

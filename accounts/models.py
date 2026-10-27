@@ -71,8 +71,16 @@ class User(AbstractUser):
 
     @property
     def has_profile_avatar(self) -> bool:
-        """Indique si un avatar privé exploitable est associé à l’utilisateur."""
-        return bool(self.profile_avatar and self.profile_avatar_content_type)
+        """Indique si un avatar privé exploitable est associé à l’utilisateur.
+
+        Les octets sont différés au chargement de la session : le type MIME,
+        toujours écrit avec eux, suffit alors sans recharger l’image.
+        """
+        if not self.profile_avatar_content_type:
+            return False
+        if "profile_avatar" in self.get_deferred_fields():
+            return True
+        return bool(self.profile_avatar)
 
     def __str__(self) -> str:
         return self.get_full_name() or self.username

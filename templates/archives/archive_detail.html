@@ -1,39 +1,59 @@
 {% extends "base.html" %}
 
 {% block title %}{{ archive.reference }} | C-Tech Archives{% endblock %}
+{% block page_eyebrow %}Fiche documentaire{% endblock %}
+{% block page_heading %}{{ archive.reference }}{% endblock %}
 
 {% block content %}
-  <section class="panel" aria-labelledby="archive-title">
-    <header class="page-header">
-      <div>
-        <p class="page-kicker">Fiche documentaire</p>
-        <div class="action-group" aria-label="Statut de l’archive">
-          <span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span>
-          <span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span>
-        </div>
-        <h1 id="archive-title">{{ archive.reference }}</h1>
-        <p class="page-description">{{ archive.title }}</p>
-      </div>
-      {% if archive_policy.can_update %}
-        <a class="button" href="{% url 'archives:update' archive.pk %}">Modifier</a>
-      {% endif %}
-    </header>
+  <p class="print-only">C-Tech Archives · fiche imprimée le {% now "d/m/Y à H:i" %}</p>
 
-    <div class="detail-layout">
-      <!-- Section A : Identification -->
-      <section class="detail-section" aria-labelledby="general-title">
-        <h2 id="general-title">A. Identification</h2>
+  <a class="section-link no-print" href="{% url 'archives:list' %}">{% icon "arrow-left" %}Toutes les archives</a>
+
+  <section class="dossier-hero level-{{ archive.confidentiality_level|lower }} reveal" aria-labelledby="archive-title">
+    <div class="dossier-seal">{% seal archive.reference 112 %}</div>
+    <div>
+      <p class="page-kicker">Fiche documentaire</p>
+      <div class="action-group" aria-label="Statut de l’archive">
+        <span class="badge badge-{{ archive.status|lower }}">{{ archive.get_status_display }}</span>
+        <span class="badge badge-{{ archive.confidentiality_level|lower }}">{{ archive.get_confidentiality_level_display }}</span>
+      </div>
+      <h1 id="archive-title" class="dossier-title">{{ archive.title }}</h1>
+      <p class="dossier-ref">
+        <span>{{ archive.reference }}</span>
+        <button class="copy-button no-print" type="button" data-copy="{{ archive.reference }}" aria-label="Copier la référence {{ archive.reference }}" data-tip="Copier">{% icon "copy" %}</button>
+      </p>
+      <div class="dossier-meta">
+        <span>{% icon "building" %}{{ archive.service.name }}</span>
+        <span>{% icon "folder" %}{{ archive.document_type.name }}</span>
+        <span>{% icon "tag" %}{{ archive.category.name }}</span>
+        <span>{% icon "calendar" %}{% if archive.document_date %}{{ archive.document_date|date:"j F Y" }}{% else %}Date non renseignée{% endif %}</span>
+      </div>
+    </div>
+    <div class="dossier-actions">
+      {% if archive_policy.can_update %}
+        <a class="button" href="{% url 'archives:update' archive.pk %}">{% icon "edit" %}Modifier</a>
+      {% endif %}
+      {% if archive.file %}
+        <a class="button button-secondary" href="{% url 'archives:download' archive.pk %}">{% icon "download" %}Télécharger</a>
+      {% endif %}
+      <button class="button button-ghost" type="button" data-print>{% icon "printer" %}Imprimer la fiche</button>
+    </div>
+  </section>
+
+  <div class="dossier-grid detail-layout">
+    <div class="dossier-column">
+      <section class="detail-section reveal reveal-1" aria-labelledby="general-title">
+        <h2 id="general-title">{% icon "info" %}A. Identification</h2>
         <dl class="detail-list">
-          <dt>Référence</dt><dd><strong>{{ archive.reference }}</strong></dd>
+          <dt>Référence</dt><dd><strong class="mono">{{ archive.reference }}</strong></dd>
           <dt>Titre</dt><dd>{{ archive.title }}</dd>
           <dt>Date du document</dt><dd>{% if archive.document_date %}{{ archive.document_date|date:"d/m/Y" }}{% else %}Non renseignée{% endif %}</dd>
           <dt>Description</dt><dd class="detail-description">{{ archive.description|default:"Non renseignée"|linebreaksbr }}</dd>
         </dl>
       </section>
 
-      <!-- Section B : Classification -->
-      <section class="detail-section" aria-labelledby="classification-title">
-        <h2 id="classification-title">B. Classification & Sécurité</h2>
+      <section class="detail-section reveal reveal-2" aria-labelledby="classification-title">
+        <h2 id="classification-title">{% icon "layers" %}B. Classification & Sécurité</h2>
         <dl class="detail-list">
           <dt>Service</dt><dd>{{ archive.service.name }}</dd>
           <dt>Catégorie</dt><dd>{{ archive.category.name }}</dd>
@@ -43,49 +63,120 @@
         </dl>
       </section>
 
-      <!-- Section C : Document -->
-      <section class="detail-section" aria-labelledby="file-title">
-        <h2 id="file-title">C. Document & Fichier</h2>
+      <section class="detail-section reveal reveal-3" aria-labelledby="file-title">
+        <h2 id="file-title">{% icon "file" %}C. Document & Fichier</h2>
         {% if archive.file %}
+          <div class="file-card">
+            <span class="file-icon kind-{{ file_kind }}" aria-hidden="true">{{ file_extension }}</span>
+            <div>
+              <p class="file-name">{{ archive.reference }}.{{ file_extension|lower }}</p>
+              <p class="file-sub">{{ file_kind|kind_label }} · {{ archive.file_size|filesizeformat }}{% if archive.file_size >= 1024 %} ({{ archive.file_size }} octets){% endif %}</p>
+            </div>
+            <a class="button button-compact" href="{% url 'archives:download' archive.pk %}">{% icon "download" %}Télécharger le fichier</a>
+          </div>
           <dl class="detail-list">
-            <dt>Taille</dt><dd>{{ archive.file_size }} octet{{ archive.file_size|pluralize:"s" }}</dd>
             <dt>Ajoutée par</dt><dd>{{ archive.uploaded_by.username }}</dd>
             <dt>Date d’archivage</dt><dd>{% if archive.archived_at %}{{ archive.archived_at|date:"d/m/Y H:i" }}{% else %}Non renseignée{% endif %}</dd>
           </dl>
           <p class="upload-hint">Le document est conservé dans un espace privé hors de toute exposition directe et son accès reste validé côté serveur.</p>
-          <div class="action-group">
-            <a class="button" href="{% url 'archives:download' archive.pk %}">Télécharger le fichier</a>
-          </div>
+          {% if can_preview %}
+            <div class="action-group no-print">
+              <button class="button button-secondary button-compact" type="button" data-preview-url="{% url 'archives:preview' archive.pk %}" data-preview-kind="{{ file_kind }}" data-preview-alt="Aperçu de {{ archive.reference }}" aria-controls="preview-panel" aria-expanded="false">{% icon "eye" %}Afficher l’aperçu</button>
+            </div>
+            <div class="preview-panel" id="preview-panel" hidden data-preview-panel>
+              <div class="preview-frame" data-preview-frame aria-live="polite"></div>
+              <p class="upload-hint">L’aperçu est journalisé comme un accès au fichier.</p>
+            </div>
+          {% endif %}
         {% else %}
-          <div class="empty-state">
-            <h2>Aucun fichier associé</h2>
+          <div class="empty-state empty-state-compact">
+            {% icon "file" "icon-lg" %}
+            <h3>Aucun fichier associé</h3>
             <p>Cette archive ne contient pas de document téléchargeable.</p>
           </div>
         {% endif %}
       </section>
+    </div>
 
-      <!-- Section D : Intégrité -->
-      <section class="detail-section" aria-labelledby="integrity-title">
-        <h2 id="integrity-title">D. Intégrité documentaire</h2>
+    <div class="dossier-column">
+      <section class="detail-section integrity-panel is-{{ integrity_state.tone }} reveal reveal-2" aria-labelledby="integrity-title">
+        <h2 id="integrity-title">{% icon "fingerprint" %}D. Intégrité documentaire</h2>
+        <div class="integrity-visual" aria-hidden="true">
+          <svg viewBox="0 0 120 120" focusable="false">
+            <circle class="pulse" cx="60" cy="60" r="44"/>
+            <circle class="pulse" cx="60" cy="60" r="44"/>
+            <path class="shield" d="M60 18 30 29v22c0 20 12.7 36.6 30 41.6C77.3 87.6 90 71 90 51V29L60 18Z"/>
+            {% if integrity_state.glyph == "check" %}<path class="glyph" d="m46 56 10 10 19-20"/>
+            {% elif integrity_state.glyph == "alert" %}<path class="glyph" d="M60 42v18M60 70v.5"/>
+            {% elif integrity_state.glyph == "seal" %}<circle class="glyph" cx="60" cy="55" r="10"/><path class="glyph" d="M60 39v4M60 67v4M44 55h4M72 55h4"/>
+            {% else %}<path class="glyph" d="M48 56h24"/>{% endif %}
+          </svg>
+        </div>
+        <div class="integrity-state" role="status">
+          <strong>{{ integrity_state.title }}</strong>
+          <span>{{ integrity_state.detail }}</span>
+          {% if last_integrity_check %}
+            <span class="cell-sub"><br>Dernier contrôle <time datetime="{{ last_integrity_check.timestamp|date:'c' }}">{{ last_integrity_check.timestamp|naturaltime }}</time></span>
+          {% endif %}
+        </div>
         {% if archive.file %}
           <div class="integrity-box">
-            <p><strong>Contrôle d’intégrité SHA-256</strong></p>
-            <p class="integrity-note">La vérification par empreinte cryptographique SHA-256 garantit que le document n’a pas été altéré depuis son enregistrement. (Il s'agit d'un contrôle d'intégrité, non d'un chiffrement).</p>
-            <div class="action-group" style="margin-top: 0.5rem;">
-              <form class="logout-form" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
-                {% csrf_token %}
-                <button class="button button-secondary" type="submit">Vérifier l’intégrité</button>
-              </form>
-            </div>
+            <p class="integrity-note"><strong>Contrôle d’intégrité SHA-256.</strong> La vérification par empreinte cryptographique SHA-256 garantit que le document n’a pas été altéré depuis son enregistrement. Il s'agit d'un contrôle d'intégrité, non d'un chiffrement.</p>
+            <form class="logout-form-alt" method="post" action="{% url 'archives:verify_integrity' archive.pk %}">
+              {% csrf_token %}
+              <button class="button button-secondary" type="submit">{% icon "fingerprint" %}Vérifier l’intégrité</button>
+            </form>
           </div>
-        {% else %}
-          <p class="page-description">L’intégrité ne peut être vérifiée qu'en présence d'un fichier associé.</p>
         {% endif %}
       </section>
-    </div>
 
-    <div class="form-actions">
-      <a class="button button-secondary" href="{% url 'archives:list' %}">Retour à la liste</a>
+      {% if archive_history is not None %}
+        <section class="detail-section reveal reveal-3" aria-labelledby="history-title">
+          <h2 id="history-title">{% icon "history" %}Historique des accès</h2>
+          {% if archive_history %}
+            <ol class="timeline">
+              {% for event in archive_history %}
+                <li>
+                  <span class="timeline-dot tone-{{ event.tone }}-bg">{% icon event.icon %}</span>
+                  <div class="timeline-body">
+                    <strong>{{ event.get_action_display }}</strong>
+                    <span>{{ event.actor_identifier }} · <time datetime="{{ event.timestamp|date:'c' }}" title="{{ event.timestamp|date:'d/m/Y H:i:s' }}">{{ event.timestamp|naturaltime }}</time></span>
+                  </div>
+                </li>
+              {% endfor %}
+            </ol>
+            <a class="section-link" href="{% url 'audit:list' %}?q={{ archive.reference|urlencode }}">Tout l’historique{% icon "arrow-right" %}</a>
+          {% else %}
+            <p class="card-subtitle">Aucun événement enregistré pour cette archive.</p>
+          {% endif %}
+        </section>
+      {% else %}
+        <section class="detail-section reveal reveal-3" aria-labelledby="lifecycle-title">
+          <h2 id="lifecycle-title">{% icon "clock" %}Cycle de vie</h2>
+          <ol class="timeline">
+            <li>
+              <span class="timeline-dot tone-success-bg">{% icon "plus" %}</span>
+              <div class="timeline-body"><strong>Enregistrée</strong><span>{{ archive.created_at|date:"d/m/Y H:i" }}</span></div>
+            </li>
+            {% if archive.updated_at|date:"YmdHi" != archive.created_at|date:"YmdHi" %}
+              <li>
+                <span class="timeline-dot tone-info-bg">{% icon "history" %}</span>
+                <div class="timeline-body"><strong>Dernière mise à jour</strong><span>{{ archive.updated_at|date:"d/m/Y H:i" }}</span></div>
+              </li>
+            {% endif %}
+            {% if archive.archived_at %}
+              <li>
+                <span class="timeline-dot tone-muted-bg">{% icon "archive" %}</span>
+                <div class="timeline-body"><strong>Archivée</strong><span>{{ archive.archived_at|date:"d/m/Y H:i" }}</span></div>
+              </li>
+            {% endif %}
+          </ol>
+        </section>
+      {% endif %}
     </div>
-  </section>
+  </div>
+
+  <div class="form-actions no-print">
+    <a class="button button-secondary" href="{% url 'archives:list' %}">{% icon "arrow-left" %}Retour à la liste</a>
+  </div>
 {% endblock %}

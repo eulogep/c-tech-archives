@@ -55,4 +55,6 @@ class ArchiveAdmin(admin.ModelAdmin):
     search_fields = ("reference", "title", "description")
     autocomplete_fields = ("category", "document_type", "service", "uploaded_by")
     ordering = ("reference",)
-    readonly_fields = ("created_at", "updated_at")
+    # Fichier, taille et empreinte ne passent que par le formulaire web, qui
+    # valide le contenu, calcule le SHA-256 et journalise l’opération.
+    readonly_fields = ("file", "file_size", "checksum", "created_at", "updated_at")

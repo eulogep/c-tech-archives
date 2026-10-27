@@ -43,8 +43,16 @@ class ArchiveForm(forms.ModelForm):
             "file",
         )
         widgets = {
+            "reference": forms.TextInput(
+                attrs={"autocomplete": "off", "spellcheck": "false", "data-seal-source": ""}
+            ),
             "document_date": forms.DateInput(attrs={"type": "date"}),
             "description": forms.Textarea(attrs={"rows": 4}),
+            "status": forms.RadioSelect,
+            "confidentiality_level": forms.RadioSelect,
+            "file": forms.ClearableFileInput(
+                attrs={"accept": ".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png"}
+            ),
         }
 
     _CONTENT_TYPES = {
@@ -141,20 +149,41 @@ class ArchiveForm(forms.ModelForm):
             if current_id:
                 queryset = model.objects.filter(Q(is_active=True) | Q(pk=current_id))
         self.fields[field_name].queryset = queryset
+        self.fields[field_name].empty_label = "Sélectionner…"
 
 
 class ArchiveSearchForm(forms.Form):
     """Formulaire GET de recherche et filtres, sans modification de modèle."""
 
-    q = forms.CharField(label="Recherche", max_length=255, required=False)
+    q = forms.CharField(
+        label="Recherche",
+        max_length=255,
+        required=False,
+        widget=forms.SearchInput(
+            attrs={
+                "placeholder": "Référence, titre ou description…",
+                "autocomplete": "off",
+                "data-page-search": "",
+            }
+        ),
+    )
     category = forms.ModelChoiceField(
-        label="Catégorie", queryset=Category.objects.none(), required=False
+        label="Catégorie",
+        queryset=Category.objects.none(),
+        required=False,
+        empty_label="Toutes les catégories",
     )
     document_type = forms.ModelChoiceField(
-        label="Type documentaire", queryset=DocumentType.objects.none(), required=False
+        label="Type documentaire",
+        queryset=DocumentType.objects.none(),
+        required=False,
+        empty_label="Tous les types",
     )
     service = forms.ModelChoiceField(
-        label="Service", queryset=Service.objects.none(), required=False
+        label="Service",
+        queryset=Service.objects.none(),
+        required=False,
+        empty_label="Tous les services",
     )
     status = forms.ChoiceField(
         label="Statut",

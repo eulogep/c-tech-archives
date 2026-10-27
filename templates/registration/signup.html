@@ -3,34 +3,74 @@
 {% block title %}Créer le compte | C-Tech Archives{% endblock %}
 
 {% block content %}
-  <section class="login-card" aria-labelledby="signup-title">
-    <div class="login-brand">
-      <span class="brand-mark" aria-hidden="true">CT</span>
-      <div>
-        <strong>C-Tech Archives</strong>
-        <div class="muted">Plateforme sécurisée de gestion documentaire</div>
+  <div class="auth-layout">
+    {% include "partials/auth_visual.html" %}
+
+    <section class="auth-panel" aria-labelledby="signup-title">
+      <div class="login-card auth-card">
+        <a class="auth-brand auth-mobile-brand" href="{% url 'login' %}">
+          {% brand_seal 44 %}
+          <span><strong>C-Tech Archives</strong><span>Coffre documentaire</span></span>
+        </a>
+
+        <p class="page-kicker">Nouveau compte</p>
+        <h1 id="signup-title">Créer votre accès</h1>
+        <p class="page-description">Votre adresse e-mail devient votre identifiant de connexion. Les nouveaux comptes commencent avec les droits Consultant.</p>
+
+        {% if throttle_message %}
+          <div class="alert alert-warning" role="alert">{% icon "clock" %}<span>{{ throttle_message }}</span></div>
+        {% endif %}
+        {% if form.non_field_errors %}
+          <div class="alert errors" role="alert">{% icon "alert" %}<span>{{ form.non_field_errors|join:" " }}</span></div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="form-field">
+            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+            <div class="input-with-icon">{% icon "mail" %}{{ form.email }}</div>
+            {% for error in form.email.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }} <span class="field-optional">(facultatif)</span></label>
+              {{ form.first_name }}
+              {% for error in form.first_name.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+            </div>
+            <div class="form-field">
+              <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }} <span class="field-optional">(facultatif)</span></label>
+              {{ form.last_name }}
+              {% for error in form.last_name.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+            <div class="password-field">
+              {{ form.password1 }}
+              <button class="password-toggle" type="button" data-password-toggle="{{ form.password1.id_for_label }}" aria-pressed="false" aria-label="Afficher le mot de passe">{% icon "eye" "icon-eye" %}{% icon "eye-off" "icon-eye-off" %}</button>
+            </div>
+            <div class="strength" data-strength-for="{{ form.password1.id_for_label }}" data-score="0">
+              <div class="strength-bars" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+              <span class="strength-label" data-strength-label aria-live="polite">Au moins 8 caractères, ni trop courant, ni uniquement numérique.</span>
+            </div>
+            {% for error in form.password1.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="form-field">
+            <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+            <div class="password-field">
+              {{ form.password2 }}
+              <button class="password-toggle" type="button" data-password-toggle="{{ form.password2.id_for_label }}" aria-pressed="false" aria-label="Afficher la confirmation">{% icon "eye" "icon-eye" %}{% icon "eye-off" "icon-eye-off" %}</button>
+            </div>
+            {% for error in form.password2.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
+          </div>
+          <div class="auth-actions">
+            <button class="button" type="submit">Créer le compte{% icon "arrow-right" %}</button>
+            <a class="button button-secondary" href="{% url 'login' %}">Retour à la connexion</a>
+          </div>
+        </form>
+
+        <p class="login-security-note">{% icon "shield" %}<span>Un administrateur autorisé peut modifier vos droits lorsque cela est nécessaire.</span></p>
       </div>
-    </div>
-
-    <p class="page-kicker">Nouveau compte</p>
-    <h1 id="signup-title">Créer votre accès</h1>
-    <p class="page-description">Votre adresse e-mail devient votre identifiant de connexion. Les nouveaux comptes commencent avec les droits Consultant.</p>
-
-    <form method="post" novalidate>
-      {% csrf_token %}
-      {% for field in form %}
-        <p class="form-field">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {% for error in field.errors %}<span class="errors" role="alert">{{ error }}</span>{% endfor %}
-        </p>
-      {% endfor %}
-      <div class="auth-actions">
-        <button class="button" type="submit">Créer le compte</button>
-        <a class="button button-secondary" href="{% url 'login' %}">Retour à la connexion</a>
-      </div>
-    </form>
-
-    <p class="login-security-note">Un administrateur autorisé peut modifier vos droits lorsque cela est nécessaire.</p>
-  </section>
+    </section>
+  </div>
 {% endblock %}

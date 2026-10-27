@@ -1,0 +1,14 @@
+{
+  "name": "C-Tech Archives",
+  "short_name": "C-Tech",
+  "description": "Coffre documentaire sécurisé : archives, intégrité SHA-256 et traçabilité.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#08090f",
+  "theme_color": "#10112a",
+  "icons": [
+    {"src": "img/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}
