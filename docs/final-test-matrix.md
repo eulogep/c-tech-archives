@@ -1,6 +1,6 @@
 # Matrice finale des tests automatisés
 
-La suite automatisée de C-Tech Archives contient **362 tests** validés par `python manage.py test`. Les nombres ci-dessous sont dérivés des fonctions de test réellement présentes dans les modules concernés. Cette matrice synthétise la couverture ; elle ne remplace pas l’exécution de la commande de test.
+La suite automatisée de C-Tech Archives contient **397 tests** validés par `python manage.py test`. Les nombres ci-dessous sont dérivés des fonctions de test réellement présentes dans les modules concernés. Cette matrice synthétise la couverture ; elle ne remplace pas l’exécution de la commande de test.
 
 | Groupe | Nombre | Objectif | Exemples de preuve |
 |---|---:|---|---|
@@ -28,7 +28,9 @@ La suite automatisée de C-Tech Archives contient **362 tests** validés par `py
 | `tests/test_final_ui.py` | 21 |
 | `tests/test_ui_polish.py` | 17 |
 | `tests/test_v2_platform.py` | 54 |
-| **Total** | **362** |
+| `tests/test_roadmap_delivery.py` | 18 |
+| `tests/test_reports_and_two_factor.py` | 17 |
+| **Total** | **397** |
 
 ## Lecture des résultats
 
