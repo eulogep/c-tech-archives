@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import warnings
+from io import BytesIO
+
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
+from PIL import Image
 
 from .models import Role, User
 
@@ -97,18 +102,92 @@ class SignUpForm(forms.Form):
 class ProfileAvatarForm(forms.Form):
     """Accepte une petite image de profil avant stockage privé en base."""
 
-    avatar = forms.ImageField(
+    avatar = forms.FileField(
         label="Photo de profil",
         help_text="JPEG, PNG ou WebP — 2 Mo maximum.",
+        validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"])],
     )
 
-    allowed_content_types = {"image/jpeg", "image/png", "image/webp"}
+    allowed_content_types = {
+        "image/jpeg": "JPEG",
+        "image/png": "PNG",
+        "image/webp": "WEBP",
+    }
+    canonical_content_types = {
+        "JPEG": "image/jpeg",
+        "PNG": "image/png",
+        "WEBP": "image/webp",
+    }
+    extensions_by_format = {
+        "JPEG": {"jpg", "jpeg"},
+        "PNG": {"png"},
+        "WEBP": {"webp"},
+    }
+    allowed_pillow_formats = ("JPEG", "PNG", "WEBP")
     max_upload_size = 2 * 1024 * 1024
+    max_dimension = 4096
+    max_pixels = 16_777_216
+
+    @staticmethod
+    def _format_from_signature(header: bytes) -> str | None:
+        """Identifie les trois signatures autorisées sans appeler Pillow."""
+
+        if header.startswith(b"\xff\xd8\xff"):
+            return "JPEG"
+        if header.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "PNG"
+        if len(header) >= 12 and header[:4] == b"RIFF" and header[8:12] == b"WEBP":
+            return "WEBP"
+        return None
 
     def clean_avatar(self):
         avatar = self.cleaned_data["avatar"]
-        if avatar.content_type not in self.allowed_content_types:
-            raise ValidationError("Le format doit être JPEG, PNG ou WebP.")
+        declared_content_type = getattr(avatar, "content_type", None)
         if avatar.size > self.max_upload_size:
             raise ValidationError("La photo ne doit pas dépasser 2 Mo.")
+        if declared_content_type not in self.allowed_content_types:
+            raise ValidationError("Le format doit être JPEG, PNG ou WebP.")
+
+        avatar.seek(0)
+        content = avatar.read()
+        avatar.seek(0)
+        signature_format = self._format_from_signature(content[:12])
+        if signature_format is None:
+            raise ValidationError("La signature du fichier image est invalide.")
+        if self.allowed_content_types[declared_content_type] != signature_format:
+            raise ValidationError("Le type MIME déclaré ne correspond pas au contenu de l’image.")
+
+        extension = avatar.name.rsplit(".", 1)[-1].lower()
+        if extension not in self.extensions_by_format[signature_format]:
+            raise ValidationError("L’extension ne correspond pas au contenu de l’image.")
+
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", Image.DecompressionBombWarning)
+                with Image.open(
+                    BytesIO(content), formats=self.allowed_pillow_formats
+                ) as image:
+                    detected_format = image.format
+                    if detected_format not in self.canonical_content_types:
+                        raise ValidationError("Le format doit être JPEG, PNG ou WebP.")
+                    if detected_format != signature_format:
+                        raise ValidationError("Le format détecté ne correspond pas au fichier.")
+
+                    width, height = image.size
+                    if (
+                        width > self.max_dimension
+                        or height > self.max_dimension
+                        or width * height > self.max_pixels
+                    ):
+                        raise ValidationError(
+                            "La photo ne doit pas dépasser 4096 × 4096 pixels."
+                        )
+                    image.verify()
+        except ValidationError:
+            raise
+        except Exception as error:
+            raise ValidationError("Le fichier image est invalide ou illisible.") from error
+
+        avatar.content_type = self.canonical_content_types[detected_format]
+        avatar.seek(0)
         return avatar
