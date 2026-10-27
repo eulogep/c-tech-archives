@@ -55,7 +55,7 @@ La vérification SHA-256 distingue `VALID`, `MISMATCH`, `NO_FILE`, `MISSING_CHEC
 | Catégorie de revue | Couverture MVP vérifiée | Limite |
 |---|---|---|
 | Broken Access Control | RBAC centralisé, QuerySet filtré, 404 anti-IDOR, tests detail/edit/download/verify | Pas d’ACL métier fine |
-| Authentication Failures | Sessions Django, comptes inactifs refusés, `next` externe neutralisé, CSRF | Pas de MFA ni rate limiting |
+| Authentication Failures | Sessions Django, comptes inactifs refusés, `next` externe neutralisé, CSRF | Pas de MFA ; verrouillage temporaire par compte et limitation des inscriptions depuis la v2, sans protection distribuée par IP derrière le proxy |
 | Injection | ORM, tests de paramètres SQL-like, absence de SQL brut dans le domaine | Aucun pentest SQL externe |
 | Security Misconfiguration | Secrets environnement, hôtes explicites sans wildcard hors DEBUG, cookies/HTTPS pilotés par environnement, `check --deploy` | Déploiement reverse proxy non encore réalisé |
 | Software and Data Integrity | Upload allowlist, stockage privé, checksum SHA-256, audit de vérification | Pas de signature numérique ou WORM |
@@ -92,7 +92,7 @@ Dans un profil de production simulé avec `DJANGO_ENV=production`, `DJANGO_DEBUG
 
 ## Risques résiduels et prérequis de production
 
-Les risques résiduels assumés sont le brute-force et credential stuffing sans rate limiting intégré, l’absence de MFA, l’absence d’antivirus, l’absence de chiffrement de stockage géré par l’application, l’absence de signature numérique, l’absence d’immutabilité externe des logs et checksums, le risque TOCTOU sur une modification concurrente d’un fichier, ainsi que les limites d’upload du reverse proxy/web server à définir en production. `ARCHIVE_MAX_UPLOAD_SIZE` limite l’application ; les seuils et timeouts Nginx/équivalent doivent compléter cette défense contre les gros corps de requête et le DoS.
+Les risques résiduels assumés sont le credential stuffing réparti sur de nombreux comptes (la v2 ne verrouille que par compte, une IP derrière le proxy Render étant partagée), l’absence de MFA, l’absence d’antivirus, l’absence de chiffrement de stockage géré par l’application, l’absence de signature numérique, l’absence d’immutabilité externe des logs et checksums, le risque TOCTOU sur une modification concurrente d’un fichier, ainsi que les limites d’upload du reverse proxy/web server à définir en production. `ARCHIVE_MAX_UPLOAD_SIZE` limite l’application ; les seuils et timeouts Nginx/équivalent doivent compléter cette défense contre les gros corps de requête et le DoS.
 
 Sont hors périmètre : OAuth, JWT, API REST, MFA, S3, moteur antivirus maison, blockchain, signature électronique, chiffrement custom, microservices et workflow documentaire supplémentaire.
 

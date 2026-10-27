@@ -28,7 +28,7 @@ Cette synthèse réutilise les constats et le modèle de menace de T-014. Elle n
 
 ## Risques résiduels
 
-Le MVP ne fournit pas de MFA, rate limiting intégré, antivirus, chiffrement applicatif au repos, signature numérique, SIEM/WORM, ACL par service ou individu, versioning documentaire, sauvegarde/restauration, pentest externe ni certification OWASP. SHA-256 détecte une différence entre un fichier et sa référence, mais ne protège pas contre un acteur capable de modifier simultanément le stockage et la base.
+Le MVP ne fournit pas de MFA, de protection distribuée contre le credential stuffing (la v2 verrouille par compte et limite les inscriptions), d’antivirus, chiffrement applicatif au repos, signature numérique, SIEM/WORM, ACL par service ou individu, versioning documentaire, sauvegarde/restauration, pentest externe ni certification OWASP. SHA-256 détecte une différence entre un fichier et sa référence, mais ne protège pas contre un acteur capable de modifier simultanément le stockage et la base.
 
 ## Positionnement de production
 

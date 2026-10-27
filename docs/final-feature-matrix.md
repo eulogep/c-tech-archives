@@ -4,7 +4,7 @@ Cette matrice décrit l’état réellement intégré du MVP C-Tech Archives apr
 
 | Fonction | Ticket | Code principal | Tests automatisés | Démonstration | Limite explicite |
 |---|---|---|---|---|---|
-| Authentification et inscription par session | T-006, maintenance post-MVP | `accounts`, `EmailAuthenticationForm`, `EmailBackend`, `LoginView`, `LogoutView` | `accounts/tests.py`, `HARD-019`, `HARD-020`, `HARD-024` | Connexion par e-mail, inscription Consultant, navigation protégée, déconnexion | Pas de MFA, SSO ou rate limiting intégré |
+| Authentification et inscription par session | T-006, maintenance post-MVP | `accounts`, `EmailAuthenticationForm`, `EmailBackend`, `LoginView`, `LogoutView` | `accounts/tests.py`, `HARD-019`, `HARD-020`, `HARD-024` | Connexion par e-mail, inscription Consultant, navigation protégée, déconnexion | Pas de MFA ni SSO ; verrouillage temporaire par compte après échecs et limitation des inscriptions (v2) |
 | Rôles métier | T-003, T-011 | `accounts.models.Role`, `archives.permissions` | `accounts/tests.py`, `archives/tests.py` | Connexion avec Consultant, Agent, Administrateur | Politique MVP à valider avec C-Tech ; pas d’ACL nominative |
 | Dashboard RBAC et guide d’utilisation | T-007, T-011, maintenance post-MVP | `dashboard.views`, `visible_archives_for`, `onboarding.js` | `dashboard/tests.py`, `accounts/tests.py`, `RBAC-035` à `RBAC-038`, `UI-008` | Comparer les métriques d’un Consultant et d’un Administrateur ; ouvrir le guide | Pas de widgets analytiques ni statistiques historiques |
 | CRUD des métadonnées | T-008, T-011 | `archives.views`, `ArchiveForm`, `archives.access` | `archives/tests.py`, `RBAC-019` à `RBAC-028` | Créer puis modifier une archive autorisée | Pas de suppression physique ni remplacement libre du fichier |
@@ -20,6 +20,6 @@ Cette matrice décrit l’état réellement intégré du MVP C-Tech Archives apr
 
 ## Lecture de la preuve
 
-Les tests regroupés sont conservés dans les applications métier et dans `tests/`. La commande `python manage.py test` exécute actuellement **299 tests**. La démonstration doit employer uniquement des données synthétiques ; les exemples de comptes, de services et de documents ne doivent jamais correspondre à des données réelles de C-Tech.
+Les tests regroupés sont conservés dans les applications métier et dans `tests/`. La commande `python manage.py test` exécute actuellement **362 tests**. La démonstration doit employer uniquement des données synthétiques ; les exemples de comptes, de services et de documents ne doivent jamais correspondre à des données réelles de C-Tech.
 
 > Une action masquée dans l’interface améliore l’expérience du rôle concerné. Elle ne constitue pas la preuve de sécurité : les autorisations sont imposées par les QuerySets, les mixins, les vues, les formulaires et les services côté serveur.
