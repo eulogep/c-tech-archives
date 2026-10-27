@@ -1,7 +1,8 @@
 """Tests du modèle utilisateur personnalisé et des rôles métier."""
 
 import os
-from unittest.mock import patch
+from io import BytesIO
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -11,6 +12,7 @@ from django.core.management.base import CommandError
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase
 from django.urls import reverse
+from PIL import Image
 
 from .models import FutureImprovementFeature, FutureImprovementVote, Role, User
 
@@ -447,6 +449,21 @@ class PrivateProfileAvatarTests(TestCase):
             content_type="image/png",
         )
 
+    @staticmethod
+    def generated_avatar(image_format, content_type, extension, size=(1, 1)):
+        buffer = BytesIO()
+        Image.new("RGB", size, color=(24, 74, 114)).save(buffer, format=image_format)
+        return SimpleUploadedFile(
+            f"profile.{extension}",
+            buffer.getvalue(),
+            content_type=content_type,
+        )
+
+    def set_existing_avatar(self):
+        self.user.profile_avatar = self.tiny_png
+        self.user.profile_avatar_content_type = "image/png"
+        self.user.save(update_fields=["profile_avatar", "profile_avatar_content_type"])
+
     def test_avatar_upload_is_stored_in_database_without_public_media_path(self):
         self.client.force_login(self.user)
 
@@ -496,6 +513,202 @@ class PrivateProfileAvatarTests(TestCase):
             self.client.get(self.avatar_url),
             f"/accounts/login/?next={self.avatar_url}",
         )
+
+    def test_jpeg_png_and_webp_are_accepted_with_canonical_content_types(self):
+        self.client.force_login(self.user)
+        cases = (
+            ("JPEG", "image/jpeg", "jpg"),
+            ("PNG", "image/png", "png"),
+            ("WEBP", "image/webp", "webp"),
+        )
+
+        for image_format, content_type, extension in cases:
+            with self.subTest(image_format=image_format):
+                response = self.client.post(
+                    self.profile_url,
+                    {
+                        "avatar": self.generated_avatar(
+                            image_format, content_type, extension
+                        )
+                    },
+                )
+
+                self.assertRedirects(response, self.profile_url)
+                self.user.refresh_from_db()
+                self.assertEqual(self.user.profile_avatar_content_type, content_type)
+                self.assertTrue(self.user.has_profile_avatar)
+
+    def test_pillow_open_is_restricted_to_the_three_allowed_formats(self):
+        self.client.force_login(self.user)
+
+        with patch("accounts.forms.Image.open", wraps=Image.open) as image_open:
+            response = self.client.post(
+                self.profile_url, {"avatar": self.avatar_upload()}
+            )
+
+        self.assertRedirects(response, self.profile_url)
+        self.assertEqual(
+            image_open.call_args.kwargs["formats"], ("JPEG", "PNG", "WEBP")
+        )
+
+    def test_oversized_avatar_is_rejected_before_pillow_and_preserves_existing_avatar(
+        self,
+    ):
+        self.set_existing_avatar()
+        self.client.force_login(self.user)
+        oversized = SimpleUploadedFile(
+            "oversized.png",
+            self.tiny_png + b"0" * (2 * 1024 * 1024),
+            content_type="image/png",
+        )
+
+        with patch("accounts.forms.Image.open") as image_open:
+            response = self.client.post(self.profile_url, {"avatar": oversized})
+
+        self.assertEqual(response.status_code, 200)
+        image_open.assert_not_called()
+        self.user.refresh_from_db()
+        self.assertEqual(bytes(self.user.profile_avatar), self.tiny_png)
+        self.assertEqual(self.user.profile_avatar_content_type, "image/png")
+
+    def test_gif_and_xbm_are_rejected_before_pillow(self):
+        self.client.force_login(self.user)
+        payloads = (
+            (
+                "avatar.gif",
+                b"GIF89a\x01\x00\x01\x00\x00\x00\x00",
+                "image/gif",
+            ),
+            (
+                "disguised.png",
+                b"GIF89a\x01\x00\x01\x00\x00\x00\x00",
+                "image/png",
+            ),
+            (
+                "disguised.png",
+                b"#define avatar_width 1\n#define avatar_height 1\n",
+                "image/png",
+            ),
+        )
+
+        for filename, payload, content_type in payloads:
+            with self.subTest(filename=filename, content_type=content_type):
+                upload = SimpleUploadedFile(
+                    filename, payload, content_type=content_type
+                )
+                with patch("accounts.forms.Image.open") as image_open:
+                    response = self.client.post(
+                        self.profile_url, {"avatar": upload}
+                    )
+
+                self.assertEqual(response.status_code, 200)
+                image_open.assert_not_called()
+                self.user.refresh_from_db()
+                self.assertFalse(self.user.has_profile_avatar)
+
+    def test_corrupt_allowed_signature_is_rejected_without_server_error(self):
+        self.client.force_login(self.user)
+        corrupt_png = SimpleUploadedFile(
+            "corrupt.png",
+            b"\x89PNG\r\n\x1a\nnot-a-valid-png",
+            content_type="image/png",
+        )
+
+        response = self.client.post(self.profile_url, {"avatar": corrupt_png})
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.has_profile_avatar)
+
+    def test_decompression_bomb_warning_and_error_are_controlled(self):
+        self.client.force_login(self.user)
+
+        for pillow_error in (
+            Image.DecompressionBombWarning("synthetic warning"),
+            Image.DecompressionBombError("synthetic error"),
+        ):
+            with self.subTest(error=type(pillow_error).__name__):
+                with patch("accounts.forms.Image.open", side_effect=pillow_error):
+                    response = self.client.post(
+                        self.profile_url, {"avatar": self.avatar_upload()}
+                    )
+
+                self.assertEqual(response.status_code, 200)
+                self.user.refresh_from_db()
+                self.assertFalse(self.user.has_profile_avatar)
+
+    def test_dimension_and_pixel_limits_reject_above_limit_and_accept_boundary(self):
+        self.client.force_login(self.user)
+        too_large_image = MagicMock()
+        too_large_image.__enter__.return_value = too_large_image
+        too_large_image.format = "PNG"
+        too_large_image.size = (4097, 4096)
+
+        with patch("accounts.forms.Image.open", return_value=too_large_image):
+            response = self.client.post(
+                self.profile_url, {"avatar": self.avatar_upload()}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        too_large_image.verify.assert_not_called()
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.has_profile_avatar)
+
+        boundary_image = MagicMock()
+        boundary_image.__enter__.return_value = boundary_image
+        boundary_image.format = "PNG"
+        boundary_image.size = (4096, 4096)
+        with patch("accounts.forms.Image.open", return_value=boundary_image):
+            response = self.client.post(
+                self.profile_url, {"avatar": self.avatar_upload()}
+            )
+
+        self.assertRedirects(response, self.profile_url)
+        boundary_image.verify.assert_called_once_with()
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.has_profile_avatar)
+
+    def test_mime_and_content_mismatch_is_rejected_before_pillow(self):
+        self.client.force_login(self.user)
+        jpeg_declared_as_png = self.generated_avatar("JPEG", "image/png", "jpg")
+
+        with patch("accounts.forms.Image.open") as image_open:
+            response = self.client.post(
+                self.profile_url, {"avatar": jpeg_declared_as_png}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        image_open.assert_not_called()
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.has_profile_avatar)
+
+    def test_public_signup_consultant_is_protected_by_avatar_preflight(self):
+        response = self.client.post(
+            reverse("signup"),
+            {
+                "email": "avatar.signup@example.test",
+                "password1": "Avatar-Signup-Password-2026!",
+                "password2": "Avatar-Signup-Password-2026!",
+            },
+        )
+        self.assertRedirects(response, "/")
+        consultant = User.objects.get(email="avatar.signup@example.test")
+        self.assertEqual(consultant.role, Role.CONSULTANT)
+
+        disguised_gif = SimpleUploadedFile(
+            "disguised.png",
+            b"GIF89a\x01\x00\x01\x00\x00\x00\x00",
+            content_type="image/png",
+        )
+        with patch("accounts.forms.Image.open") as image_open:
+            response = self.client.post(
+                self.profile_url, {"avatar": disguised_gif}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        image_open.assert_not_called()
+        consultant.refresh_from_db()
+        self.assertFalse(consultant.has_profile_avatar)
 
 
 class EmailSignupAndAuthenticationTests(TestCase):
